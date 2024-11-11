@@ -8,7 +8,7 @@ class LoginPage extends StatelessWidget {
     return Scaffold(
       appBar:
        AppBar(
-        title: Text(
+        title: const Text(
           "Login",
           style: TextStyle(fontSize: 40),
         ),
@@ -19,7 +19,7 @@ class LoginPage extends StatelessWidget {
 
       body: Center(
         child: Container(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.blue.shade50, // Background color for the container
             borderRadius: BorderRadius.circular(10),
@@ -29,26 +29,26 @@ class LoginPage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
+              const TextField(
                 decoration: InputDecoration(labelText: 'Name'),
               ),
-              SizedBox(height: 10), // Spacing between fields
-              TextField(
+              const SizedBox(height: 10), // Spacing between fields
+              const TextField(
                 decoration: InputDecoration(labelText: 'Password'),
                 obscureText: true,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   Navigator.pushNamed(context, '/home');
                 },
-                child: Text('Login'),
+                child: const Text('Login'),
               ),
               TextButton(
                 onPressed: () {
                   Navigator.pushNamed(context, '/signup');
                 },
-                child: Text('Signup'),
+                child: const Text('Signup'),
               ),
             ],
           ),
