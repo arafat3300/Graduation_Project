@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:gradproj/Models/Properties.dart';
+import 'package:gradproj/models/Property.dart';
 
 
 class PropertyCard extends StatelessWidget {
-  final Properties property;
+  final Property property;
 
   const PropertyCard({Key? key, required this.property}) : super(key: key);
 

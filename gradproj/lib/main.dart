@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:gradproj/Screens/PropertyListings.dart';
-import 'Screens/SignupPage.dart';
-import 'Screens/LoginPage.dart';
+import 'package:gradproj/screens/PropertyListings.dart';
+import 'package:gradproj/screens/PropertyDetails.dart';
+import 'screens/SignupPage.dart';
+import 'screens/LoginPage.dart';
 import 'package:http/http.dart' as http;
 import'dart:convert';
 
@@ -44,7 +45,7 @@ routes:
 {
   '/':(context)=>LoginPage(),
   '/signup':(context)=>SignupPage(),
-  '/listings':(context) => PropertyListScreen()
+  '/listings':(context) => PropertyListScreen(),
 },
 
 

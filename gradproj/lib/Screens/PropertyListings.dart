@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gradproj/Models/Properties.dart';
-import 'package:gradproj/Models/PropertyCard.dart';
+import 'package:gradproj/screens/PropertyDetails.dart';
+import '../models/Property.dart';
+import '../models/PropertyCard.dart';
 
 class PropertyListScreen extends StatefulWidget {
   @override
@@ -8,7 +9,7 @@ class PropertyListScreen extends StatefulWidget {
 }
 
 class _PropertyListScreenState extends State<PropertyListScreen> {
-  List<Properties> properties = [];
+  List <Property> properties = [];
   bool isLoading = false;
   int page = 1;
 
@@ -64,7 +65,18 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
             return Center(child: CircularProgressIndicator()); // Loading indicator
           }
           final property = properties[index];
-          return PropertyCard(property: property); // Display property card
+          return GestureDetector(
+            onTap: () {
+              // Navigate to Propertydetails screen and pass the property
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PropertyDetails(property: property),
+                ),
+              );
+            },
+            child: PropertyCard(property: property), // Display property card
+          ); // Display property card
         },
       ),
     );
@@ -78,9 +90,9 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
 }
 
 // Helper function to generate dummy data
-List<Properties> generateDummyProperties(int count) {
+List<Property> generateDummyProperties(int count) {
   return List.generate(count, (index) {
-    return Properties(
+    return Property(
       id: 'prop_$index',
       name: 'Property $index',
       description: 'A beautiful property located in a prime area of the city, offering all modern amenities and conveniences.',
