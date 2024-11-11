@@ -1,5 +1,6 @@
 class Properties {
   late String id;
+  late String imgUrl;
   late String name;
   late String description;
   late String feedback;
@@ -9,6 +10,7 @@ class Properties {
   late int? floor;
   late double sqft;
   late double price;
+  late List amenities ; 
 
   Properties(
     {
@@ -22,6 +24,8 @@ class Properties {
      required this.floor,
     required this.sqft,
     required this.price,
+    required this.amenities,
+    required this.imgUrl
   }
   );
 }
