@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gradproj/Screens/PropertyListings.dart';
 import 'Screens/SignupPage.dart';
 import 'Screens/LoginPage.dart';
 import 'package:http/http.dart' as http;
@@ -39,9 +40,11 @@ primarySwatch: Colors.red
 
 ),
 initialRoute: '/',
-routes: {
+routes: 
+{
   '/':(context)=>LoginPage(),
-  '/signup':(context)=>SignupPage()
+  '/signup':(context)=>SignupPage(),
+  '/listings':(context) => PropertyListScreen()
 },
 
 
