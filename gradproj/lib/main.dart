@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:gradproj/screens/PropertyListings.dart';
-import 'package:gradproj/screens/PropertyDetails.dart';
 import 'screens/SignupPage.dart';
 import 'screens/LoginPage.dart';
 import 'package:http/http.dart' as http;
