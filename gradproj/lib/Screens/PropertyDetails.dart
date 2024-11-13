@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../models/Property.dart';
+import 'package:http/http.dart' as http;
 
 class PropertyDetails extends StatefulWidget {
   final Property property;
@@ -11,24 +14,65 @@ class PropertyDetails extends StatefulWidget {
 
 class _PropertyDetailsState extends State<PropertyDetails> {
   final TextEditingController _feedbackController = TextEditingController();
+Future<bool> postFeedback(String feedbackText) async {
+  String propertyId = widget.property.id;
+  final url = Uri.parse(
+      "https://property-finder-3a4b1-default-rtdb.firebaseio.com/Property%20Finder/$propertyId/Review.json");
 
-  void _submitFeedback() {
+  try {
+   
+    final getFeedbacks = await http.get(url);
+    List<dynamic> existingReviews = [];
+
+    if (getFeedbacks.statusCode == 200 && getFeedbacks.body != "null") {
+      final decodedResponse = jsonDecode(getFeedbacks.body);
+
+   
+      if (decodedResponse is List) {
+
+        existingReviews = decodedResponse;
+      } else if (decodedResponse is String) {
+      
+        existingReviews = [{'review': decodedResponse}];
+      } else if (decodedResponse is Map<String, dynamic>) {
+       
+        existingReviews = [decodedResponse];
+      }
+      debugPrint("Existing reviews for $propertyId: $existingReviews");
+    }
+
+   
+    existingReviews.add({'review ': feedbackText});
+    debugPrint("Reviews after adding new feedback: $existingReviews");
+
+    final response = await http.put(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(existingReviews),
+    );
+
+    return (response.statusCode >= 200 && response.statusCode < 400);
+  } catch (e) {
+    print("Error posting feedback: $e");
+    return false;
+  }
+}
+
+
+
+  void _submitFeedback() async {
     final feedback = _feedbackController.text;
 
     if (feedback.isNotEmpty) {
-
-
-      // el code el bywady el feedback lel ai model
-
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Feedback submitted: $feedback")),
-      );
-
-      _feedbackController.clear();
+      if (await postFeedback(feedback)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Feedback submitted: $feedback")),
+        );
+        _feedbackController.clear();
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter your feedback.")),
+        const SnackBar(content: Text("could not submit the feedback")),
       );
     }
   }
@@ -49,14 +93,12 @@ class _PropertyDetailsState extends State<PropertyDetails> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             Image.network(
-             'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
+              'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
               height: 250,
               width: double.infinity,
               fit: BoxFit.cover,
             ),
-
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -80,7 +122,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                 ],
               ),
             ),
-
             Container(
               color: Colors.grey[100],
               padding: const EdgeInsets.all(16.0),
@@ -89,7 +130,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                 style: const TextStyle(fontSize: 16, height: 1.5),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Card(
@@ -110,17 +150,19 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                           color: Colors.indigo,
                         ),
                       ),
-                       const SizedBox(height: 8),
-                        ...?property.amenities?.map((amenity) => Text(
-                         "- $amenity",
-                      style: const TextStyle(fontSize: 16),
-                      )).toList() ?? [Text("No amenities available")],
+                      const SizedBox(height: 8),
+                      ...?property.amenities
+                              ?.map((amenity) => Text(
+                                    "- $amenity",
+                                    style: const TextStyle(fontSize: 16),
+                                  ))
+                              .toList() ??
+                          [Text("No amenities available")],
                     ],
                   ),
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text(
@@ -132,8 +174,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                 ),
               ),
             ),
-
-            
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Card(
@@ -155,17 +195,19 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text("Rooms: ${property.rooms}", style: const TextStyle(fontSize: 16)),
-                      Text("Toilets: ${property.toilets}", style: const TextStyle(fontSize: 16)),
-                      Text("Floor: ${property.floor ?? 'N/A'}", style: const TextStyle(fontSize: 16)),
-                      Text("Area: ${property.sqft} sqft", style: const TextStyle(fontSize: 16)),
+                      Text("Rooms: ${property.rooms}",
+                          style: const TextStyle(fontSize: 16)),
+                      Text("Toilets: ${property.toilets}",
+                          style: const TextStyle(fontSize: 16)),
+                      Text("Floor: ${property.floor ?? 'N/A'}",
+                          style: const TextStyle(fontSize: 16)),
+                      Text("Area: ${property.sqft} sqft",
+                          style: const TextStyle(fontSize: 16)),
                     ],
                   ),
                 ),
               ),
             ),
-
-            
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Card(
@@ -200,7 +242,8 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                         onPressed: _submitFeedback,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 12, horizontal: 24),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -208,7 +251,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                         child: const Text(
                           "Submit",
                           style: TextStyle(color: Colors.white),
-                          ),
+                        ),
                       ),
                     ],
                   ),

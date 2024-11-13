@@ -12,9 +12,8 @@ class PropertyListScreen extends StatefulWidget {
 
 class _PropertyListScreenState extends State<PropertyListScreen> {
   List<Property> properties = [];
-  bool isLoading = false;
-  int page = 1;
-  final int itemsPerPage = 15;
+
+
 
   final ScrollController _scrollController = ScrollController();
 
@@ -22,17 +21,11 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   void initState() {
     super.initState();
     fetchProperties(); // Fetch the initial properties
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 100 && !isLoading) {
-        fetchProperties(); // Load more properties before reaching the end of the list
-      }
-    });
+   
   }
 
   Future<void> fetchProperties() async {
-    setState(() {
-      isLoading = true;
-    });
+  
 
     try {
       // Construct the URL directly using Uri.parse (no pagination for testing)
@@ -76,7 +69,7 @@ final newProperties = data
         // Append new properties and increment page
         setState(() {
           properties.addAll(newProperties);
-          page++;
+         
         });
       } else {
         print("No data available or failed to load properties.");
@@ -87,9 +80,7 @@ final newProperties = data
         content: Text("Failed to load properties. Please try again later."),
       ));
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+  
     }
   }
 
@@ -102,18 +93,16 @@ final newProperties = data
         title: const Text("Property Listings"),
       ),
       body: GridView.builder(
-        controller: _scrollController, // Attach controller for pagination
+        
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 1,
           mainAxisSpacing: 10.0,
           crossAxisSpacing: 10.0,
           childAspectRatio: 0.75,
         ),
-        itemCount: properties.length + (isLoading ? 1 : 0), // Add 1 item for loading indicator
+        itemCount: properties.length , // Add 1 item for loading indicator
         itemBuilder: (context, index) {
-          if (index == properties.length) {
-            return const Center(child: CircularProgressIndicator()); // Loading indicator
-          }
+  
           final property = properties[index];
           return GestureDetector(
             onTap: () {
