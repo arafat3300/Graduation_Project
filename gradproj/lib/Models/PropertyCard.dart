@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gradproj/models/Property.dart';
 
-
 class PropertyCard extends StatelessWidget {
   final Property property;
 
@@ -9,8 +8,8 @@ class PropertyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 3,
+    return Padding(padding: const EdgeInsets.fromLTRB(10, 7, 10, 7) , child:  Card(
+      elevation:3 ,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
       ),
@@ -20,12 +19,12 @@ class PropertyCard extends StatelessWidget {
           // Property image
           Expanded(
             child: ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
               child: Image.network(
                 property.imgUrl,
                 fit: BoxFit.cover,
                 width: double.infinity,
-                errorBuilder: (context, error, stackTrace) => Icon(Icons.error),
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
               ),
             ),
           ),
@@ -37,26 +36,47 @@ class PropertyCard extends StatelessWidget {
                 // Property name
                 Text(
                   property.name,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
+                // Property type and rent/sale
+                Text(
+                  "${property.type} - ${property.rentOrSale}",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
                 // Property price
                 Text(
                   "\$${property.price.toStringAsFixed(2)}",
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                // Property size
+                Text(
+                  "${property.sqft} sqft",
+                  style: TextStyle(
+                    fontSize: 12,
                     color: Colors.grey[600],
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 // Property location
                 Text(
-                  property.city,
+                  "${property.city}, ${property.location}",
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -64,11 +84,20 @@ class PropertyCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 4),
+                // Number of rooms and bathrooms
+                Text(
+                  "${property.rooms} Beds • ${property.toilets} Baths",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
               ],
             ),
           ),
         ],
       ),
-    );
+    ));
   }
 }

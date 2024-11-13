@@ -28,7 +28,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
       _feedbackController.clear();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter your feedback.")),
+        const SnackBar(content: Text("Please enter your feedback.")),
       );
     }
   }
@@ -44,7 +44,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
     final property = widget.property;
 
     return Scaffold(
-      appBar: AppBar(title: Text("Property Details")),
+      appBar: AppBar(title: const Text("Property Details")),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,12 +64,12 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                 children: [
                   Text(
                     property.name,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     "Location: ${property.city}",
                     style: TextStyle(
@@ -86,7 +86,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
               padding: const EdgeInsets.all(16.0),
               child: Text(
                 property.description,
-                style: TextStyle(fontSize: 16, height: 1.5),
+                style: const TextStyle(fontSize: 16, height: 1.5),
               ),
             ),
 
@@ -102,7 +102,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         "Specialities",
                         style: TextStyle(
                           fontSize: 20,
@@ -110,11 +110,11 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                           color: Colors.indigo,
                         ),
                       ),
-                      SizedBox(height: 8),
-                      ...property.amenities.map((amenity) => Text(
-                            "• $amenity",
-                            style: TextStyle(fontSize: 16),
-                          )),
+                       const SizedBox(height: 8),
+                        ...?property.amenities?.map((amenity) => Text(
+                         "- $amenity",
+                      style: const TextStyle(fontSize: 16),
+                      )).toList() ?? [Text("No amenities available")],
                     ],
                   ),
                 ),
@@ -125,7 +125,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
               padding: const EdgeInsets.all(16.0),
               child: Text(
                 "Price: \$${property.price}",
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.teal,
@@ -146,7 +146,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         "Additional Details",
                         style: TextStyle(
                           fontSize: 20,
@@ -154,11 +154,11 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                           color: Colors.indigo,
                         ),
                       ),
-                      SizedBox(height: 8),
-                      Text("Rooms: ${property.rooms}", style: TextStyle(fontSize: 16)),
-                      Text("Toilets: ${property.toilets}", style: TextStyle(fontSize: 16)),
-                      Text("Floor: ${property.floor ?? 'N/A'}", style: TextStyle(fontSize: 16)),
-                      Text("Area: ${property.sqft} sqft", style: TextStyle(fontSize: 16)),
+                      const SizedBox(height: 8),
+                      Text("Rooms: ${property.rooms}", style: const TextStyle(fontSize: 16)),
+                      Text("Toilets: ${property.toilets}", style: const TextStyle(fontSize: 16)),
+                      Text("Floor: ${property.floor ?? 'N/A'}", style: const TextStyle(fontSize: 16)),
+                      Text("Area: ${property.sqft} sqft", style: const TextStyle(fontSize: 16)),
                     ],
                   ),
                 ),
@@ -178,7 +178,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         "Your Feedback",
                         style: TextStyle(
                           fontSize: 20,
@@ -186,26 +186,26 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                           color: Colors.indigo,
                         ),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       TextField(
                         controller: _feedbackController,
                         maxLines: 3,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           border: OutlineInputBorder(),
                           hintText: 'Write your feedback here...',
                         ),
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _submitFeedback,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
-                          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: Text(
+                        child: const Text(
                           "Submit",
                           style: TextStyle(color: Colors.white),
                           ),

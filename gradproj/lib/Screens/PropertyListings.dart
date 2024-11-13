@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:gradproj/screens/PropertyDetails.dart';
 import '../models/Property.dart';
 import '../models/PropertyCard.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class PropertyListScreen extends StatefulWidget {
   @override
@@ -9,52 +11,100 @@ class PropertyListScreen extends StatefulWidget {
 }
 
 class _PropertyListScreenState extends State<PropertyListScreen> {
-  List <Property> properties = [];
+  List<Property> properties = [];
   bool isLoading = false;
   int page = 1;
+  final int itemsPerPage = 15;
 
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    fetchProperties(); 
+    fetchProperties(); // Fetch the initial properties
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent && !isLoading) {
-        fetchProperties(); // Load more properties when reaching end of list
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 100 && !isLoading) {
+        fetchProperties(); // Load more properties before reaching the end of the list
       }
     });
   }
 
   Future<void> fetchProperties() async {
-    
     setState(() {
       isLoading = true;
     });
 
-    // Generate 20 new properties as dummy data
-    final newProperties = generateDummyProperties(20);
+    try {
+      // Construct the URL directly using Uri.parse (no pagination for testing)
+      final url = Uri.parse("https://property-finder-3a4b1-default-rtdb.firebaseio.com/Property%20Finder.json");
 
-    // Simulate a delay to mimic network request time
-    await Future.delayed(Duration(seconds: 2));
+      // Make the request to Firebase
+      final http.Response response = await http.get(url);
+      debugPrint("Response status: ${response.statusCode}");
+      debugPrint("Response body: ${response.body}");
 
-    setState(() {
-      properties.addAll(newProperties); // Append new properties to list
-      page++; // Increment page number for next load
-      isLoading = false;
-    });
+      if (response.statusCode == 200 && response.body != "null") {
+        // Decode the response body as a List
+        final List<dynamic> data = json.decode(response.body);
+
+        // Convert each non-null entry in the list to a Property object
+final newProperties = data
+    .where((entry) => entry != null)
+    .map((entry) => Property(
+          id: entry['ID']?.toString() ?? 'unknown_id',
+          name: entry['Property Name']?.trim() ?? 'Unknown',
+          description: entry['Description']?.trim() ?? '',
+          feedback: (entry['Review'] is List)
+              ? entry['Review']?.cast<String>() ?? []
+              : [entry['Review']?.toString() ?? 'No review available'],
+          city: entry['City']?.trim() ?? '',
+          rooms: entry['Number of Bedrooms'] ?? 0,
+          toilets: entry['Number of Bathrooms'] ?? 0,
+          floor: entry['Floor'] ?? 0,
+          sqft: entry[' Size']?.toDouble() ?? 0.0, // Note the space
+          price: entry[' Price']?.toDouble() ?? 0.0, // Note the space
+          amenities: entry['Amenities']?.cast<String>() ?? [],
+          imgUrl: entry['ImageUrl'] ?? 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
+          type: entry['Property Type']?.trim() ?? 'Unknown',
+          street: entry['Street Mention']?.trim() ?? '',
+          location: entry['Location Mention']?.trim() ?? '',
+          rentOrSale: entry['Rent or Sale']?.trim() ?? 'Unknown',
+        ))
+    .toList();
+
+
+        // Append new properties and increment page
+        setState(() {
+          properties.addAll(newProperties);
+          page++;
+        });
+      } else {
+        print("No data available or failed to load properties.");
+      }
+    } catch (exception) {
+      print("Exception fetching properties: $exception");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Failed to load properties. Please try again later."),
+      ));
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+     
     return Scaffold(
+     
       appBar: AppBar(
-        title: Text("Property Listings"),
+        title: const Text("Property Listings"),
       ),
       body: GridView.builder(
         controller: _scrollController, // Attach controller for pagination
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
+          crossAxisCount: 1,
           mainAxisSpacing: 10.0,
           crossAxisSpacing: 10.0,
           childAspectRatio: 0.75,
@@ -62,12 +112,12 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
         itemCount: properties.length + (isLoading ? 1 : 0), // Add 1 item for loading indicator
         itemBuilder: (context, index) {
           if (index == properties.length) {
-            return Center(child: CircularProgressIndicator()); // Loading indicator
+            return const Center(child: CircularProgressIndicator()); // Loading indicator
           }
           final property = properties[index];
           return GestureDetector(
             onTap: () {
-              // Navigate to Propertydetails screen and pass the property
+              // Navigate to PropertyDetails screen and pass the property
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -76,7 +126,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
               );
             },
             child: PropertyCard(property: property), // Display property card
-          ); // Display property card
+          );
         },
       ),
     );
@@ -87,24 +137,4 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
     _scrollController.dispose(); // Clean up controller
     super.dispose();
   }
-}
-
-// Helper function to generate dummy data
-List<Property> generateDummyProperties(int count) {
-  return List.generate(count, (index) {
-    return Property(
-      id: 'prop_$index',
-      name: 'Property $index',
-      description: 'A beautiful property located in a prime area of the city, offering all modern amenities and conveniences.',
-      feedback: 'Excellent property with great amenities.',
-      city: 'City ${index % 5}', // Cycles through City 0, City 1, etc.
-      rooms: 2 + (index % 4), // Varies from 2 to 5 rooms
-      toilets: 1 + (index % 3), // Varies from 1 to 3 toilets
-      floor: index % 10 == 0 ? null : (1 + (index % 5)), // Some floors are null, others vary from 1 to 5
-      sqft: 500 + (index * 10).toDouble(), // Each property has a slightly larger area
-      price: 100000 + (index * 5000).toDouble(), // Price increases with each property
-      amenities: ['Pool', 'Gym', 'Garden'], // Sample amenities
-      imgUrl: 'https://via.placeholder.com/150?text=Property+Image+$index', // Placeholder image URL
-    );
-  });
 }
