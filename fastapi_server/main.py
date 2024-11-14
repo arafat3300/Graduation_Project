@@ -1,14 +1,19 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from starlette.middleware.cors import CORSMiddleware
 import logging
 
 app = FastAPI()
-
-# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("FeedbackLogger")
 
-# Define feedback data structure
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 class Feedback(BaseModel):
     feedback_text: str
 
