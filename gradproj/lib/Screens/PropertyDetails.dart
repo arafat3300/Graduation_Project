@@ -111,7 +111,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                         ),
                       ),
                        const SizedBox(height: 8),
-                        ...?property.amenities?.map((amenity) => Text(
+                        ...property.amenities?.map((amenity) => Text(
                          "- $amenity",
                       style: const TextStyle(fontSize: 16),
                       )).toList() ?? [Text("No amenities available")],
