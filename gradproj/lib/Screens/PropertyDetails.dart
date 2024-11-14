@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import '../models/Property.dart';
 
@@ -12,18 +14,36 @@ class PropertyDetails extends StatefulWidget {
 class _PropertyDetailsState extends State<PropertyDetails> {
   final TextEditingController _feedbackController = TextEditingController();
 
-  void _submitFeedback() {
-    final feedback = _feedbackController.text;
+  Future<void> _submitFeedback() async {
+    final feedbackText = _feedbackController.text;
 
-    if (feedback.isNotEmpty) {
+    if (feedbackText.isNotEmpty) {
+      final url = Uri.parse('http://127.0.0.1:8000/feedback');
+      final feedbackData = {
+        "feedback_text": feedbackText,
+      };
 
+      try {
+        final response = await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(feedbackData),
+        );
 
-      // el code el bywady el feedback lel ai model
-
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Feedback submitted: $feedback")),
-      );
+        if (response.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Feedback submitted successfully!")),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to submit feedback. Please try again.")),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("An error occurred: $e")),
+        );
+      }
 
       _feedbackController.clear();
     } else {
