@@ -29,7 +29,7 @@ Future<bool> postFeedback(String feedbackText) async {
 
    
       if (decodedResponse is List) {
-
+        
         existingReviews = decodedResponse;
       } else if (decodedResponse is String) {
       
@@ -151,7 +151,7 @@ Future<bool> postFeedback(String feedbackText) async {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      ...?property.amenities
+                      ...property.amenities
                               ?.map((amenity) => Text(
                                     "- $amenity",
                                     style: const TextStyle(fontSize: 16),
