@@ -14,6 +14,33 @@ class PropertyDetails extends StatefulWidget {
 
 class _PropertyDetailsState extends State<PropertyDetails> {
   final TextEditingController _feedbackController = TextEditingController();
+
+
+Future<bool> postToFastApi() async {
+  String propertyId = widget.property.id;
+  final url = Uri.parse("http://10.0.2.2:8000/feedback"); // Corrected URL
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({ // Ensure JSON encoding
+        "feedback_text": _feedbackController.text,
+        "property_id": propertyId,
+      }),
+    );
+
+    // Log the response for debugging
+    debugPrint("API Response Status: ${response.statusCode}");
+    debugPrint("API Response Body: ${response.body}");
+
+    return (response.statusCode >= 200 && response.statusCode < 400);
+  } catch (err) {
+    debugPrint("Error posting feedback to FastAPI: $err");
+    return false;
+  }
+}
+
+
 Future<bool> postFeedback(String feedbackText) async {
   String propertyId = widget.property.id;
   final url = Uri.parse(
@@ -64,7 +91,7 @@ Future<bool> postFeedback(String feedbackText) async {
     final feedback = _feedbackController.text;
 
     if (feedback.isNotEmpty) {
-      if (await postFeedback(feedback)) {
+      if (await postFeedback(feedback) && await postToFastApi()) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Feedback submitted: $feedback")),
         );
