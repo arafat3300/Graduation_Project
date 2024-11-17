@@ -14,10 +14,11 @@ class PropertyDetails extends StatefulWidget {
 
 class _PropertyDetailsState extends State<PropertyDetails> {
   final TextEditingController _feedbackController = TextEditingController();
-Future<bool> postFeedback(String feedbackText) async {
-  String propertyId = widget.property.id;
-  final url = Uri.parse(
-      "https://property-finder-3a4b1-default-rtdb.firebaseio.com/Property%20Finder/$propertyId/Review.json");
+
+  Future<bool> postFeedback(String feedbackText) async {
+    String propertyId = widget.property.id;
+    final url = Uri.parse(
+        "https://property-finder-3a4b1-default-rtdb.firebaseio.com/Property%20Finder/$propertyId/Review.json");
 
     try {
       final getFeedbacks = await http.get(url);
@@ -54,7 +55,7 @@ Future<bool> postFeedback(String feedbackText) async {
     final feedback = _feedbackController.text;
 
     if (feedback.isNotEmpty) {
-      if (await postFeedback(feedback) && await postToFastApi()) {
+      if (await postFeedback(feedback)) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Feedback submitted: $feedback")),
         );
