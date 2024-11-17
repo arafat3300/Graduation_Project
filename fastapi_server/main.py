@@ -16,6 +16,7 @@ app.add_middleware(
 )
 class Feedback(BaseModel):
     feedback_text: str
+    property_id: int
 
 @app.post("/feedback")
 async def receive_feedback(feedback: Feedback):
