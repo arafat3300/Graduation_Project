@@ -44,14 +44,16 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                   sqft: entry[' Size']?.toDouble() ?? 0.0,
                   price: entry[' Price']?.toDouble() ?? 0.0,
                   amenities: entry['Amenities']?.cast<String>() ?? [],
-                  imgUrl: entry['ImageUrl'] ??
-                      'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
+                 imgUrl: (entry['ImageUrl']?.isNotEmpty ?? false)
+                                           ? entry['ImageUrl']
+                                         : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
                   type: entry['Property Type']?.trim() ?? 'Unknown',
                   street: entry['Street Mention']?.trim() ?? '',
                   location: entry['Location Mention']?.trim() ?? '',
                   rentOrSale: entry['Rent or Sale']?.trim() ?? 'Unknown',
                 ))
             .toList();
+            
 
         setState(() {
           properties.addAll(newProperties);
@@ -124,10 +126,10 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                     },
                     child: PropertyCard(
                       property: property,
-                      gradientColors: [
-                        const Color(0xFF73AEF5),
-                        const Color(0xFF398AE5)
-                      ],
+                      // gradientColors: [
+                      //   const Color(0xFF73AEF5),
+                      //   const Color(0xFF398AE5)
+                      // ],
                     ),
                   );
                 },

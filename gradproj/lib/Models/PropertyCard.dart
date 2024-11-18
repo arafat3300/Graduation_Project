@@ -3,13 +3,13 @@ import 'package:gradproj/models/Property.dart';
 
 class PropertyCard extends StatelessWidget {
   final Property property;
-  final List<Color> gradientColors;
+  // final List<Color> gradientColors;
 
   const PropertyCard({
-    Key? key,
+    super.key,
     required this.property,
-    this.gradientColors = const [Color(0xFF73AEF5), Color(0xFF398AE5)],
-  }) : super(key: key);
+    
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,25 +28,32 @@ class PropertyCard extends StatelessWidget {
               child: Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(12)),
                     child: Image.network(
-                      property.imgUrl,
+                    "${property.imgUrl}",
                       fit: BoxFit.cover,
                       width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.error, size: 50, color: Colors.red),
+                      errorBuilder: (context, error, stackTrace) {
+                       
+                        return Image.asset(
+                          'assets/images/listingPlaceholder.jpg', 
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                        );
+                      },
                     ),
                   ),
                   // Gradient overlay
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: gradientColors,
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          stops: const [0.5, 1.0],
-                        ),
+                        // gradient: LinearGradient(
+                        //   colors: gradientColors,
+                        //   begin: Alignment.topCenter,
+                        //   end: Alignment.bottomCenter,
+                        //   stops: const [0.5, 1.0],
+                        // ),
                       ),
                     ),
                   ),
