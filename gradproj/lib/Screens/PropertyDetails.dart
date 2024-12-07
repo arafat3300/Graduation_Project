@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/Property.dart';
+import 'package:http/http.dart' as http;
 
 class PropertyDetails extends StatefulWidget {
   final Property property;
+
   const PropertyDetails({required this.property});
 
   @override
@@ -12,23 +15,55 @@ class PropertyDetails extends StatefulWidget {
 class _PropertyDetailsState extends State<PropertyDetails> {
   final TextEditingController _feedbackController = TextEditingController();
 
-  void _submitFeedback() {
+  Future<bool> postFeedback(String feedbackText) async {
+    String propertyId = widget.property.id;
+    final url = Uri.parse(
+        "https://property-finder-3a4b1-default-rtdb.firebaseio.com/Property%20Finder/$propertyId/Review.json");
+
+    try {
+      final getFeedbacks = await http.get(url);
+      List<dynamic> existingReviews = [];
+
+      if (getFeedbacks.statusCode == 200 && getFeedbacks.body != "null") {
+        final decodedResponse = jsonDecode(getFeedbacks.body);
+
+        if (decodedResponse is List) {
+          existingReviews = decodedResponse;
+        } else if (decodedResponse is String) {
+          existingReviews = [{'review': decodedResponse}];
+        } else if (decodedResponse is Map<String, dynamic>) {
+          existingReviews = [decodedResponse];
+        }
+      }
+
+      existingReviews.add({'review': feedbackText});
+
+      final response = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(existingReviews),
+      );
+
+      return (response.statusCode >= 200 && response.statusCode < 400);
+    } catch (e) {
+      print("Error posting feedback: $e");
+      return false;
+    }
+  }
+
+  void _submitFeedback() async {
     final feedback = _feedbackController.text;
 
     if (feedback.isNotEmpty) {
-
-
-      // el code el bywady el feedback lel ai model
-
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Feedback submitted: $feedback")),
-      );
-
-      _feedbackController.clear();
+      if (await postFeedback(feedback)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Feedback submitted: $feedback")),
+        );
+        _feedbackController.clear();
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter your feedback.")),
+        const SnackBar(content: Text("Could not submit the feedback")),
       );
     }
   }
@@ -44,19 +79,37 @@ class _PropertyDetailsState extends State<PropertyDetails> {
     final property = widget.property;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Property Details")),
+      appBar: AppBar(
+        title: const Text("Property Details"),
+        backgroundColor: const Color(0xFF398AE5),
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            Image.network(
-             'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
-              height: 250,
-              width: double.infinity,
-              fit: BoxFit.cover,
+            // Header Image with Gradient Overlay
+            Stack(
+              children: [
+                Image.network(
+                  'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
+                  height: 250,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.black.withOpacity(0.5), Colors.transparent],
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-
+            // Property Information
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -69,7 +122,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Text(
                     "Location: ${property.city}",
                     style: TextStyle(
@@ -80,7 +133,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                 ],
               ),
             ),
-
+            // Property Description
             Container(
               color: Colors.grey[100],
               padding: const EdgeInsets.all(16.0),
@@ -89,38 +142,19 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                 style: const TextStyle(fontSize: 16, height: 1.5),
               ),
             ),
-
+            // Specialities Section
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Specialities",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.indigo,
-                        ),
-                      ),
-                       const SizedBox(height: 8),
-                        ...?property.amenities?.map((amenity) => Text(
-                         "- $amenity",
-                      style: const TextStyle(fontSize: 16),
-                      )).toList() ?? [Text("No amenities available")],
-                    ],
-                  ),
-                ),
+              child: _buildCard(
+                title: "Specialities",
+                content: property.amenities != null
+                    ? property.amenities!
+                        .map((amenity) => Text("- $amenity", style: const TextStyle(fontSize: 16)))
+                        .toList()
+                    : [const Text("No amenities available", style: TextStyle(fontSize: 16))],
               ),
             ),
-
+            // Price Section
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text(
@@ -132,89 +166,78 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                 ),
               ),
             ),
-
-            
+            // Additional Details Section
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Additional Details",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.indigo,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text("Rooms: ${property.rooms}", style: const TextStyle(fontSize: 16)),
-                      Text("Toilets: ${property.toilets}", style: const TextStyle(fontSize: 16)),
-                      Text("Floor: ${property.floor ?? 'N/A'}", style: const TextStyle(fontSize: 16)),
-                      Text("Area: ${property.sqft} sqft", style: const TextStyle(fontSize: 16)),
-                    ],
-                  ),
-                ),
+              child: _buildCard(
+                title: "Additional Details",
+                content: [
+                  Text("Rooms: ${property.rooms}", style: const TextStyle(fontSize: 16)),
+                  Text("Toilets: ${property.toilets}", style: const TextStyle(fontSize: 16)),
+                  Text("Floor: ${property.floor ?? 'N/A'}", style: const TextStyle(fontSize: 16)),
+                  Text("Area: ${property.sqft} sqft", style: const TextStyle(fontSize: 16)),
+                ],
               ),
             ),
-
-            
+            // Feedback Section
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Your Feedback",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.indigo,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _feedbackController,
-                        maxLines: 3,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Write your feedback here...',
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _submitFeedback,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          "Submit",
-                          style: TextStyle(color: Colors.white),
-                          ),
-                      ),
-                    ],
+              child: _buildCard(
+                title: "Your Feedback",
+                content: [
+                  TextField(
+                    controller: _feedbackController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Write your feedback here...',
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _submitFeedback,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      "Submit",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard({required String title, required List<Widget> content}) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.indigo,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...content,
           ],
         ),
       ),

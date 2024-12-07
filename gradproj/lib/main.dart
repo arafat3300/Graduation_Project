@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gradproj/screens/PropertyListings.dart';
-import 'screens/SignupPage.dart';
-import 'screens/LoginPage.dart';
+import 'screens/PropertyListings.dart';
+import 'screens/SignupScreen.dart';
+import 'screens/LoginScreen.dart';
 import 'package:http/http.dart' as http;
 import'dart:convert';
 
@@ -26,31 +26,24 @@ Future<void> saveitem() async {
   }
 }
 
+
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-title:'MY Training demo',
-theme:ThemeData(
-primarySwatch: Colors.red
-
-),
-initialRoute: '/',
-routes: 
-{
-  '/':(context)=>LoginPage(),
-  '/signup':(context)=>SignupPage(),
-  '/listings':(context) => PropertyListScreen(),
-},
-
-
-
+      title: 'Login & SignUp Demo',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => LoginScreen(),
+        '/signup': (context) => SignUpScreen(),
+        '/propertyListings': (context) => PropertyListScreen(),
+      },
     );
   }
-  
 }

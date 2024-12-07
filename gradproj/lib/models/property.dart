@@ -1,7 +1,7 @@
 
 class Property {
   late String id;
-  late String imgUrl;
+  late String? imgUrl;
   late String type;
   late String name;
   late String description;
@@ -31,7 +31,7 @@ class Property {
     required this.sqft,
     required this.price,
      this.amenities,
-    required this.imgUrl,
+     this.imgUrl,
     required this.rentOrSale,
     required this.location,
     required this.street,
