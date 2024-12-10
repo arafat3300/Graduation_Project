@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 class PropertyDetails extends StatefulWidget {
   final Property property;
 
-  const PropertyDetails({required this.property});
+  const PropertyDetails({super.key, required this.property});
 
   @override
   _PropertyDetailsState createState() => _PropertyDetailsState();

@@ -47,7 +47,7 @@ class PropertyCard extends StatelessWidget {
                   // Gradient overlay
                   Positioned.fill(
                     child: Container(
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         // gradient: LinearGradient(
                         //   colors: gradientColors,
                         //   begin: Alignment.topCenter,

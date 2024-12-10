@@ -4,8 +4,11 @@ import '../models/Property.dart';
 import '../Models/PropertyCard.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'LoginScreen.dart'; // Import your login/signup screen
 
 class PropertyListScreen extends StatefulWidget {
+  const PropertyListScreen({super.key});
+
   @override
   _PropertyListScreenState createState() => _PropertyListScreenState();
 }
@@ -44,16 +47,15 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                   sqft: entry[' Size']?.toDouble() ?? 0.0,
                   price: entry[' Price']?.toDouble() ?? 0.0,
                   amenities: entry['Amenities']?.cast<String>() ?? [],
-                 imgUrl: (entry['ImageUrl']?.isNotEmpty ?? false)
-                                           ? entry['ImageUrl']
-                                         : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
+                  imgUrl: (entry['ImageUrl']?.isNotEmpty ?? false)
+                      ? entry['ImageUrl']
+                      : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
                   type: entry['Property Type']?.trim() ?? 'Unknown',
                   street: entry['Street Mention']?.trim() ?? '',
                   location: entry['Location Mention']?.trim() ?? '',
                   rentOrSale: entry['Rent or Sale']?.trim() ?? 'Unknown',
                 ))
             .toList();
-            
 
         setState(() {
           properties.addAll(newProperties);
@@ -63,7 +65,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
       }
     } catch (exception) {
       print("Exception fetching properties: $exception");
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text("Failed to load properties. Please try again later."),
       ));
     }
@@ -101,6 +103,22 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
               backgroundColor: Colors.transparent,
               elevation: 0.0,
               centerTitle: true,
+              actions: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.account_circle,
+                    color: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
             Expanded(
               child: GridView.builder(
@@ -126,10 +144,6 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                     },
                     child: PropertyCard(
                       property: property,
-                      // gradientColors: [
-                      //   const Color(0xFF73AEF5),
-                      //   const Color(0xFF398AE5)
-                      // ],
                     ),
                   );
                 },

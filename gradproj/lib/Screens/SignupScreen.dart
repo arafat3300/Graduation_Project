@@ -4,15 +4,65 @@ import 'package:http/http.dart' as http;
 import 'package:gradproj/Screens/LoginScreen.dart';
 import '../Utilities/Constants.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart'; 
 
 class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({super.key});
+
   @override
   _SignUpScreenState createState() => _SignUpScreenState();
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  // ignore: unused_field
-  bool _rememberMe = false;
+  // bool _rememberMe = false;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
+  Future<void> _signUpUser(String email, String password) async {
+    if (password != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Passwords do not match!")),
+      );
+      return;
+    }
+
+    try {
+      // Corrected URL
+      final url = Uri.https(
+          'arafatsprojects-default-rtdb.firebaseio.com', '/Mydata.json');
+      final response = await http.post(
+        url,
+        body: json.encode({
+          'email': email,
+          'password': password,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("User signed up successfully!")),
+        );
+
+        // Navigate to Login Screen after successful signup
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+      } else {
+        print("Failed to signup. Status code: ${response.statusCode}");
+        print("Response body: ${response.body}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to sign up. Please try again.")),
+        );
+      }
+    } catch (error) {
+      print("Error: $error");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("An error occurred: $error")),
+      );
+    }
+  }
 
   Widget _buildEmailTF() {
     return Column(
@@ -28,6 +78,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           decoration: kBoxDecorationStyle,
           height: 60.0,
           child: TextField(
+            controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             style: const TextStyle(
               color: Colors.white,
@@ -35,7 +86,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             decoration: InputDecoration(
               border: InputBorder.none,
-              contentPadding: EdgeInsets.only(top: 14.0),
+              contentPadding: const EdgeInsets.only(top: 14.0),
               prefixIcon: const Icon(
                 Icons.email,
                 color: Colors.white,
@@ -63,6 +114,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           decoration: kBoxDecorationStyle,
           height: 60.0,
           child: TextField(
+            controller: _passwordController,
             obscureText: true,
             style: const TextStyle(
               color: Colors.white,
@@ -70,7 +122,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             decoration: InputDecoration(
               border: InputBorder.none,
-              contentPadding: EdgeInsets.only(top: 14.0),
+              contentPadding: const EdgeInsets.only(top: 14.0),
               prefixIcon: const Icon(
                 Icons.lock,
                 color: Colors.white,
@@ -98,6 +150,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           decoration: kBoxDecorationStyle,
           height: 60.0,
           child: TextField(
+            controller: _confirmPasswordController,
             obscureText: true,
             style: const TextStyle(
               color: Colors.white,
@@ -105,7 +158,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             decoration: InputDecoration(
               border: InputBorder.none,
-              contentPadding: EdgeInsets.only(top: 14.0),
+              contentPadding: const EdgeInsets.only(top: 14.0),
               prefixIcon: const Icon(
                 Icons.lock,
                 color: Colors.white,
@@ -121,13 +174,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Widget _buildSignUpBtn() {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 25.0),
+      padding: const EdgeInsets.symmetric(vertical: 25.0),
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () => print('Sign Up Button Pressed'),
+        onPressed: () => _signUpUser(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        ),
         style: ElevatedButton.styleFrom(
-          elevation: 5.0, backgroundColor: Colors.white,
-          padding: EdgeInsets.all(15.0),
+          elevation: 5.0,
+          backgroundColor: Colors.white,
+          padding: const EdgeInsets.all(15.0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30.0),
           ),
@@ -149,8 +206,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget _buildAlreadyHaveAccountBtn() {
     return GestureDetector(
       onTap: () {
-        // Navigate to Login Screen
-        Navigator.pushNamed(context, '/');
+        Navigator.pushNamed(context, '/login');
       },
       child: RichText(
         text: const TextSpan(
@@ -190,23 +246,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 height: double.infinity,
                 width: double.infinity,
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFF73AEF5),
-                      Color(0xFF61A4F1),
-                      Color(0xFF478DE0),
-                      Color(0xFF398AE5),
-                    ],
-                    stops: [0.1, 0.4, 0.7, 0.9],
+                  image: DecorationImage(
+                    image: AssetImage('images/keyimage.jpg'),
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
-              Container(
+              SizedBox(
                 height: double.infinity,
                 child: SingleChildScrollView(
-                  physics: AlwaysScrollableScrollPhysics(),
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 40.0,
                     vertical: 120.0,
@@ -223,14 +272,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 30.0),
+                      const SizedBox(height: 30.0),
                       _buildEmailTF(),
-                      SizedBox(height: 30.0),
+                      const SizedBox(height: 30.0),
                       _buildPasswordTF(),
                       const SizedBox(height: 30.0),
                       _buildConfirmPasswordTF(),
                       _buildSignUpBtn(),
-                      SizedBox(height: 20.0),
+                      const SizedBox(height: 20.0),
                       _buildAlreadyHaveAccountBtn(),
                     ],
                   ),
@@ -243,4 +292,3 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 }
-

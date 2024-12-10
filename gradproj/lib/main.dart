@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'screens/PropertyListings.dart';
 import 'screens/SignupScreen.dart';
@@ -27,12 +28,19 @@ Future<void> saveitem() async {
 }
 
 
-void main() => runApp(MyApp());
+void main() async {
+  // WidgetsFlutterBinding.ensureInitialized();
+  // await Firebase.initializeApp(); // Initialize Firebase
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+
       title: 'Login & SignUp Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -40,9 +48,9 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => LoginScreen(),
+        '/': (context) => PropertyListScreen(),
         '/signup': (context) => SignUpScreen(),
-        '/propertyListings': (context) => PropertyListScreen(),
+        '/login': (context) => LoginScreen(),
       },
     );
   }

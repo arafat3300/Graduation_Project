@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -14,6 +16,8 @@ class MyApp extends StatelessWidget {
 }
 
 class CRMInputScreen extends StatefulWidget {
+  const CRMInputScreen({super.key});
+
   @override
   _CRMInputScreenState createState() => _CRMInputScreenState();
 }
@@ -107,7 +111,7 @@ class _CRMInputScreenState extends State<CRMInputScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Odoo CRM Input")),
+      appBar: AppBar(title: const Text("Odoo CRM Input")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -115,12 +119,12 @@ class _CRMInputScreenState extends State<CRMInputScreen> {
           children: [
             TextField(
               controller: _controller,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: "Enter Lead Name",
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
                 if (_controller.text.isNotEmpty) {
@@ -132,12 +136,12 @@ class _CRMInputScreenState extends State<CRMInputScreen> {
                   });
                 }
               },
-              child: Text("Submit to Odoo CRM"),
+              child: const Text("Submit to Odoo CRM"),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text(
               message,
-              style: TextStyle(fontSize: 16, color: Colors.blue),
+              style: const TextStyle(fontSize: 16, color: Colors.blue),
             ),
           ],
         ),
