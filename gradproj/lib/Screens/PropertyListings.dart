@@ -4,7 +4,6 @@ import '../models/Property.dart';
 import '../Models/PropertyCard.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'LoginScreen.dart'; // Import your login/signup screen
 
 class PropertyListScreen extends StatefulWidget {
   const PropertyListScreen({super.key});
@@ -110,12 +109,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                     color: Colors.white,
                   ),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LoginScreen(),
-                      ),
-                    );
+                    Navigator.pushNamed(context, '/signup');
                   },
                 ),
               ],

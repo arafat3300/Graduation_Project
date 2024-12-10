@@ -1,23 +1,37 @@
-import 'dart:ffi';
+class User {
+  final String id; // Unique user ID
+  final String firstName;
+  final String lastName;
+  final String dob;
+  final String phone;
+  final String country;
+  final String job;
+  final String email;
+  final String password;
 
-
-class User{
-  const User({
-    required this.id, 
-    required this.First_Name,
-    required this.Last_Name,
-    required this.Address,
-    required this.Age,
-    required this.Email,
-    required this.Password,
+  User({
+    required this.id,
+    required this.firstName,
+    required this.lastName,
+    required this.dob,
+    required this.phone,
+    required this.country,
+    required this.job,
+    required this.email,
+    required this.password,
   });
 
-  final String id;
-  final String First_Name;
-  final String Last_Name;
-  final String Address;
-  final Int Age;
- final String Email;
-  final String Password;
-
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'firstName': firstName,
+      'lastName': lastName,
+      'dob': dob,
+      'phone': phone,
+      'country': country,
+      'job': job,
+      'email': email,
+      'password': password,
+    };
+  }
 }
