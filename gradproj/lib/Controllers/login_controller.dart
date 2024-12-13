@@ -22,8 +22,18 @@ class LoginController {
         password: password,
       );
       return "Login successful!";
+    } on FirebaseAuthException catch (e) {
+      // Handle specific Firebase exceptions
+      if (e.code == 'user-not-found') {
+        return "No user found for this email.";
+      } else if (e.code == 'wrong-password') {
+        return "Incorrect password.";
+      } else {
+        return "Login failed: ${e.message}";
+      }
     } catch (error) {
-      return "Login failed: $error";
+      // Handle generic errors
+      return "An unexpected error occurred: $error";
     }
   }
 }

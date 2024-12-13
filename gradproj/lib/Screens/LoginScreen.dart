@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import '../controllers/login_controller.dart';
-import 'PropertyListings.dart'; // Replace with your actual property listing screen import.
+import 'PropertyListings.dart'; // Replace with the actual property listing screen import.
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -49,25 +49,17 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  /// Validates email format
-  bool _isValidEmail(String email) {
-    final RegExp emailRegex = RegExp(
-      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
-    );
-    return emailRegex.hasMatch(email);
-  }
-
   /// Handles login and shows appropriate messages or navigates to the next page.
   Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     // Validate email and password
-    if (!_isValidEmail(email)) {
+    if (!_controller.isValidEmail(email)) {
       _showErrorDialog("Please enter a valid email address!");
       return;
     }
-    if (password.isEmpty) {
+    if (!_controller.isValidPassword(password)) {
       _showErrorDialog("Password cannot be empty!");
       return;
     }
@@ -258,9 +250,11 @@ class _LoginScreenState extends State<LoginScreen>
                     const SizedBox(height: 15),
                     GestureDetector(
                       onTap: () {
+                        // TODO: Forgot Password Logic
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text("Forgot Password feature not implemented.")),
+                              content: Text(
+                                  "Forgot Password feature not implemented.")),
                         );
                       },
                       child: const Text(
