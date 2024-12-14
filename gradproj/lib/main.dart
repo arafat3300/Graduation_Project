@@ -5,10 +5,16 @@ import 'screens/SignupScreen.dart';
 import 'screens/LoginScreen.dart';
 
 void main() async {
-  // WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp(); // Initialize Firebase
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+    debugPrint("Firebase initialized successfully!");
+  } catch (e) {
+    debugPrint("Error initializing Firebase: $e");
+  }
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

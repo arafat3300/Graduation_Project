@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "60364286697",
+    "firebase_url": "https://arafatsprojects-default-rtdb.firebaseio.com",
+    "project_id": "arafatsprojects",
+    "storage_bucket": "arafatsprojects.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:60364286697:android:c1306a1cc20d68bde51e78",
+        "android_client_info": {
+          "package_name": "com.example.gradproj"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbeHKz-yMW5me1nk-Jny-KlczVt5IIXqs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
