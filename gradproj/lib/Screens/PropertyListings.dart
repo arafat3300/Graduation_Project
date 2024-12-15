@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gradproj/Screens/CustomBottomNavBar.dart';
 import 'package:gradproj/screens/PropertyDetails.dart';
 import '../models/Property.dart';
 import '../Models/PropertyCard.dart';
@@ -15,6 +16,7 @@ class PropertyListScreen extends StatefulWidget {
 class _PropertyListScreenState extends State<PropertyListScreen> {
   List<Property> properties = [];
   final ScrollController _scrollController = ScrollController();
+  int _currentIndex = 0; // State for BottomNavBar
 
   @override
   void initState() {
@@ -145,6 +147,24 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+          // Add logic here to navigate to other pages if needed
+          if (_currentIndex == 0) {
+            // Home action or reload screen
+          } else if (_currentIndex == 1) {
+            // Example: Navigator.pushNamed(context, '/search');
+          } else if (_currentIndex == 2) {
+            // Example: Navigator.pushNamed(context, '/favorites');
+          } else if (_currentIndex == 3) {
+            // Example: Navigator.pushNamed(context, '/profile');
+          }
+        },
       ),
     );
   }

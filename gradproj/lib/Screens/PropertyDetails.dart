@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:gradproj/Screens/CustomBottomNavBar.dart';
 import '../models/Property.dart';
 import 'package:http/http.dart' as http;
 
@@ -14,6 +15,7 @@ class PropertyDetails extends StatefulWidget {
 
 class _PropertyDetailsState extends State<PropertyDetails> {
   final TextEditingController _feedbackController = TextEditingController();
+  int _currentIndex = 0; // For the bottom nav bar state
 
   Future<bool> postFeedback(String feedbackText) async {
     String propertyId = widget.property.id;
@@ -142,30 +144,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                 style: const TextStyle(fontSize: 16, height: 1.5),
               ),
             ),
-            // Specialities Section
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: _buildCard(
-                title: "Specialities",
-                content: property.amenities != null
-                    ? property.amenities!
-                        .map((amenity) => Text("- $amenity", style: const TextStyle(fontSize: 16)))
-                        .toList()
-                    : [const Text("No amenities available", style: TextStyle(fontSize: 16))],
-              ),
-            ),
-            // Price Section
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                "Price: \$${property.price}",
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal,
-                ),
-              ),
-            ),
             // Additional Details Section
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -213,6 +191,15 @@ class _PropertyDetailsState extends State<PropertyDetails> {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+          // Add navigation logic here if needed
+        },
       ),
     );
   }
