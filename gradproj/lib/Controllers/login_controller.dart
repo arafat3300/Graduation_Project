@@ -27,7 +27,7 @@ class LoginController {
   /// Login the user by verifying credentials
   Future<String> loginUser(String email, String password) async {
     const databaseUrl =
-        "https://arafatsprojects-default-rtdb.firebaseio.com/users.json";
+        "https://property-finder-3a4b1-default-rtdb.firebaseio.com/";
 
     try {
       // Fetch all users from the database

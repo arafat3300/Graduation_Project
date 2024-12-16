@@ -48,7 +48,7 @@ class SignUpController {
   Future<bool> doesUserExist(String email) async {
     try {
       final url = Uri.https(
-        'arafatsprojects-default-rtdb.firebaseio.com',
+        'property-finder-3a4b1-default-rtdb.firebaseio.com',
         '/users.json',
       );
 
@@ -101,7 +101,7 @@ class SignUpController {
     );
 
     final url = Uri.https(
-      'arafatsprojects-default-rtdb.firebaseio.com',
+      'property-finder-3a4b1-default-rtdb.firebaseio.com',
       '/users.json',
     );
 
