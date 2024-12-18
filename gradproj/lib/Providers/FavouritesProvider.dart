@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/Property.dart';
 
-// Provider for the FavouritesPropertyNotifier
 final favouritesProvider =
     StateNotifierProvider<FavouritesPropertyNotifier, List<Property>>((ref) {
   return FavouritesPropertyNotifier();

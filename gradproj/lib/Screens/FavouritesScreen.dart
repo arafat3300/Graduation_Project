@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gradproj/Screens/CustomBottomNavBar.dart';
+import 'package:gradproj/Screens/PropertyListings.dart';
 import '../Providers/FavouritesProvider.dart';
 import '../models/Property.dart';
 
-class FavoritesScreen extends ConsumerWidget {
+class FavoritesScreen extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  _FavoritesScreenState createState() => _FavoritesScreenState();
+}
+
+class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
+  int _currentIndex = 2; // Default index for the Favorites screen
+
+  @override
+  Widget build(BuildContext context) {
     // Get the current list of favorite properties
     final favourites = ref.watch(favouritesProvider);
 
@@ -32,12 +41,14 @@ class FavoritesScreen extends ConsumerWidget {
                   child: ListTile(
                     leading: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      // child: Image.network(
-                      //   property.imgUrl, // Use the property image URL
-                      //   width: 70,
-                      //   height: 70,
-                      //   fit: BoxFit.cover,
-                      // ),
+                      child: Image.network(
+                        property.imgUrl!, // Use the property image URL
+                        width: 70,
+                        height: 70,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.broken_image, size: 70),
+                      ),
                     ),
                     title: Text(
                       property.name,
@@ -70,6 +81,30 @@ class FavoritesScreen extends ConsumerWidget {
                 );
               },
             ),
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+
+          // Handle navigation based on selected index
+          if (_currentIndex == 0) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const PropertyListScreen(),
+              ),
+            );
+          } else if (_currentIndex == 1) {
+            // Navigate to Search screen (if implemented)
+          } else if (_currentIndex == 2) {
+            // Stay on Favorites screen (no action needed)
+          } else if (_currentIndex == 3) {
+            // Navigate to Profile screen (if implemented)
+          }
+        },
+      ),
     );
   }
 }
