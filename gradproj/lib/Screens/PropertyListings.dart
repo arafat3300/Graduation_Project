@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gradproj/Screens/CustomBottomNavBar.dart';
+import 'package:gradproj/Screens/FavouritesScreen.dart';
 import 'package:gradproj/screens/PropertyDetails.dart';
 import '../models/Property.dart';
 import '../Models/PropertyCard.dart';
@@ -160,7 +161,12 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
           } else if (_currentIndex == 1) {
             // Example: Navigator.pushNamed(context, '/search');
           } else if (_currentIndex == 2) {
-            // Example: Navigator.pushNamed(context, '/favorites');
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => FavoritesScreen(),
+              ),
+            );
           } else if (_currentIndex == 3) {
             // Example: Navigator.pushNamed(context, '/profile');
           }

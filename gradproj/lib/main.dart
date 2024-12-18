@@ -1,5 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gradproj/Screens/FavouritesScreen.dart';
 import 'screens/PropertyListings.dart';
 import 'screens/SignupScreen.dart';
 import 'screens/LoginScreen.dart';
@@ -12,7 +14,11 @@ void main() async {
   } catch (e) {
     debugPrint("Error initializing Firebase: $e");
   }
-  runApp(const MyApp());
+ runApp(
+    ProviderScope(
+      child: const MyApp(),
+    ),
+  );
 }
 
 
@@ -33,6 +39,8 @@ class MyApp extends StatelessWidget {
         '/': (context) => const PropertyListScreen(),
         '/signup': (context) => const SignUpScreen(),
         '/login': (context) => const LoginScreen(),
+        '/favourites': (context) => FavoritesScreen(),
+
       },
     );
   }

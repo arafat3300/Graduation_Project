@@ -1,10 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gradproj/Providers/FavouritesProvider.dart';
 import 'package:gradproj/Screens/CustomBottomNavBar.dart';
+import 'package:gradproj/Screens/FavouritesScreen.dart';
+import 'package:gradproj/screens/PropertyListings.dart';
 import '../models/Property.dart';
 import 'package:http/http.dart' as http;
 
-class PropertyDetails extends StatefulWidget {
+class PropertyDetails extends ConsumerStatefulWidget {
   final Property property;
 
   const PropertyDetails({super.key, required this.property});
@@ -13,7 +17,7 @@ class PropertyDetails extends StatefulWidget {
   _PropertyDetailsState createState() => _PropertyDetailsState();
 }
 
-class _PropertyDetailsState extends State<PropertyDetails> {
+class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   final TextEditingController _feedbackController = TextEditingController();
   int _currentIndex = 0; // For the bottom nav bar state
 
@@ -32,7 +36,9 @@ class _PropertyDetailsState extends State<PropertyDetails> {
         if (decodedResponse is List) {
           existingReviews = decodedResponse;
         } else if (decodedResponse is String) {
-          existingReviews = [{'review': decodedResponse}];
+          existingReviews = [
+            {'review': decodedResponse}
+          ];
         } else if (decodedResponse is Map<String, dynamic>) {
           existingReviews = [decodedResponse];
         }
@@ -79,7 +85,8 @@ class _PropertyDetailsState extends State<PropertyDetails> {
   @override
   Widget build(BuildContext context) {
     final property = widget.property;
-
+    final favouritesNotifier = ref.watch(favouritesProvider.notifier);
+    final isFavorite = ref.watch(favouritesProvider).any((p) => p.id == property.id);
     return Scaffold(
       appBar: AppBar(
         title: const Text("Property Details"),
@@ -102,7 +109,10 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                   child: Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Colors.black.withOpacity(0.5), Colors.transparent],
+                        colors: [
+                          Colors.black.withOpacity(0.5),
+                          Colors.transparent
+                        ],
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                       ),
@@ -111,6 +121,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                 ),
               ],
             ),
+            
             // Property Information
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -135,6 +146,27 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                 ],
               ),
             ),
+             ElevatedButton.icon(
+                    onPressed: () {
+                      if (isFavorite) {
+                        favouritesNotifier.removeProperty(property);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("${property.name} removed from favorites")),
+                        );
+                      } else {
+                        favouritesNotifier.addProperty(property);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("${property.name} added to favorites")),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isFavorite ? Colors.red : Colors.green,
+                    ),
+                    icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
+                    label: Text(isFavorite ? "Remove from Favorites" : "Add to Favorites"),
+                  ),
+              
             // Property Description
             Container(
               color: Colors.grey[100],
@@ -150,10 +182,14 @@ class _PropertyDetailsState extends State<PropertyDetails> {
               child: _buildCard(
                 title: "Additional Details",
                 content: [
-                  Text("Rooms: ${property.rooms}", style: const TextStyle(fontSize: 16)),
-                  Text("Toilets: ${property.toilets}", style: const TextStyle(fontSize: 16)),
-                  Text("Floor: ${property.floor ?? 'N/A'}", style: const TextStyle(fontSize: 16)),
-                  Text("Area: ${property.sqft} sqft", style: const TextStyle(fontSize: 16)),
+                  Text("Rooms: ${property.rooms}",
+                      style: const TextStyle(fontSize: 16)),
+                  Text("Toilets: ${property.toilets}",
+                      style: const TextStyle(fontSize: 16)),
+                  Text("Floor: ${property.floor ?? 'N/A'}",
+                      style: const TextStyle(fontSize: 16)),
+                  Text("Area: ${property.sqft} sqft",
+                      style: const TextStyle(fontSize: 16)),
                 ],
               ),
             ),
@@ -176,7 +212,8 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                     onPressed: _submitFeedback,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal,
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 24),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -198,7 +235,25 @@ class _PropertyDetailsState extends State<PropertyDetails> {
           setState(() {
             _currentIndex = index;
           });
-          // Add navigation logic here if needed
+          if (_currentIndex == 0) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const PropertyListScreen(),
+              ),
+            );
+          } else if (_currentIndex == 1) {
+            // Example: Navigator.pushNamed(context, '/search');
+          } else if (_currentIndex == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => FavoritesScreen(),
+              ),
+            );
+          } else if (_currentIndex == 3) {
+            // Example: Navigator.pushNamed(context, '/profile');
+          }
         },
       ),
     );
