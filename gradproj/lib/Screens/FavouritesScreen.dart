@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gradproj/Screens/CustomBottomNavBar.dart';
+import 'package:gradproj/Screens/Profile.dart';
 import 'package:gradproj/Screens/PropertyListings.dart';
+import 'package:gradproj/Screens/search.dart';
 import '../Providers/FavouritesProvider.dart';
 import '../models/Property.dart';
 
@@ -87,21 +89,34 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           setState(() {
             _currentIndex = index;
           });
-
-          // Handle navigation based on selected index
+          // Add logic here to navigate to other pages if needed
           if (_currentIndex == 0) {
-            Navigator.pushReplacement(
+Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const PropertyListScreen(),
+                builder: (context) => PropertyListScreen(),
+              ),
+            );          } else if (_currentIndex == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SearchScreen(),
               ),
             );
-          } else if (_currentIndex == 1) {
-            // Navigate to Search screen (if implemented)
-          } else if (_currentIndex == 2) {
-            // Stay on Favorites screen (no action needed)
           } else if (_currentIndex == 3) {
-            // Navigate to Profile screen (if implemented)
+Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ViewProfilePage(),
+              ),
+);
+          } else if (_currentIndex == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => FavoritesScreen(),
+              ),
+            );
           }
         },
       ),

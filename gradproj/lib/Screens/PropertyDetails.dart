@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gradproj/Providers/FavouritesProvider.dart';
 import 'package:gradproj/Screens/CustomBottomNavBar.dart';
 import 'package:gradproj/Screens/FavouritesScreen.dart';
+import 'package:gradproj/Screens/Profile.dart';
+import 'package:gradproj/Screens/search.dart';
 import 'package:gradproj/screens/PropertyListings.dart';
 import '../models/Property.dart';
 import 'package:http/http.dart' as http;
@@ -235,15 +237,27 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
           setState(() {
             _currentIndex = index;
           });
+          // Add logic here to navigate to other pages if needed
           if (_currentIndex == 0) {
+Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PropertyListScreen(),
+              ),
+            );          } else if (_currentIndex == 1) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const PropertyListScreen(),
+                builder: (context) => SearchScreen(),
               ),
             );
-          } else if (_currentIndex == 1) {
-            // Example: Navigator.pushNamed(context, '/search');
+          } else if (_currentIndex == 3) {
+Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ViewProfilePage(),
+              ),
+);
           } else if (_currentIndex == 2) {
             Navigator.push(
               context,
@@ -251,8 +265,6 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                 builder: (context) => FavoritesScreen(),
               ),
             );
-          } else if (_currentIndex == 3) {
-            // Example: Navigator.pushNamed(context, '/profile');
           }
         },
       ),

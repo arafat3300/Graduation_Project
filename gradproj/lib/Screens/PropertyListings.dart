@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gradproj/Screens/CustomBottomNavBar.dart';
 import 'package:gradproj/Screens/FavouritesScreen.dart';
+import 'package:gradproj/Screens/Profile.dart';
+import 'package:gradproj/Screens/search.dart';
 import 'package:gradproj/screens/PropertyDetails.dart';
 import '../models/Property.dart';
 import '../Models/PropertyCard.dart';
@@ -159,7 +161,19 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
           if (_currentIndex == 0) {
             // Home action or reload screen
           } else if (_currentIndex == 1) {
-            // Example: Navigator.pushNamed(context, '/search');
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SearchScreen(),
+              ),
+            );
+          } else if (_currentIndex == 3) {
+Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ViewProfilePage(),
+              ),
+);
           } else if (_currentIndex == 2) {
             Navigator.push(
               context,
@@ -167,8 +181,6 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                 builder: (context) => FavoritesScreen(),
               ),
             );
-          } else if (_currentIndex == 3) {
-            // Example: Navigator.pushNamed(context, '/profile');
           }
         },
       ),
