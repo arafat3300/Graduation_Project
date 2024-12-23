@@ -3,12 +3,10 @@ import 'package:gradproj/models/Property.dart';
 
 class PropertyCard extends StatelessWidget {
   final Property property;
-  // final List<Color> gradientColors;
 
   const PropertyCard({
     super.key,
     required this.property,
-    
   });
 
   @override
@@ -23,7 +21,7 @@ class PropertyCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Property image with gradient overlay
+            // Property image with placeholder handling
             Expanded(
               child: Stack(
                 children: [
@@ -31,35 +29,33 @@ class PropertyCard extends StatelessWidget {
                     borderRadius:
                         const BorderRadius.vertical(top: Radius.circular(12)),
                     child: Image.network(
-                    "${property.imgUrl}",
+                      property.imgUrl != null && property.imgUrl!.isNotEmpty
+                          ? property.imgUrl!
+                          : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
                       fit: BoxFit.cover,
                       width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) {
-                       
-                        return Image.asset(
-                          'assets/images/listingPlaceholder.jpg', 
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                        );
-                      },
+
                     ),
                   ),
-                  // Gradient overlay
+                  // Gradient overlay (optional for styling)
                   Positioned.fill(
                     child: Container(
-                      decoration: const BoxDecoration(
-                        // gradient: LinearGradient(
-                        //   colors: gradientColors,
-                        //   begin: Alignment.topCenter,
-                        //   end: Alignment.bottomCenter,
-                        //   stops: const [0.5, 1.0],
-                        // ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.black.withOpacity(0.5),
+                            Colors.transparent,
+                          ],
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
+            // Property details
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
@@ -67,7 +63,7 @@ class PropertyCard extends StatelessWidget {
                 children: [
                   // Property name
                   Text(
-                    property.name,
+                    property.type,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -78,7 +74,7 @@ class PropertyCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   // Property type and rent/sale
                   Text(
-                    "${property.type} - ${property.rentOrSale}",
+                    "${property.type} - ${property.paymentOption}",
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[700],
@@ -99,7 +95,7 @@ class PropertyCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   // Property size
                   Text(
-                    "${property.sqft} sqft",
+                    "${property.area} sqft",
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],
@@ -108,7 +104,7 @@ class PropertyCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   // Property location
                   Text(
-                    "${property.city}, ${property.location}",
+                    "${property.city}, ${property.compound ?? 'Unknown Compound'}",
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -119,7 +115,16 @@ class PropertyCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   // Number of rooms and bathrooms
                   Text(
-                    "${property.rooms} Beds • ${property.toilets} Baths",
+                    "${property.bedrooms} Beds • ${property.bathrooms} Baths",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  // Furnished status
+                  Text(
+                    "Furnished: ${property.furnished}",
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],

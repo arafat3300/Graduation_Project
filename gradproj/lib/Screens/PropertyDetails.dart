@@ -1,14 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gradproj/Providers/FavouritesProvider.dart';
-import 'package:gradproj/Screens/CustomBottomNavBar.dart';
-import 'package:gradproj/Screens/FavouritesScreen.dart';
-import 'package:gradproj/Screens/Profile.dart';
-import 'package:gradproj/Screens/search.dart';
-import 'package:gradproj/screens/PropertyListings.dart';
+import '../Providers/FavouritesProvider.dart';
 import '../models/Property.dart';
-import 'package:http/http.dart' as http;
 
 class PropertyDetails extends ConsumerStatefulWidget {
   final Property property;
@@ -20,75 +13,12 @@ class PropertyDetails extends ConsumerStatefulWidget {
 }
 
 class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
-  final TextEditingController _feedbackController = TextEditingController();
-  int _currentIndex = 0; // For the bottom nav bar state
-
-  Future<bool> postFeedback(String feedbackText) async {
-    String propertyId = widget.property.id;
-    final url = Uri.parse(
-        "https://property-finder-3a4b1-default-rtdb.firebaseio.com/Property%20Finder/$propertyId/Review.json");
-
-    try {
-      final getFeedbacks = await http.get(url);
-      List<dynamic> existingReviews = [];
-
-      if (getFeedbacks.statusCode == 200 && getFeedbacks.body != "null") {
-        final decodedResponse = jsonDecode(getFeedbacks.body);
-
-        if (decodedResponse is List) {
-          existingReviews = decodedResponse;
-        } else if (decodedResponse is String) {
-          existingReviews = [
-            {'review': decodedResponse}
-          ];
-        } else if (decodedResponse is Map<String, dynamic>) {
-          existingReviews = [decodedResponse];
-        }
-      }
-
-      existingReviews.add({'review': feedbackText});
-
-      final response = await http.put(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(existingReviews),
-      );
-
-      return (response.statusCode >= 200 && response.statusCode < 400);
-    } catch (e) {
-      print("Error posting feedback: $e");
-      return false;
-    }
-  }
-
-  void _submitFeedback() async {
-    final feedback = _feedbackController.text;
-
-    if (feedback.isNotEmpty) {
-      if (await postFeedback(feedback)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Feedback submitted: $feedback")),
-        );
-        _feedbackController.clear();
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Could not submit the feedback")),
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _feedbackController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final property = widget.property;
     final favouritesNotifier = ref.watch(favouritesProvider.notifier);
     final isFavorite = ref.watch(favouritesProvider).any((p) => p.id == property.id);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Property Details"),
@@ -98,40 +28,29 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Image with Gradient Overlay
+            // Property Image
             Stack(
               children: [
                 Image.network(
-                  'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
-                  height: 250,
-                  width: double.infinity,
+                  property.imgUrl != null && property.imgUrl!.isNotEmpty
+                      ? property.imgUrl!
+                      : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
                   fit: BoxFit.cover,
-                ),
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.black.withOpacity(0.5),
-                          Colors.transparent
-                        ],
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                      ),
-                    ),
-                  ),
+                  width: double.infinity,
+                  height: 250,
+             
                 ),
               ],
             ),
-            
-            // Property Information
+
+            // Property Details Section
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    property.name,
+                    property.type,
                     style: const TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
@@ -139,159 +58,108 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "Location: ${property.city}",
+                    "Price: \$${property.price.toStringAsFixed(2)}",
+                    style: const TextStyle(
+                      fontSize: 20,
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "City: ${property.city}",
                     style: TextStyle(
                       fontSize: 18,
                       color: Colors.grey[700],
                     ),
                   ),
-                ],
-              ),
-            ),
-             ElevatedButton.icon(
+                  const SizedBox(height: 8),
+                  Text(
+                    "Bedrooms: ${property.bedrooms}",
+                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                  ),
+                  Text(
+                    "Bathrooms: ${property.bathrooms}",
+                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                  ),
+                  Text(
+                    "Area: ${property.area} sqft",
+                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                  ),
+                  Text(
+                    "Furnished: ${property.furnished}",
+                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                  ),
+                  Text(
+                    "Level: ${property.level ?? 'N/A'}",
+                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                  ),
+                  Text(
+                    "Compound: ${property.compound ?? 'N/A'}",
+                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                  ),
+                  Text(
+                    "Payment Option: ${property.paymentOption}",
+                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
                     onPressed: () {
                       if (isFavorite) {
                         favouritesNotifier.removeProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${property.name} removed from favorites")),
+                          SnackBar(content: Text("${property.type} removed from favorites")),
                         );
                       } else {
                         favouritesNotifier.addProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${property.name} added to favorites")),
+                          SnackBar(content: Text("${property.type} added to favorites")),
                         );
                       }
                     },
-                    style: ElevatedButton.styleFrom(
-                      iconColor: isFavorite ? Colors.red : Colors.green,
-                    ),
                     icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
                     label: Text(isFavorite ? "Remove from Favorites" : "Add to Favorites"),
                   ),
-              
-            // Property Description
-            Container(
-              color: Colors.grey[100],
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                property.description,
-                style: const TextStyle(fontSize: 16, height: 1.5),
-              ),
-            ),
-            // Additional Details Section
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: _buildCard(
-                title: "Additional Details",
-                content: [
-                  Text("Rooms: ${property.rooms}",
-                      style: const TextStyle(fontSize: 16)),
-                  Text("Toilets: ${property.toilets}",
-                      style: const TextStyle(fontSize: 16)),
-                  Text("Floor: ${property.floor ?? 'N/A'}",
-                      style: const TextStyle(fontSize: 16)),
-                  Text("Area: ${property.sqft} sqft",
-                      style: const TextStyle(fontSize: 16)),
                 ],
               ),
             ),
-            // Feedback Section
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: _buildCard(
-                title: "Your Feedback",
-                content: [
-                  TextField(
-                    controller: _feedbackController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Write your feedback here...',
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _submitFeedback,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 12, horizontal: 24),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      "Submit",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-          // Add logic here to navigate to other pages if needed
-          if (_currentIndex == 0) {
-Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PropertyListScreen(),
-              ),
-            );          } else if (_currentIndex == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => SearchScreen(),
-              ),
-            );
-          } else if (_currentIndex == 3) {
-Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ViewProfilePage(),
-              ),
-);
-          } else if (_currentIndex == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => FavoritesScreen(),
-              ),
-            );
-          }
-        },
-      ),
-    );
-  }
 
-  Widget _buildCard({required String title, required List<Widget> content}) {
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.indigo,
+            // Feedback Section
+            if (property.feedback.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  "Feedback:",
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            ...content,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: property.feedback.map((feedback) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Text(
+                        "- $feedback",
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ] else ...[
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  "No feedback available for this property.",
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ),
+            ],
           ],
         ),
       ),

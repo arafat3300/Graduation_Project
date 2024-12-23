@@ -1,43 +1,67 @@
-
 class Property {
-  late String id;
-  late String? imgUrl;
+  late int id; 
   late String type;
-  late String name;
-  late String description;
-  late List<String> feedback;
-  late String city;
-  late int rooms;
-  late int toilets;
-  late int? floor;
-  late double sqft;
   late double price;
-  late List<String>? amenities ;
-  late String rentOrSale; 
-  late String location;
-  late String street;
+  late int bedrooms;
+  late int bathrooms;
+  late int area;
+  late String furnished;
+  late int? level;
+  late String? compound;
+  late String paymentOption;
+  late String city;
+  late List<String> feedback;
+  late String? imgUrl;
 
-  Property(
-    {
-   
-    required this.name,
-    required this.description,
-    required this.feedback,
+  Property({
+    required this.id,
     required this.type,
-    required this.city,
-    required this.rooms,
-    required this.toilets,
-    required this.floor,
-    required this.sqft,
     required this.price,
-     this.amenities,
-     this.imgUrl,
-    required this.rentOrSale,
-    required this.location,
-    required this.street,
-    required this.id
-  }
-  );
+    required this.bedrooms,
+    required this.bathrooms,
+    required this.area,
+    required this.furnished,
+    this.level,
+    this.compound,
+    required this.paymentOption,
+    required this.city,
+    required this.feedback,
+    this.imgUrl,
+  });
 
-  
+  factory Property.fromJson(Map<String, dynamic> json) {
+    return Property(
+      id: json['id'], 
+      type: json['type'],
+      price: (json['price'] as num).toDouble(), 
+      bedrooms: json['bedrooms'],
+      bathrooms: json['bathrooms'],
+      area: json['area'],
+      furnished: json['furnished'],
+      level: json['level'],
+      compound: json['compound'],
+      paymentOption: json['payment_option'],
+      city: json['city'],
+      feedback: (json['feedback'] as List<dynamic>).cast<String>(),
+      imgUrl: json['img_url'], 
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'price': price,
+      'bedrooms': bedrooms,
+      'bathrooms': bathrooms,
+      'area': area,
+      'furnished': furnished,
+      'level': level,
+      'compound': compound,
+      'payment_option': paymentOption,
+      'city': city,
+      'feedback': feedback,
+      'img_url': imgUrl,
+    };
+  }
 }

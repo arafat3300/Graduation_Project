@@ -8,6 +8,8 @@ import '../Providers/FavouritesProvider.dart';
 import '../models/Property.dart';
 
 class FavoritesScreen extends ConsumerStatefulWidget {
+  const FavoritesScreen({super.key});
+
   @override
   _FavoritesScreenState createState() => _FavoritesScreenState();
 }
@@ -44,7 +46,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     leading: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(
-                        property.imgUrl!, // Use the property image URL
+                        property.imgUrl ??
+                            'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
                         width: 70,
                         height: 70,
                         fit: BoxFit.cover,
@@ -53,16 +56,16 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       ),
                     ),
                     title: Text(
-                      property.name,
+                      property.type,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(property.location),
+                        Text(property.city),
                         const SizedBox(height: 4),
                         Text(
-                          '\$${property.price}',
+                          '\$${property.price.toStringAsFixed(2)}',
                           style: const TextStyle(
                             color: Colors.green,
                             fontWeight: FontWeight.bold,
@@ -89,32 +92,25 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           setState(() {
             _currentIndex = index;
           });
-          // Add logic here to navigate to other pages if needed
           if (_currentIndex == 0) {
-Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PropertyListScreen(),
-              ),
-            );          } else if (_currentIndex == 1) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => SearchScreen(),
+                builder: (context) => const PropertyListScreen(),
+              ),
+            );
+          } else if (_currentIndex == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const SearchScreen(),
               ),
             );
           } else if (_currentIndex == 3) {
-Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ViewProfilePage(),
-              ),
-);
-          } else if (_currentIndex == 2) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => FavoritesScreen(),
+                builder: (context) =>  ViewProfilePage(),
               ),
             );
           }
