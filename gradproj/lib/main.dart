@@ -6,9 +6,6 @@ import 'package:gradproj/Screens/FavouritesScreen.dart';
 import 'package:gradproj/Screens/Profile.dart';
 import 'package:gradproj/Screens/search.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:gradproj/screens/FavouritesScreen.dart';
-import 'package:gradproj/screens/Profile.dart';
-import 'package:gradproj/screens/search.dart';
 import 'screens/PropertyListings.dart';
 import 'screens/SignupScreen.dart';
 import 'screens/LoginScreen.dart';
@@ -74,6 +71,7 @@ class MyApp extends StatelessWidget {
       '/favourites': (context) => FavoritesScreen(),
       '/search': (context) => SearchScreen(),
       '/profile': (context) => ViewProfilePage(),
+      '/addProperty' :(context)=>AddPropertyScreen()
     },
   );
   }

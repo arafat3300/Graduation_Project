@@ -7,6 +7,8 @@ import 'package:gradproj/Screens/search.dart';
 import '../Providers/FavouritesProvider.dart';
 import '../models/Property.dart';
 
+
+
 class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});
 
