@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gradproj/Screens/AddProperty.dart';
 import 'package:gradproj/Screens/FavouritesScreen.dart';
 import 'package:gradproj/Screens/Profile.dart';
 import 'package:gradproj/Screens/search.dart';
@@ -48,7 +49,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      initialRoute: '/',
+      initialRoute: '/addProperty',
       routes: {
         '/': (context) => const PropertyListScreen(),
         '/signup': (context) => const SignUpScreen(),
@@ -56,6 +57,7 @@ class MyApp extends StatelessWidget {
         '/favourites': (context) => FavoritesScreen(),
                 '/search': (context) => SearchScreen(),
                 '/profile': (context) => ViewProfilePage(),
+                '/addProperty' : (context)=> AddPropertyScreen(),
 
 
 

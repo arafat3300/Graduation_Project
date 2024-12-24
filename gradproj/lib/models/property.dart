@@ -1,5 +1,5 @@
 class Property {
-  late int id; 
+  late int ?id; 
   late String type;
   late double price;
   late int bedrooms;
@@ -14,7 +14,7 @@ class Property {
   late String? imgUrl;
 
   Property({
-    required this.id,
+     this.id,
     required this.type,
     required this.price,
     required this.bedrooms,
@@ -47,21 +47,23 @@ class Property {
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'type': type,
-      'price': price,
-      'bedrooms': bedrooms,
-      'bathrooms': bathrooms,
-      'area': area,
-      'furnished': furnished,
-      'level': level,
-      'compound': compound,
-      'payment_option': paymentOption,
-      'city': city,
-      'feedback': feedback,
-      'img_url': imgUrl,
-    };
-  }
+Map<String, dynamic> toJson() {
+  return {
+    'type': type,
+    'price': price,
+    'bedrooms': bedrooms,
+    'bathrooms': bathrooms,
+    
+    'area': area,
+    'furnished': furnished,
+    'level': level,
+    'compound': compound,
+    'payment_option': paymentOption,
+    'city': city,
+    'feedback': feedback,
+    'img_url': imgUrl,
+  };
+}
+
+
 }

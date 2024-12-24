@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import '../Providers/FavouritesProvider.dart';
 import '../models/Property.dart';
 
@@ -13,6 +16,8 @@ class PropertyDetails extends ConsumerStatefulWidget {
 }
 
 class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
+
+
   @override
   Widget build(BuildContext context) {
     final property = widget.property;
