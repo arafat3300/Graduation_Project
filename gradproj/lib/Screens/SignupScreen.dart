@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'dart:ui';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import '../controllers/signup_controller.dart';
+import 'package:gradproj/Controllers/signup_controller.dart';
 import '../models/user.dart';
 import 'PropertyListings.dart';
+import 'package:uuid/uuid.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -15,7 +18,6 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen>
     with SingleTickerProviderStateMixin {
   final SignUpController _controller = SignUpController();
-
   // Text controllers
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -29,6 +31,7 @@ class _SignUpScreenState extends State<SignUpScreen>
 
   String? _selectedCountry;
   String? _selectedJob;
+final Uuid _uuid = Uuid();
 
   // Dropdown options
   final List<String> _countries = [
@@ -105,63 +108,28 @@ class _SignUpScreenState extends State<SignUpScreen>
     }
   }
 
+
   Future<void> _handleSignUp() async {
-    // Validate inputs
-    if (!_controller.areFieldsValid(
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      dob: _dobController.text.trim(),
-      phone: _phoneController.text.trim(),
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-      confirmPassword: _confirmPasswordController.text.trim(),
-    )) {
-      _showErrorDialog("Please fill in all required fields!");
-      return;
-    }
+  final message = await _controller.handleSignUp(
+    firstName: _firstNameController.text,
+    lastName: _lastNameController.text,
+    dob: _dobController.text,
+    phone: _phoneController.text,
+    country: _selectedCountry ?? 'Unknown',
+    job: _selectedJob ?? 'Unknown',
+    email: _emailController.text,
+    password: _passwordController.text,
+    confirmPassword: _confirmPasswordController.text,
+    otherJob: _selectedJob == 'Other' ? _otherJobController.text : null,
+  );
 
-    // Validate phone number
-    if (!_controller.isValidPhone(_phoneController.text)) {
-      _showErrorDialog("Phone number must be at least 8 digits long!");
-      return;
-    }
-
-    // Validate email
-    if (!_controller.isValidEmail(_emailController.text)) {
-      _showErrorDialog("Invalid email address!");
-      return;
-    }
-
-    // Validate passwords match
-    if (_passwordController.text != _confirmPasswordController.text) {
-      _showErrorDialog("Passwords do not match!");
-      return;
-    }
-
-    // Create the user object
-    final user = User(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      dob: _dobController.text.trim(),
-      phone: _phoneController.text.trim(),
-      country: _selectedCountry ?? 'Unknown',
-      job: _selectedJob == 'Other'
-          ? _otherJobController.text.trim()
-          : _selectedJob ?? 'Unknown',
-      email: _emailController.text.trim(),
-      password: _controller.hashPassword(_passwordController.text.trim()),
-    );
-
-    // Attempt sign up
-    final message = await _controller.signUpUser(user);
-
-    if (message.contains("successfully")) {
-      _showSuccessDialog();
-    } else {
-      _showErrorDialog(message);
-    }
+  if (message.contains("successfully")) {
+    _showSuccessDialog();
+  } else {
+    _showErrorDialog(message);
   }
+}
+
 
   void _showErrorDialog(String message) {
     showDialog(

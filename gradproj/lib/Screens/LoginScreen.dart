@@ -1,8 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import '../controllers/login_controller.dart';
+import 'package:gradproj/Controllers/login_controller.dart';
 import 'PropertyListings.dart'; // Replace with the actual property listing screen import.
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -68,6 +69,7 @@ class _LoginScreenState extends State<LoginScreen>
     final message = await _controller.loginUser(email, password);
 
     if (message.contains("successful")) {
+      print(_controller.printSessionToken());
       _showSuccessDialog();
     } else {
       _showErrorDialog(message);

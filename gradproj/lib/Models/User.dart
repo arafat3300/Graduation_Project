@@ -8,6 +8,8 @@ class User {
   final String job;
   final String email;
   final String password;
+  final String token;
+
 
   User({
     required this.id,
@@ -19,6 +21,8 @@ class User {
     required this.job,
     required this.email,
     required this.password,
+    required this.token,
+
   });
 
   Map<String, dynamic> toJson() {
@@ -32,6 +36,8 @@ class User {
       'job': job,
       'email': email,
       'password': password,
+      'token': token,
+
     };
   }
 }
