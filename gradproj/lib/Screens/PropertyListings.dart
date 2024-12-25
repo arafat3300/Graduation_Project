@@ -24,6 +24,11 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   Timer? _debounce;
   int _currentIndex = 0; // State for BottomNavBar
 
+  // Filter state variables
+  String? _selectedPaymentOption; // 'Cash', 'Installments', or null (All)
+  int? _selectedBedrooms; // e.g., 1, 2, 3, etc.
+  int? _selectedBathrooms; // e.g., 1, 2, 3, etc.
+
   @override
   void initState() {
     super.initState();
@@ -78,23 +83,31 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
       String query = _searchController.text.toLowerCase();
 
       setState(() {
-        if (query.isEmpty) {
-          filteredProperties = properties;
-        } else {
-          filteredProperties = properties.where((property) {
-            String type = property.type.toLowerCase();
-            String city = property.city.toLowerCase();
-            String furnished = property.furnished.toLowerCase();
-            String paymentOption = property.paymentOption.toLowerCase();
+        filteredProperties = properties.where((property) {
+          // Search Query Conditions
+          bool matchesQuery = property.type.toLowerCase().contains(query) ||
+              property.city.toLowerCase().contains(query) ||
+              property.furnished.toLowerCase().contains(query) ||
+              property.paymentOption.toLowerCase().contains(query);
 
-            // Add more fields if needed
+          // Payment Option Filter
+          bool matchesPaymentOption = _selectedPaymentOption == null ||
+              property.paymentOption.toLowerCase() ==
+                  _selectedPaymentOption!.toLowerCase();
 
-            return type.contains(query) ||
-                   city.contains(query) ||
-                   furnished.contains(query) ||
-                   paymentOption.contains(query);
-          }).toList();
-        }
+          // Bedrooms Filter
+          bool matchesBedrooms = _selectedBedrooms == null ||
+              property.bedrooms == _selectedBedrooms;
+
+          // Bathrooms Filter
+          bool matchesBathrooms = _selectedBathrooms == null ||
+              property.bathrooms == _selectedBathrooms;
+
+          return matchesQuery &&
+              matchesPaymentOption &&
+              matchesBedrooms &&
+              matchesBathrooms;
+        }).toList();
       });
     });
   }
@@ -143,6 +156,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                 ),
               ],
             ),
+            // Search Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
               child: TextField(
@@ -159,6 +173,138 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                 ),
               ),
             ),
+            // Filter Options
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Payment Options Dropdown
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: 'Payment Option',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(25.0),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      value: _selectedPaymentOption,
+                      items: [
+                        DropdownMenuItem(
+                          value: null,
+                          child: Text('All'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Cash',
+                          child: Text('Cash'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Installments',
+                          child: Text('Installments'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedPaymentOption = value;
+                          _onSearchChanged(); // Trigger search on filter change
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10.0),
+                  // Bedrooms Dropdown
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      decoration: InputDecoration(
+                        labelText: 'Bedrooms',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(25.0),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      value: _selectedBedrooms,
+                      items: [
+                        DropdownMenuItem(
+                          value: null,
+                          child: Text('All'),
+                        ),
+                        DropdownMenuItem(
+                          value: 1,
+                          child: Text('1'),
+                        ),
+                        DropdownMenuItem(
+                          value: 2,
+                          child: Text('2'),
+                        ),
+                        DropdownMenuItem(
+                          value: 3,
+                          child: Text('3'),
+                        ),
+                        DropdownMenuItem(
+                          value: 4,
+                          child: Text('4'),
+                        ),
+                        // Add more items as needed
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedBedrooms = value;
+                          _onSearchChanged(); // Trigger search on filter change
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10.0),
+                  // Bathrooms Dropdown
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      decoration: InputDecoration(
+                        labelText: 'Bathrooms',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(25.0),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      value: _selectedBathrooms,
+                      items: [
+                        DropdownMenuItem(
+                          value: null,
+                          child: Text('All'),
+                        ),
+                        DropdownMenuItem(
+                          value: 1,
+                          child: Text('1'),
+                        ),
+                        DropdownMenuItem(
+                          value: 2,
+                          child: Text('2'),
+                        ),
+                        DropdownMenuItem(
+                          value: 3,
+                          child: Text('3'),
+                        ),
+                        DropdownMenuItem(
+                          value: 4,
+                          child: Text('4'),
+                        ),
+                        // Add more items as needed
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedBathrooms = value;
+                          _onSearchChanged(); // Trigger search on filter change
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Property Listings
             Expanded(
               child: filteredProperties.isNotEmpty
                   ? GridView.builder(
