@@ -28,14 +28,20 @@ class PropertyCard extends StatelessWidget {
                   ClipRRect(
                     borderRadius:
                         const BorderRadius.vertical(top: Radius.circular(12)),
-                    child: Image.network(
-                      property.imgUrl != null && property.imgUrl!.isNotEmpty
-                          ? property.imgUrl!
-                          : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
-                      fit: BoxFit.cover,
-                      width: double.infinity,
+                child: Image.network(
+ property.imgUrl?.isNotEmpty == true
 
-                    ),
+      ? property.imgUrl!.first
+      : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
+  fit: BoxFit.cover,
+  width: double.infinity,
+  errorBuilder: (context, error, stackTrace) => const Icon(
+    Icons.broken_image,
+    size: 70,
+  ),
+),
+
+
                   ),
                   // Gradient overlay (optional for styling)
                   Positioned.fill(

@@ -16,13 +16,12 @@ class PropertyDetails extends ConsumerStatefulWidget {
 }
 
 class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
-
-
   @override
   Widget build(BuildContext context) {
     final property = widget.property;
     final favouritesNotifier = ref.watch(favouritesProvider.notifier);
-    final isFavorite = ref.watch(favouritesProvider).any((p) => p.id == property.id);
+    final isFavorite =
+        ref.watch(favouritesProvider).any((p) => p.id == property.id);
 
     return Scaffold(
       appBar: AppBar(
@@ -37,13 +36,16 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
             Stack(
               children: [
                 Image.network(
-                  property.imgUrl != null && property.imgUrl!.isNotEmpty
-                      ? property.imgUrl!
+                  property.imgUrl?.isNotEmpty == true
+                      ? property.imgUrl!.first
                       : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: 250,
-             
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.broken_image,
+                    size: 70,
+                  ),
                 ),
               ],
             ),
@@ -63,7 +65,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "Price: \$${property.price.toStringAsFixed(2)}",
+                    "Price: \$${property.price} ",
                     style: const TextStyle(
                       fontSize: 20,
                       color: Colors.green,
@@ -113,17 +115,24 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                       if (isFavorite) {
                         favouritesNotifier.removeProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${property.type} removed from favorites")),
+                          SnackBar(
+                              content: Text(
+                                  "${property.type} removed from favorites")),
                         );
                       } else {
                         favouritesNotifier.addProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${property.type} added to favorites")),
+                          SnackBar(
+                              content:
+                                  Text("${property.type} added to favorites")),
                         );
                       }
                     },
-                    icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
-                    label: Text(isFavorite ? "Remove from Favorites" : "Add to Favorites"),
+                    icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border),
+                    label: Text(isFavorite
+                        ? "Remove from Favorites"
+                        : "Add to Favorites"),
                   ),
                 ],
               ),

@@ -1,7 +1,7 @@
 class Property {
-  late int ?id; 
+  late int? id; 
   late String type;
-  late double price;
+  late int price;
   late int bedrooms;
   late int bathrooms;
   late int area;
@@ -11,10 +11,10 @@ class Property {
   late String paymentOption;
   late String city;
   late List<String> feedback;
-  late String? imgUrl;
+  late List<String>? imgUrl;
 
   Property({
-     this.id,
+    this.id,
     required this.type,
     required this.price,
     required this.bedrooms,
@@ -30,22 +30,26 @@ class Property {
   });
 
   factory Property.fromJson(Map<String, dynamic> json) {
-    return Property(
-      id: json['id'], 
-      type: json['type'],
-      price: (json['price'] as num).toDouble(), 
-      bedrooms: json['bedrooms'],
-      bathrooms: json['bathrooms'],
-      area: json['area'],
-      furnished: json['furnished'],
-      level: json['level'],
-      compound: json['compound'],
-      paymentOption: json['payment_option'],
-      city: json['city'],
-      feedback: (json['feedback'] as List<dynamic>).cast<String>(),
-      imgUrl: json['img_url'], 
-    );
-  }
+  return Property(
+    id: json['id'] as int?,
+    type: json['type'] as String,
+    price: (json['price'] as num).toInt(),
+    bedrooms: (json['bedrooms'] as num).toInt(),
+    bathrooms: (json['bathrooms'] as num).toInt(),
+    area: (json['area'] as num).toInt(),
+    furnished: json['furnished'] as String,
+    level: json['level'] != null ? (json['level'] as num).toInt() : null,
+    compound: json['compound'] as String?,
+    paymentOption: json['payment_option'] as String,
+    city: json['city'] as String,
+    feedback: (json['feedback'] as List<dynamic>).cast<String>(),
+    imgUrl: json['img_url'] != null
+          ? (json['img_url'] as List).map((e) => e.toString()).toList()
+          : null
+    
+  );
+}
+
 
 Map<String, dynamic> toJson() {
   return {
@@ -53,7 +57,6 @@ Map<String, dynamic> toJson() {
     'price': price,
     'bedrooms': bedrooms,
     'bathrooms': bathrooms,
-    
     'area': area,
     'furnished': furnished,
     'level': level,
@@ -64,6 +67,5 @@ Map<String, dynamic> toJson() {
     'img_url': imgUrl,
   };
 }
-
 
 }

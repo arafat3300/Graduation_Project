@@ -7,8 +7,6 @@ import 'package:gradproj/Screens/search.dart';
 import '../Providers/FavouritesProvider.dart';
 import '../models/Property.dart';
 
-
-
 class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});
 
@@ -42,14 +40,15 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 final property = favourites[index];
 
                 return Card(
-                  margin: const EdgeInsets.symmetric(
-                      vertical: 8, horizontal: 16),
+                  margin:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                   child: ListTile(
                     leading: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(
-                        property.imgUrl ??
-                            'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
+                        property.imgUrl?.isNotEmpty == true
+                            ? property.imgUrl!.first
+                            : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
                         width: 70,
                         height: 70,
                         fit: BoxFit.cover,
@@ -112,7 +111,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) =>  ViewProfilePage(),
+                builder: (context) => ViewProfilePage(),
               ),
             );
           }
