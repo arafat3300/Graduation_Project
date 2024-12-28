@@ -29,7 +29,7 @@ class Property {
     this.imgUrl,
   });
 
-  factory Property.fromJson(Map<String, dynamic> json) {
+factory Property.fromJson(Map<String, dynamic> json) {
   return Property(
     id: json['id'] as int?,
     type: json['type'] as String,
@@ -42,13 +42,15 @@ class Property {
     compound: json['compound'] as String?,
     paymentOption: json['payment_option'] as String,
     city: json['city'] as String,
-    feedback: (json['feedback'] as List<dynamic>).cast<String>(),
+    feedback: json['feedback'] != null
+        ? (json['feedback'] as List<dynamic>).cast<String>()
+        : [], // Default to an empty list
     imgUrl: json['img_url'] != null
-          ? (json['img_url'] as List).map((e) => e.toString()).toList()
-          : null
-    
+        ? (json['img_url'] as List<dynamic>).map((e) => e.toString()).toList()
+        : [], // Default to an empty list
   );
 }
+
 
 
 Map<String, dynamic> toJson() {
