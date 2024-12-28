@@ -108,4 +108,32 @@ String name='${user?.firstName ?? ''}'+' ' + ' ${user?.lastName ??''}';//?? 3sha
       return null;
     }
   }
+  
+  Future<String?> getLoggedInUserNumber() async {
+    try {
+      final token = await getSessionToken();
+      debugPrint("Session Token: $token");
+
+      if (token == null) {
+        debugPrint("No session token found.");
+        return null;
+      }
+
+      
+      debugPrint("Extracted User ID: $token");
+
+      if (token == null) {
+        debugPrint("Invalid session token format.");
+        return null;
+      }
+
+      final user = await getUserById(token);
+      debugPrint("User Data for Logged-in User: $user");
+
+      return user?.phone; 
+    } catch (error) {
+      debugPrint("Error while fetching logged-in user's email: $error");
+      return null;
+    }
+  }
 }

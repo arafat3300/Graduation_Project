@@ -11,10 +11,12 @@ class ViewProfilePage extends StatelessWidget {
     try {
       final email = await _userController.getLoggedInUserEmail();
       final name = await _userController.getLoggedInUserName();
-
+final phone =await _userController.getLoggedInUserNumber();
       return {
         "email": email ?? "Email not found",
         "name": name ?? "Name not found",
+        "phone": phone ?? "phone not found",
+
       };
     } catch (error) {
       return {"error": error.toString()};
@@ -56,6 +58,7 @@ class ViewProfilePage extends StatelessWidget {
             final userData = snapshot.data!;
             final email = userData['email']!;
             final name = userData['name']!;
+            final phone = userData['phone']!;
 
             return SingleChildScrollView(
               child: Column(
@@ -75,7 +78,7 @@ class ViewProfilePage extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            name, // Display user name
+                            name, 
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 24,
@@ -89,7 +92,7 @@ class ViewProfilePage extends StatelessWidget {
                               const Icon(Icons.email, color: Colors.white70),
                               const SizedBox(width: 5),
                               Text(
-                                email, // Display logged-in user's email
+                                email, 
                                 style: const TextStyle(color: Colors.white70),
                               ),
                             ],
@@ -97,12 +100,12 @@ class ViewProfilePage extends StatelessWidget {
                           const SizedBox(height: 5),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.phone, color: Colors.white70),
-                              SizedBox(width: 5),
+                            children:  [
+                              const Icon(Icons.phone, color: Colors.white70),
+                              const SizedBox(width: 5),
                               Text(
-                                '+1 123 456 7890', // Dummy phone number
-                                style: TextStyle(color: Colors.white70),
+                                phone, 
+                                style: const TextStyle(color: Colors.white70),
                               ),
                             ],
                           ),
