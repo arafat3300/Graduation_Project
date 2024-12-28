@@ -6,7 +6,8 @@ import 'package:gradproj/Screens/Profile.dart';
 import 'package:gradproj/Screens/search.dart';
 import 'package:gradproj/screens/PropertyDetails.dart';
 import '../models/Property.dart';
-import '../Models/PropertyCard.dart';
+
+import '../widgets/PropertyCard.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PropertyListScreen extends StatefulWidget {
@@ -154,6 +155,12 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                     Navigator.pushNamed(context, '/signup');
                   },
                 ),
+                IconButton(onPressed: (){
+                  Navigator.pushNamed(context, '/addProperty');
+                }
+                
+                , icon: const Icon(Icons.add_home_work_outlined
+                ,color: Colors.white,))
               ],
             ),
             // Search Bar

@@ -47,7 +47,7 @@ factory Property.fromJson(Map<String, dynamic> json) {
         : [], // Default to an empty list
     imgUrl: json['img_url'] != null
         ? (json['img_url'] as List<dynamic>).map((e) => e.toString()).toList()
-        : [], // Default to an empty list
+        : [], 
   );
 }
 

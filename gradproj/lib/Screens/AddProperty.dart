@@ -72,13 +72,13 @@ Future<void> _uploadImages() async {
     for (var asset in _selectedImages) {
       final byteData = await asset.getByteData();
       final fileBytes = byteData.buffer.asUint8List();
-      final uniqueFileName = "${uuid.v4()}_${asset.name}";
+      final uniqueFileName = "${uuid.v4()}_${asset.name.replaceAll(' ', '_')}"; // Replace spaces with underscores
 
       debugPrint("Preparing to upload image: $uniqueFileName...");
       debugPrint("File size: ${fileBytes.length} bytes");
 
       try {
-        // Attempt to upload the file
+        // Upload the file
         final filePath = await supabase.storage
             .from('properties-images')
             .uploadBinary(uniqueFileName, fileBytes);
@@ -89,9 +89,13 @@ Future<void> _uploadImages() async {
 
         debugPrint("Image uploaded successfully: $filePath");
 
+        // Extract the relative path of the file (remove 'properties-images/')
+        final relativePath = filePath.replaceFirst('properties-images/', '');
+
+        // Generate the correct public URL
         final publicUrl = supabase.storage
             .from('properties-images')
-            .getPublicUrl(filePath);
+            .getPublicUrl(relativePath);
 
         if (publicUrl.isEmpty) {
           throw Exception("Failed to generate public URL for $uniqueFileName");
@@ -100,7 +104,7 @@ Future<void> _uploadImages() async {
         debugPrint("Public URL generated: $publicUrl");
 
         setState(() {
-          _uploadedImageUrls.add(publicUrl);
+          _uploadedImageUrls.add(publicUrl); // Save the correct URL
         });
       } catch (e) {
         debugPrint("Error uploading image: $uniqueFileName, Error: $e");
@@ -121,6 +125,8 @@ Future<void> _uploadImages() async {
     );
   }
 }
+
+
 
 
 
