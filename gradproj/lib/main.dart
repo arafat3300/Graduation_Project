@@ -5,11 +5,13 @@ import 'package:gradproj/Screens/AddProperty.dart';
 import 'package:gradproj/Screens/FavouritesScreen.dart';
 import 'package:gradproj/Screens/Profile.dart';
 import 'package:gradproj/Screens/search.dart';
+import 'package:gradproj/Screens/AdminDashboardScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/PropertyListings.dart';
 import 'screens/SignupScreen.dart';
 import 'screens/LoginScreen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,7 +73,8 @@ class MyApp extends StatelessWidget {
       '/favourites': (context) => FavoritesScreen(),
       '/search': (context) => SearchScreen(),
       '/profile': (context) => ViewProfilePage(),
-      '/addProperty' :(context)=>AddPropertyScreen()
+      '/addProperty' :(context)=>AddPropertyScreen(),
+      '/adminDashboard': (context) => const AdminDashboardScreen()
     },
   );
   }

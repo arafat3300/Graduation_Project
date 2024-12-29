@@ -27,19 +27,15 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   int _currentIndex = 0;
   bool _isLoading = true;
 
-  // Toggle filter visibility
   bool _showFilters = false;
 
-  // Filter state variables
-  String? _selectedPaymentOption; // 'Cash', 'Installments', or null => All
-  int? _selectedBedrooms;         // e.g. 1, 2, 3, or null => All
-  int? _selectedBathrooms;        // e.g. 1, 2, 3, or null => All
+  String? _selectedPaymentOption; 
+  int? _selectedBedrooms;         
+  int? _selectedBathrooms;        
 
-  // Price range slider (commented out in your code – uncomment if needed)
-  // RangeValues _priceRange = const RangeValues(0, 100000);
 
-  // NEW: Sort dropdown state
-  String? _selectedSortOption; // 'PriceLowHigh', 'PriceHighLow', 'BestSellers', null => No sorting
+
+  String? _selectedSortOption; 
 
   @override
   void initState() {
@@ -134,17 +130,13 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
     });
   }
 
-  // Applies whichever sort option is selected.
-  // If your property has a `price` (int or double), we can compare it easily.
-  // For "Best Sellers", we assume there's a `property.feedback` list or something similar. 
-  // Adjust as needed for your "best sellers" logic.
+
   List<Property> _applySorting(List<Property> list) {
     if (_selectedSortOption == null) {
       // No sorting
       return list;
     }
 
-    // Create a copy to avoid mutating the original
     final sorted = List<Property>.from(list);
 
     switch (_selectedSortOption) {
@@ -155,12 +147,10 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
         sorted.sort((a, b) => b.price.compareTo(a.price));
         break;
       case 'BestSellers':
-        // Example: sort by feedback length descending
-        // Adjust if you have a different "bestseller" metric
+
         sorted.sort((a, b) => b.feedback.length.compareTo(a.feedback.length));
         break;
       default:
-        // No sorting
         break;
     }
 
@@ -202,7 +192,6 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
               backgroundColor: Colors.transparent,
               elevation: 0.0,
               actions: [
-                // Filter icon
                 IconButton(
                   icon: const Icon(Icons.filter_list, color: Colors.white),
                   onPressed: () {
@@ -351,29 +340,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                     ),
                     const SizedBox(height: 15),
 
-                    // (Optional) Price Range
-                    // Text(
-                    //   'Price Range: ${_priceRange.start.round()} - ${_priceRange.end.round()}',
-                    //   style: const TextStyle(fontSize: 16, color: Colors.white),
-                    // ),
-                    // RangeSlider(
-                    //   values: _priceRange,
-                    //   min: 0,
-                    //   max: 100000,
-                    //   divisions: 100,
-                    //   labels: RangeLabels(
-                    //     _priceRange.start.round().toString(),
-                    //     _priceRange.end.round().toString(),
-                    //   ),
-                    //   onChanged: (RangeValues values) {
-                    //     setState(() {
-                    //       _priceRange = values;
-                    //     });
-                    //     _onSearchChanged();
-                    //   },
-                    // ),
-
-                    // SORT Dropdown
+                  
                     const SizedBox(height: 10),
                     DropdownButtonFormField<String>(
                       decoration: InputDecoration(
