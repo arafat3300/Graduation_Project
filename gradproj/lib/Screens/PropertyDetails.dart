@@ -1,10 +1,12 @@
 import 'dart:io';
-
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../Providers/FavouritesProvider.dart';
 import '../models/Property.dart';
+
+
 
 class PropertyDetails extends ConsumerStatefulWidget {
   final Property property;
@@ -32,23 +34,45 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Property Image
-            Stack(
-              children: [
-                Image.network(
-                  property.imgUrl?.isNotEmpty == true
-                      ? property.imgUrl!.first
-                      : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: 250,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.broken_image,
-                    size: 70,
+            // Image Slider
+            if (property.imgUrl != null && property.imgUrl!.isNotEmpty)
+              CarouselSlider(
+                options: CarouselOptions(
+                  height: 600, 
+                  autoPlay: true,
+                  autoPlayInterval: const Duration(seconds: 3),
+                  enlargeCenterPage: true,
+                  viewportFraction: 1.0, 
+                  aspectRatio: 2.0,
+                ),
+                items: property.imgUrl!.map((imageUrl) {
+                  return Builder(
+                    builder: (BuildContext context) {
+                      return Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) => const Icon(
+                          Icons.broken_image,
+                          size: 70,
+                        ),
+                      );
+                    },
+                  );
+                }).toList(),
+              )
+            else
+              Container(
+                height: 600,
+                width: double.infinity,
+                color: Colors.grey[200],
+                child: const Center(
+                  child: Text(
+                    'No images available',
+                    style: TextStyle(color: Colors.grey),
                   ),
                 ),
-              ],
-            ),
+              ),
 
             // Property Details Section
             Padding(
@@ -140,11 +164,11 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
 
             // Feedback Section
             if (property.feedback.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.all(16.0),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
                 child: Text(
                   "Feedback:",
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
@@ -180,3 +204,4 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
     );
   }
 }
+

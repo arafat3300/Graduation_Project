@@ -23,7 +23,8 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
-  int _currentIndex = 0; // State for BottomNavBar
+  int _currentIndex = 0;
+  bool _isLoading = true;
 
   // Filter state variables
   String? _selectedPaymentOption; // 'Cash', 'Installments', or null (All)
@@ -33,8 +34,10 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   @override
   void initState() {
     super.initState();
+
     fetchProperties(); // Fetch the initial properties
-    _searchController.addListener(_onSearchChanged); // Listen to search input changes
+    _searchController
+        .addListener(_onSearchChanged); // Listen to search input changes
   }
 
   @override
@@ -47,6 +50,9 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
 
   Future<void> fetchProperties() async {
     try {
+      setState(() {
+        _isLoading = true;
+      });
       final supabase = Supabase.instance.client;
 
       // Fetch data from the 'properties' table
@@ -57,8 +63,10 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
         debugPrint("############################################ data : $data");
 
         // Map data to the Property model
-        final newProperties = data.map((entry) => Property.fromJson(entry)).toList();
-        debugPrint("############################################ newproperties : $newProperties");
+        final newProperties =
+            data.map((entry) => Property.fromJson(entry)).toList();
+        debugPrint(
+            "############################################ newproperties : $newProperties");
 
         setState(() {
           properties = newProperties;
@@ -75,6 +83,8 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text("Failed to load properties. Please try again later."),
       ));
+    } finally {
+      _isLoading = false;
     }
   }
 
@@ -155,17 +165,20 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                     Navigator.pushNamed(context, '/signup');
                   },
                 ),
-                IconButton(onPressed: (){
-                  Navigator.pushNamed(context, '/addProperty');
-                }
-                
-                , icon: const Icon(Icons.add_home_work_outlined
-                ,color: Colors.white,))
+                IconButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/addProperty');
+                    },
+                    icon: const Icon(
+                      Icons.add_home_work_outlined,
+                      color: Colors.white,
+                    ))
               ],
             ),
             // Search Bar
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
@@ -182,7 +195,8 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
             ),
             // Filter Options
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -198,7 +212,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                         fillColor: Colors.white,
                       ),
                       value: _selectedPaymentOption,
-                      items: [
+                      items: const [
                         DropdownMenuItem(
                           value: null,
                           child: Text('All'),
@@ -233,7 +247,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                         fillColor: Colors.white,
                       ),
                       value: _selectedBedrooms,
-                      items: [
+                      items: const [
                         DropdownMenuItem(
                           value: null,
                           child: Text('All'),
@@ -277,7 +291,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                         fillColor: Colors.white,
                       ),
                       value: _selectedBathrooms,
-                      items: [
+                      items: const [
                         DropdownMenuItem(
                           value: null,
                           child: Text('All'),
@@ -313,44 +327,65 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
             ),
             // Property Listings
             Expanded(
-              child: filteredProperties.isNotEmpty
-                  ? GridView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 1,
-                        mainAxisSpacing: 10.0,
-                        crossAxisSpacing: 10.0,
-                        childAspectRatio: 0.75,
+              child: _isLoading
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(
+                            color: Color.fromRGBO(66, 165, 245, 1),
+                            backgroundColor: Colors.white,
+                          ),
+                           SizedBox(height: 8),
+                          Text(
+                            "Loading Properties...",
+                            
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold,color: Colors.black) 
+                                  ),
+                        ],
                       ),
-                      itemCount: filteredProperties.length,
-                      itemBuilder: (context, index) {
-                        final property = filteredProperties[index];
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    PropertyDetails(property: property),
+                    )
+                  : filteredProperties.isNotEmpty
+                      ? GridView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 1,
+                            mainAxisSpacing: 10.0,
+                            crossAxisSpacing: 10.0,
+                            childAspectRatio: 0.75,
+                          ),
+                          itemCount: filteredProperties.length,
+                          itemBuilder: (context, index) {
+                            final property = filteredProperties[index];
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        PropertyDetails(property: property),
+                                  ),
+                                );
+                              },
+                              child: PropertyCard(
+                                property: property,
                               ),
                             );
                           },
-                          child: PropertyCard(
-                            property: property,
+                        )
+                      : const Center(
+                          child: Text(
+                            'No properties found.',
+                            style: TextStyle(
+                              fontSize: 18.0,
+                              color: Colors.white,
+                            ),
                           ),
-                        );
-                      },
-                    )
-                  : const Center(
-                      child: Text(
-                        'No properties found.',
-                        style: TextStyle(
-                          fontSize: 18.0,
-                          color: Colors.white,
                         ),
-                      ),
-                    ),
             ),
           ],
         ),
