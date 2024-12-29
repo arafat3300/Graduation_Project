@@ -24,24 +24,24 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
       setState(() => _isLoading = true);
       final supabase = Supabase.instance.client;
 
-  final response = await supabase
-      .from('admins')
-      .select('id, email, first_name, last_name, password');
+      final response = await supabase
+          .from('admins')
+          .select('id, email, first_name, last_name, password');
 
-  if (response != null && response is List<dynamic>) {
-    final admins = response.map((map) => AdminRecord.fromMap(map as Map<String, dynamic>)).toList();
-    setState(() {
-      _admins = admins;
-    });
-  } else {
-    throw Exception('Unexpected response format.');
-  }
-} catch (error) {
-  debugPrint('Error fetching admins: $error');
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('Error fetching admins: $error')),
-  );
-}finally {
+      if (response != null && response is List<dynamic>) {
+        final admins = response.map((map) => AdminRecord.fromMap(map as Map<String, dynamic>)).toList();
+        setState(() {
+          _admins = admins;
+        });
+      } else {
+        throw Exception('Unexpected response format.');
+      }
+    } catch (error) {
+      debugPrint('Error fetching admins: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching admins: $error')),
+      );
+    } finally {
       setState(() => _isLoading = false);
     }
   }
@@ -51,15 +51,12 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
       setState(() => _isLoading = true);
 
       final supabase = Supabase.instance.client;
-      final response = await supabase
-          .from('admins')
-          .insert({
-            'email': email,
-            'first_name': firstName,
-            'last_name': lastName,
-            'password': password,
-          });
-
+      await supabase.from('admins').insert({
+        'email': email,
+        'first_name': firstName,
+        'last_name': lastName,
+        'password': password,
+      });
 
       await _fetchAdmins();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -81,16 +78,12 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
       setState(() => _isLoading = true);
 
       final supabase = Supabase.instance.client;
-      final response = await supabase
-          .from('admins')
-          .update({
-            'email': newEmail,
-            'first_name': newFirstName,
-            'last_name': newLastName,
-            'password': newPassword,
-          })
-          .eq('id', id);
-
+      await supabase.from('admins').update({
+        'email': newEmail,
+        'first_name': newFirstName,
+        'last_name': newLastName,
+        'password': newPassword,
+      }).eq('id', id);
 
       await _fetchAdmins();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -111,8 +104,7 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
       setState(() => _isLoading = true);
 
       final supabase = Supabase.instance.client;
-      final response = await supabase.from('admins').delete().eq('id', id);
-
+      await supabase.from('admins').delete().eq('id', id);
 
       setState(() {
         _admins.removeWhere((admin) => admin.id == id);
@@ -166,11 +158,63 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
     );
   }
 
+  void _showEditAdminDialog(AdminRecord admin) {
+    final emailController = TextEditingController(text: admin.email);
+    final firstNameController = TextEditingController(text: admin.first_name);
+    final lastNameController = TextEditingController(text: admin.last_name);
+    final passwordController = TextEditingController(text: admin.password);
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Edit Admin'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email')),
+              TextField(controller: firstNameController, decoration: const InputDecoration(labelText: 'First Name')),
+              TextField(controller: lastNameController, decoration: const InputDecoration(labelText: 'Last Name')),
+              TextField(controller: passwordController, decoration: const InputDecoration(labelText: 'Password')),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _updateAdmin(
+                  admin.id,
+                  emailController.text.trim(),
+                  firstNameController.text.trim(),
+                  lastNameController.text.trim(),
+                  passwordController.text.trim(),
+                );
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Manage Admins'), actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchAdmins)]),
-      floatingActionButton: FloatingActionButton(onPressed: _showAddAdminDialog, child: const Icon(Icons.add)),
+      appBar: AppBar(
+        title: const Text('Manage Admins'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchAdmins,
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddAdminDialog,
+        child: const Icon(Icons.add),
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _admins.isEmpty
@@ -197,8 +241,14 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                           DataCell(
                             Row(
                               children: [
-                                IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _deleteAdmin(admin.id)),
-                                IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteAdmin(admin.id)),
+                                IconButton(
+                                  icon: const Icon(Icons.edit, color: Colors.blue),
+                                  onPressed: () => _showEditAdminDialog(admin),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => _deleteAdmin(admin.id),
+                                ),
                               ],
                             ),
                           ),
