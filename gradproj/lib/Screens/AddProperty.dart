@@ -13,7 +13,7 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
   final _formKey = GlobalKey<FormState>();
   final supabase = Supabase.instance.client;
 
-  // Controllers for property fields
+  
   final TextEditingController _typeController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _bedroomsController = TextEditingController();
@@ -72,13 +72,13 @@ Future<void> _uploadImages() async {
     for (var asset in _selectedImages) {
       final byteData = await asset.getByteData();
       final fileBytes = byteData.buffer.asUint8List();
-      final uniqueFileName = "${uuid.v4()}_${asset.name.replaceAll(' ', '_')}"; // Replace spaces with underscores
+      final uniqueFileName = "${uuid.v4()}_${asset.name.replaceAll(' ', '_')}"; 
 
       debugPrint("Preparing to upload image: $uniqueFileName...");
       debugPrint("File size: ${fileBytes.length} bytes");
 
       try {
-        // Upload the file
+        
         final filePath = await supabase.storage
             .from('properties-images')
             .uploadBinary(uniqueFileName, fileBytes);
@@ -89,10 +89,10 @@ Future<void> _uploadImages() async {
 
         debugPrint("Image uploaded successfully: $filePath");
 
-        // Extract the relative path of the file (remove 'properties-images/')
+        
         final relativePath = filePath.replaceFirst('properties-images/', '');
 
-        // Generate the correct public URL
+       
         final publicUrl = supabase.storage
             .from('properties-images')
             .getPublicUrl(relativePath);
@@ -104,7 +104,7 @@ Future<void> _uploadImages() async {
         debugPrint("Public URL generated: $publicUrl");
 
         setState(() {
-          _uploadedImageUrls.add(publicUrl); // Save the correct URL
+          _uploadedImageUrls.add(publicUrl);
         });
       } catch (e) {
         debugPrint("Error uploading image: $uniqueFileName, Error: $e");
@@ -144,7 +144,9 @@ Future<void> _submitForm() async {
         "level": _levelController.text.isNotEmpty
             ? int.parse(_levelController.text)
             : null,
-        "compound": _compoundController.text,
+        "compound": _compoundController.text.isNotEmpty
+            ? _compoundController.text
+            : "Unavailable",
         "payment_option": _paymentOption,
         "city": _cityController.text,
         "img_url": _uploadedImageUrls,
@@ -153,24 +155,30 @@ Future<void> _submitForm() async {
       await _uploadImages();
 
       await supabase.from('properties').insert(property);
-       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Property added successfully!"),
-            backgroundColor: Colors.green,
-          ),
-        );
 
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Property added successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
 
-
+     
+      await Future.delayed(Duration(seconds: 3), () {
+        Navigator.pushNamed(context, "/property-listings");
+      });
     } catch (e) {
       debugPrint('Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e"),
-        backgroundColor: Colors.red),
+        SnackBar(
+          content: Text("Error: $e"),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
 }
+
 
 
   @override

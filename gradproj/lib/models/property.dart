@@ -44,7 +44,7 @@ factory Property.fromJson(Map<String, dynamic> json) {
     city: json['city'] as String,
     feedback: json['feedback'] != null
         ? (json['feedback'] as List<dynamic>).cast<String>()
-        : [], // Default to an empty list
+        : [], 
     imgUrl: json['img_url'] != null
         ? (json['img_url'] as List<dynamic>).map((e) => e.toString()).toList()
         : [], 
