@@ -63,7 +63,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      initialRoute: '/property-listings',
+      initialRoute: '/signup',
     routes: {
       '/property-listings': (context) => const PropertyListScreen(),
       '/signup': (context) => const SignUpScreen(),

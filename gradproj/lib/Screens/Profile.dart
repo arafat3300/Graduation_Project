@@ -166,7 +166,7 @@ final phone =await _userController.getLoggedInUserNumber();
                                   bottomLeft: Radius.circular(10),
                                 ),
                                 child: Image.asset(
-                                  'assets/property1.jpg', // Dummy image
+                                  'images/listingPlaceholder.jpg', // Dummy image
                                   width: 100,
                                   height: 80,
                                   fit: BoxFit.cover,
@@ -221,7 +221,7 @@ final phone =await _userController.getLoggedInUserNumber();
                                   bottomLeft: Radius.circular(10),
                                 ),
                                 child: Image.asset(
-                                  'assets/property2.jpg', // Dummy image
+                                  'images/listingPlaceholder.jpg', // Dummy image
                                   width: 100,
                                   height: 80,
                                   fit: BoxFit.cover,
