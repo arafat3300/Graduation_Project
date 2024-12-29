@@ -68,8 +68,8 @@ class MyApp extends StatelessWidget {
       '/property-listings': (context) => const PropertyListScreen(),
       '/signup': (context) => const SignUpScreen(),
       '/login': (context) => const LoginScreen(),
-      '/favourites': (context) => FavoritesScreen(),
-      '/search': (context) => SearchScreen(),
+      '/favourites': (context) => const FavoritesScreen(),
+      '/search': (context) => const SearchScreen(),
       '/profile': (context) => ViewProfilePage(),
       '/addProperty' :(context)=>AddPropertyScreen()
     },
