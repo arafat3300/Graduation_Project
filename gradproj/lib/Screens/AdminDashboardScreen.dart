@@ -207,7 +207,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             minimumSize: const Size.fromHeight(50),
                           ),
                           onPressed: () {
-                            // TODO: navigate to admins screen
+                            Navigator.pushNamed(context, '/manageAdmins');
+
                           },
                         ),
                       ],

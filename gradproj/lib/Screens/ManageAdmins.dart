@@ -19,7 +19,6 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
     _fetchAdmins();
   }
 
-  /// Fetch all rows from 'admins' table and store in _admins
   Future<void> _fetchAdmins() async {
     try {
       setState(() => _isLoading = true);
