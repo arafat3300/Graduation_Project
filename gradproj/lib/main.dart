@@ -5,6 +5,7 @@ import 'package:gradproj/Screens/AddProperty.dart';
 import 'package:gradproj/Screens/FavouritesScreen.dart';
 import 'package:gradproj/Screens/Profile.dart';
 import 'package:gradproj/Screens/search.dart';
+import 'package:gradproj/Screens/ManageAdmins.dart';
 import 'package:gradproj/Screens/AdminDashboardScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/PropertyListings.dart';
@@ -74,7 +75,8 @@ class MyApp extends StatelessWidget {
       '/search': (context) => const SearchScreen(),
       '/profile': (context) => ViewProfilePage(),
       '/addProperty' :(context)=>AddPropertyScreen(),
-      '/adminDashboard': (context) => const AdminDashboardScreen()
+      '/adminDashboard': (context) => const AdminDashboardScreen(),
+      '/manageAdmins': (context)=>const ManageAdminsScreen()
     },
   );
   }

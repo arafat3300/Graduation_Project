@@ -11,11 +11,9 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   bool _isLoading = true;
 
-  /// Main stats
   int _userCount = 0;
   int _propertyCount = 0;
 
-  /// Additional stats
   int _adminCount = 0;         
   int _activeProperties = 0;   
 
@@ -25,7 +23,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _fetchAllDashboardData();
   }
 
-  /// Fetches all needed stats, updating state and printing debug info.
   Future<void> _fetchAllDashboardData() async {
     try {
       setState(() => _isLoading = true);
@@ -48,8 +45,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
       final propertyCount = propertyResponse.count ?? 0;
 
-      // ---- 3) Count how many users are admins
-      // If you have a separate 'admins' table or a role column in 'users', adjust accordingly.
+      
       final adminResponse = await supabase
           .from('admins') 
           .select()
@@ -74,7 +70,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
       final activeCount = activeResponse.count ?? 0;
 
-      // ---- Update our state variables.
       setState(() {
         _userCount = userCount;
         _propertyCount = propertyCount;
@@ -88,12 +83,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
-  /// Pull-to-refresh callback
   Future<void> _onRefresh() => _fetchAllDashboardData();
 
   @override
   Widget build(BuildContext context) {
-    // Extra debug: see what the widget sees in build
     debugPrint(">>> BUILD: _userCount=$_userCount, _propertyCount=$_propertyCount");
 
     return Scaffold(
@@ -117,7 +110,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // First Row of Summary Cards
                     Row(
                       children: [
                         Expanded(
@@ -141,7 +133,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Second Row of Additional Stats
                     Row(
                       children: [
                         Expanded(
