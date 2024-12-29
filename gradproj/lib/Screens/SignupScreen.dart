@@ -31,7 +31,7 @@ class _SignUpScreenState extends State<SignUpScreen>
 
   String? _selectedCountry;
   String? _selectedJob;
-final Uuid _uuid = Uuid();
+final Uuid _uuid = const Uuid();
 
   // Dropdown options
   final List<String> _countries = [
@@ -136,8 +136,8 @@ final Uuid _uuid = Uuid();
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Row(
-            children: const [
+          title: const Row(
+            children: [
               Icon(Icons.error, color: Colors.red),
               SizedBox(width: 10),
               Text("Error"),
@@ -162,9 +162,9 @@ final Uuid _uuid = Uuid();
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
+        return const AlertDialog(
           title: Row(
-            children: const [
+            children: [
               Icon(Icons.check_circle, color: Colors.green),
               SizedBox(width: 10),
               Text("Success"),
@@ -172,7 +172,7 @@ final Uuid _uuid = Uuid();
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               Text("You have successfully signed up!"),
               SizedBox(height: 10),
               SpinKitCircle(
@@ -287,9 +287,9 @@ final Uuid _uuid = Uuid();
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Row(
+                    const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
+                      children: [
                         Icon(Icons.vpn_key, color: Colors.white, size: 20),
                         SizedBox(width: 8),
                         Text(
@@ -411,19 +411,33 @@ final Uuid _uuid = Uuid();
                         ],
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 18),
                     GestureDetector(
                       onTap: () {
                         Navigator.pushNamed(context, '/login');
                       },
-                      child: const Text(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          shape: BoxShape.rectangle,
+                          color: Colors.white
+                          
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(10),
+                          child: const Text(
                         'Already have an Account? Sign In',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          decoration: TextDecoration.underline,
+                           fontWeight: FontWeight.bold,
+                         
+                          color: Colors.grey,
+                          fontSize: 16,
+                          
                         ),
-                      ),
+                      ),)
+                          
+                          
+                      )
                     ),
                   ],
                 ),

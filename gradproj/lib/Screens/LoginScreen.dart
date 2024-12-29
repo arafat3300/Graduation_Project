@@ -82,8 +82,8 @@ class _LoginScreenState extends State<LoginScreen>
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Row(
-            children: const [
+          title: const Row(
+            children: [
               Icon(Icons.error, color: Colors.red),
               SizedBox(width: 10),
               Text("Error"),
@@ -109,9 +109,9 @@ class _LoginScreenState extends State<LoginScreen>
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
+        return const AlertDialog(
           title: Row(
-            children: const [
+            children: [
               Icon(Icons.check_circle, color: Colors.green),
               SizedBox(width: 10),
               Text("Success"),
@@ -119,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               Text("Login successful! Redirecting..."),
               SizedBox(height: 10),
               SpinKitCircle(
@@ -158,7 +158,8 @@ class _LoginScreenState extends State<LoginScreen>
         hintStyle: const TextStyle(color: Colors.white70, fontSize: 16),
         filled: true,
         fillColor: Colors.grey[800],
-        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
         ),
@@ -251,37 +252,72 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                     const SizedBox(height: 15),
                     GestureDetector(
-                      onTap: () {
-                        // TODO: Forgot Password Logic
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  "Forgot Password feature not implemented.")),
-                        );
-                      },
-                      child: const Text(
-                        'Forgot Password?',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
+                        onTap: () {
+                          // TODO: Forgot Password Logic
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    "Forgot Password feature not implemented.")),
+                          );
+                        },
+                        child: Container(
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                shape: BoxShape.rectangle,
+                                color: Colors.white),
+                            child: const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: Text(
+                                'Forgot Password?',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ))),
                     const SizedBox(height: 15),
                     GestureDetector(
-                      onTap: () {
-                        Navigator.pushNamed(context, '/signup');
-                      },
-                      child: const Text(
-                        'Don’t have an Account? Sign Up',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
+                        onTap: () {
+                          Navigator.pushNamed(context, '/signup');
+                        },
+                        child: Container(
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                shape: BoxShape.rectangle,
+                                color: Colors.white),
+                            child: const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: Text(
+                                'Don’t have an Account? Sign Up',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ))),
+                    const SizedBox(height: 15),
+                    GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(context, '/adminDashboard');
+                        },
+                        child: Container(
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                shape: BoxShape.rectangle,
+                                color: Colors.white),
+                            child: const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: const Text(
+                                'Login as admin',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ))),
                   ],
                 ),
               ),
