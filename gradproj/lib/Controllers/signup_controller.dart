@@ -7,7 +7,7 @@ import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
 
 class SignUpController {
-  final Uuid _uuid = Uuid();
+  final Uuid _uuid = const Uuid();
 
   /// Save session token in SharedPreferences
   Future<void> _saveSession(String token) async {

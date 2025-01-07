@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/Admin.dart';
 
 class ManageAdminsScreen extends StatefulWidget {
-  const ManageAdminsScreen({Key? key}) : super(key: key);
+  const ManageAdminsScreen({super.key});
 
   @override
   _ManageAdminsScreenState createState() => _ManageAdminsScreenState();
@@ -28,8 +28,8 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
           .from('admins')
           .select('id, email, first_name, last_name, password');
 
-      if (response != null && response is List<dynamic>) {
-        final admins = response.map((map) => AdminRecord.fromMap(map as Map<String, dynamic>)).toList();
+      if (response is List<dynamic>) {
+        final admins = response.map((map) => AdminRecord.fromMap(map)).toList();
         setState(() {
           _admins = admins;
         });

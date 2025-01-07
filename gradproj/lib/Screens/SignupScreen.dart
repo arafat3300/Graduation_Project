@@ -9,8 +9,9 @@ import 'PropertyListings.dart';
 import 'package:uuid/uuid.dart';
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+   final VoidCallback toggleTheme;
 
+  const SignUpScreen({super.key, required this.toggleTheme});
   @override
   _SignUpScreenState createState() => _SignUpScreenState();
 }
@@ -190,7 +191,7 @@ final Uuid _uuid = const Uuid();
       Navigator.of(context).pop(); // Close the success dialog
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const PropertyListScreen()),
+        MaterialPageRoute(builder: (context) =>  PropertyListScreen(toggleTheme: widget.toggleTheme)),
       );
     });
   }
@@ -425,7 +426,7 @@ final Uuid _uuid = const Uuid();
                         ),
                         child: const Padding(
                           padding: EdgeInsets.all(10),
-                          child: const Text(
+                          child: Text(
                         'Already have an Account? Sign In',
                         style: TextStyle(
                            fontWeight: FontWeight.bold,

@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 class AddPropertyScreen extends StatefulWidget {
+  const AddPropertyScreen({super.key});
+
   @override
   _AddPropertyScreenState createState() => _AddPropertyScreenState();
 }
@@ -26,8 +28,8 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
   String? _paymentOption = "Cash";
 
   List<Asset> _selectedImages = [];
-  List<String> _uploadedImageUrls = [];
-  final Uuid uuid = Uuid();
+  final List<String> _uploadedImageUrls = [];
+  final Uuid uuid = const Uuid();
 
   Future<void> _pickImages() async {
     try {

@@ -5,27 +5,33 @@ import 'package:gradproj/Screens/Profile.dart';
 import 'package:gradproj/Screens/PropertyListings.dart';
 import 'package:gradproj/Screens/search.dart';
 import '../Providers/FavouritesProvider.dart';
-import '../models/Property.dart';
 
 class FavoritesScreen extends ConsumerStatefulWidget {
-  const FavoritesScreen({super.key});
+  final VoidCallback toggleTheme;
+
+  const FavoritesScreen({super.key, required this.toggleTheme});
 
   @override
   _FavoritesScreenState createState() => _FavoritesScreenState();
 }
 
 class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
-  int _currentIndex = 2; // Default index for the Favorites screen
+  int _currentIndex = 2;
 
   @override
   Widget build(BuildContext context) {
-    // Get the current list of favorite properties
     final favourites = ref.watch(favouritesProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Favorites'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.dark_mode),
+            onPressed: widget.toggleTheme,
+          ),
+        ],
       ),
       body: favourites.isEmpty
           ? const Center(
@@ -40,8 +46,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 final property = favourites[index];
 
                 return Card(
-                  margin:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                   child: ListTile(
                     leading: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
@@ -77,7 +82,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () {
-                        // Remove property from favourites
                         ref
                             .read(favouritesProvider.notifier)
                             .removeProperty(property);
@@ -97,14 +101,14 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const PropertyListScreen(),
+                builder: (context) => PropertyListScreen(toggleTheme: widget.toggleTheme),
               ),
             );
           } else if (_currentIndex == 1) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const SearchScreen(),
+                builder: (context) =>  SearchScreen(toggleTheme: widget.toggleTheme),
               ),
             );
           } else if (_currentIndex == 3) {

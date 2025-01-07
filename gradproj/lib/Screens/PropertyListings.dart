@@ -11,7 +11,8 @@ import '../models/Property.dart';
 import '../widgets/PropertyCard.dart';
 
 class PropertyListScreen extends StatefulWidget {
-  const PropertyListScreen({super.key});
+  final VoidCallback toggleTheme;
+  const PropertyListScreen({super.key, required this.toggleTheme});
 
   @override
   _PropertyListScreenState createState() => _PropertyListScreenState();
@@ -159,20 +160,19 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
 
   @override
   Widget build(BuildContext context) {
+      final primaryColor = Theme.of(context).colorScheme.primary;
+  final secondaryColor = Theme.of(context).colorScheme.secondary;
     return Scaffold(
       body: Container(
-        // Background gradient
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF73AEF5),
-              Color(0xFF61A4F1),
-              Color(0xFF478DE0),
-              Color(0xFF398AE5),
-            ],
-            stops: [0.1, 0.4, 0.7, 0.9],
+       decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            primaryColor,
+            secondaryColor,
+          ],
+            stops: const [0.1, 0.4, 0.7, 0.9],
           ),
         ),
         child: Column(
@@ -180,18 +180,23 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
             // AppBar
             AppBar(
               title: const Text(
-                "Property Listings",
+                "Property Listings",  
                 style: TextStyle(
                   color: Colors.white,
                   fontFamily: 'OpenSans',
                   fontWeight: FontWeight.bold,
                   fontSize: 22.0,
+               
                 ),
               ),
               centerTitle: true,
               backgroundColor: Colors.transparent,
               elevation: 0.0,
               actions: [
+                 IconButton(
+                 icon: const Icon(Icons.dark_mode),
+                 onPressed: widget.toggleTheme, 
+                ),
                 IconButton(
                   icon: const Icon(Icons.filter_list, color: Colors.white),
                   onPressed: () {
@@ -448,26 +453,31 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
       ),
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() => _currentIndex = index);
-          // Navigation logic
-          if (_currentIndex == 0) {
-            // Home or reload
-          } else if (_currentIndex == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => SearchScreen()),
-            );
-          } else if (_currentIndex == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => FavoritesScreen()),
-            );
-          } else if (_currentIndex == 3) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => ViewProfilePage()),
-            );
+  onTap: (index) {
+    setState(() => _currentIndex = index);
+    // Navigation logic
+    if (_currentIndex == 0) {
+      // Home or reload
+    } else if (_currentIndex == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>  SearchScreen(toggleTheme: widget.toggleTheme),
+        ),
+      );
+    } else if (_currentIndex == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FavoritesScreen(toggleTheme: widget.toggleTheme),
+        ),
+      );
+    } else if (_currentIndex == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ViewProfilePage(),
+      ));
           }
         },
       ),

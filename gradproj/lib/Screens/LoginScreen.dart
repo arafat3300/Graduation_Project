@@ -6,7 +6,9 @@ import 'PropertyListings.dart'; // Replace with the actual property listing scre
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final VoidCallback toggleTheme;
+
+  const LoginScreen({super.key, required this.toggleTheme});
 
   @override
   _LoginScreenState createState() => _LoginScreenState();
@@ -136,7 +138,9 @@ class _LoginScreenState extends State<LoginScreen>
       Navigator.of(context).pop(); // Close the success dialog
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const PropertyListScreen()),
+        MaterialPageRoute(
+          builder: (context) => PropertyListScreen(toggleTheme: widget.toggleTheme),
+        ),
       );
     });
   }
@@ -252,72 +256,32 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                     const SizedBox(height: 15),
                     GestureDetector(
-                        onTap: () {
-                          // TODO: Forgot Password Logic
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    "Forgot Password feature not implemented.")),
-                          );
-                        },
-                        child: Container(
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                shape: BoxShape.rectangle,
-                                color: Colors.white),
-                            child: const Padding(
-                              padding: EdgeInsets.all(10),
-                              child: Text(
-                                'Forgot Password?',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ))),
-                    const SizedBox(height: 15),
-                    GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, '/signup');
-                        },
-                        child: Container(
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                shape: BoxShape.rectangle,
-                                color: Colors.white),
-                            child: const Padding(
-                              padding: EdgeInsets.all(10),
-                              child: Text(
-                                'Don’t have an Account? Sign Up',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ))),
-                    const SizedBox(height: 15),
-                    GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, '/adminDashboard');
-                        },
-                        child: Container(
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                shape: BoxShape.rectangle,
-                                color: Colors.white),
-                            child: const Padding(
-                              padding: EdgeInsets.all(10),
-                              child: const Text(
-                                'Login as admin',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ))),
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  "Forgot Password feature not implemented.")),
+                        );
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          shape: BoxShape.rectangle,
+                          color: Colors.white,
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(10),
+                          child: Text(
+                            'Forgot Password?',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

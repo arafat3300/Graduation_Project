@@ -67,11 +67,6 @@ class UserController {
       
       debugPrint("Extracted User ID: $token");
 
-      if (token == null) {
-        debugPrint("Invalid session token format.");
-        return null;
-      }
-
       final user = await getUserById(token);
       debugPrint("User Data for Logged-in User: $user");
 
@@ -94,14 +89,9 @@ class UserController {
       
       debugPrint("Extracted User ID: $token");
 
-      if (token == null) {
-        debugPrint("Invalid session token format.");
-        return null;
-      }
-
       final user = await getUserById(token);
       debugPrint("User Data for Logged-in User: $user");
-String name='${user?.firstName ?? ''}'+' ' + ' ${user?.lastName ??''}';//?? 3shan law empty ahot el maben el quotations
+String name='${user?.firstName ?? ''}  ${user?.lastName ??''}';//?? 3shan law empty ahot el maben el quotations
       return name; 
     } catch (error) {
       debugPrint("Error while fetching logged-in user's name: $error");
@@ -121,11 +111,6 @@ String name='${user?.firstName ?? ''}'+' ' + ' ${user?.lastName ??''}';//?? 3sha
 
       
       debugPrint("Extracted User ID: $token");
-
-      if (token == null) {
-        debugPrint("Invalid session token format.");
-        return null;
-      }
 
       final user = await getUserById(token);
       debugPrint("User Data for Logged-in User: $user");
