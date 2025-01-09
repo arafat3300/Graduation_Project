@@ -132,6 +132,7 @@ class SignUpController {
         password: hashPassword(password.trim()),
         token: sessionToken,
         createdAt: DateTime.now(),
+        role: 2
       );
 
       // Insert user details into users table

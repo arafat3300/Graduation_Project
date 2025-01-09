@@ -38,6 +38,7 @@ class UserController {
           email: response['email'] ?? '',
           password: '', // Never retrieve password
           token: response['idd'] ?? '',
+          role: response['role']
         );
       }
       return null;
