@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginController {
+  final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
+
   /// Save session token in SharedPreferences
   Future<void> _saveSession(String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -25,9 +27,9 @@ class LoginController {
 
   /// Hash the password using SHA-256
   String hashPassword(String password) {
-    final bytes = utf8.encode(password.trim()); // Trim and convert password to bytes
-    final digest = sha256.convert(bytes); // Perform SHA-256 hashing
-    return digest.toString(); // Return hashed password as a string
+    final bytes = utf8.encode(password.trim());
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 
   /// Validate if email is in correct format
@@ -42,67 +44,59 @@ class LoginController {
   bool isValidPassword(String password) {
     return password.isNotEmpty;
   }
-/// Retrieve and print the session token
-Future<void> printSessionToken() async {
-  final token = await _getSession();
-  if (token != null) {
-    debugPrint("Session Token: $token");
-  } else {
-    debugPrint("No session token found.");
+
+  /// Retrieve and print the session token
+  Future<void> printSessionToken() async {
+    final token = await _getSession();
+    if (token != null) {
+      debugPrint("Session Token: $token");
+    } else {
+      debugPrint("No session token found.");
+    }
   }
-}
 
   /// Login the user by verifying credentials
   Future<String> loginUser(String email, String password) async {
-  const databaseUrl =
-      "https://property-finder-3a4b1-default-rtdb.firebaseio.com/users.json";
+    try {
+      // Use Supabase authentication
+      final authResponse = await _supabase.auth.signInWithPassword(
+        email: email.trim(),
+        password: password.trim(),
+      );
 
-  try {
-    final response = await http.get(Uri.parse(databaseUrl));
-
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> users = json.decode(response.body);
-
-      final hashedPassword = hashPassword(password);
-      debugPrint("Raw password during login: '$password', Hashed password: '$hashedPassword'");
-
-      for (var userId in users.keys) {
-        final user = users[userId];
-        if (user['email'] == email) {
-          if (user['password'] == hashedPassword) {
-            final sessionToken = user['token'] ?? userId;
-            await _saveSession(sessionToken);
-            return "Login successful!";
-           
-          } else {
-            return "Incorrect password.";
-          }
-        }
+      // Check if user exists and authentication was successful
+      final user = authResponse.user;
+      if (user != null) {
+        // Save the session token
+        await _saveSession(authResponse.session?.accessToken ?? '');
+        return "Login successful!";
+      } else {
+        return "Authentication failed.";
       }
-
-      return "No user found with this email.";
-    } else {
-      debugPrint("Server error: ${response.body}");
-      return "Server error: ${response.statusCode}";
+    } on supabase.AuthException catch (e) {
+      // Handle specific authentication errors
+      debugPrint("Login error: ${e.message}");
+      
+      if (e.message.contains('Invalid login credentials')) {
+        return "Incorrect email or password.";
+      }
+      
+      return "Login error: ${e.message}";
+    } catch (error) {
+      debugPrint("Unexpected login error: $error");
+      return "An unexpected error occurred: $error";
     }
-  } catch (error) {
-    if (error is FormatException) {
-      debugPrint("Unexpected server response: $error");
-      return "Unexpected server response. Please check the database URL.";
-    }
-    return "An unexpected error occurred: $error";
   }
-}
-
 
   /// Logout the user by clearing the session
   Future<void> logoutUser() async {
+    await _supabase.auth.signOut();
     await _clearSession();
   }
 
-  /// Check if the user is logged in by verifying session token
+  /// Check if the user is logged in by verifying session
   Future<bool> isLoggedIn() async {
-    final token = await _getSession();
-    return token != null;
+    final session = _supabase.auth.currentSession;
+    return session != null;
   }
 }

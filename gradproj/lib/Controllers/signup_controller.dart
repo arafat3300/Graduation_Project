@@ -1,13 +1,14 @@
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/user.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:uuid/uuid.dart';
-import 'package:http/http.dart' as http;
+import 'package:gradproj/Models/User.dart' as local;
+import 'package:crypto/crypto.dart';
+import 'dart:convert';
 
 class SignUpController {
   final Uuid _uuid = const Uuid();
+  final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
 
   /// Save session token in SharedPreferences
   Future<void> _saveSession(String token) async {
@@ -67,7 +68,6 @@ class SignUpController {
 
   /// Generate session token
   String generateSessionToken(String id) {
-   
     return id;
   }
 
@@ -96,64 +96,60 @@ class SignUpController {
     );
 
     if (validationError != null) {
-      return validationError; // Return the error message
+      return validationError;
     }
 
-    // Generate a unique user ID and session token
-    final id = _uuid.v4();
-    final sessionToken = generateSessionToken(id);
-
-    // Determine the user's job
-    final userJob = job == 'Other' ? otherJob?.trim() ?? 'Unknown' : job;
-
-    // Create the user object
-    final user = User(
-      id: id,
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      dob: dob.trim(),
-      phone: phone.trim(),
-      country: country,
-      job: userJob ?? 'Unknown',
-      email: email.trim(),
-      password: hashPassword(password.trim()),
-      token: sessionToken,
-    );
-
-    // Attempt to save the user
-    return await signUpUser(user);
-  }
-
-  /// Send user data to the backend for sign-up
-    /// Send user data to the backend for sign-up
-  Future<String> signUpUser(User user) async {
     try {
-      final url = Uri.https(
-        'property-finder-3a4b1-default-rtdb.firebaseio.com',
-        '/users/${user.id}.json', // Use the user ID as the key
+      // Use Supabase Auth to create user
+      final authResponse = await _supabase.auth.signUp(
+        email: email.trim(),
+        password: password.trim(),
       );
 
-      final response = await http.put(
-        url, // Use PUT instead of POST to set the ID as the key
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(user.toJson()),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // Save the session token
-        await _saveSession(user.token);
-        return "User signed up successfully!";
-      } else {
-        return "Failed to sign up: ${response.body}";
+      // Get the user ID from the auth response
+      final userId = authResponse.user?.id;
+      if (userId == null) {
+        return "Failed to create user";
       }
+
+      // Generate session token using the original method
+      final sessionToken = generateSessionToken(userId);
+
+      // Determine the user's job
+      final userJob = job == 'Other' ? otherJob?.trim() ?? 'Unknown' : job;
+
+      // Create the user object
+      final user = local.User(
+        idd: userId,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        dob: dob.trim(),
+        phone: phone.trim(),
+        country: country,
+        job: userJob,
+        email: email.trim(),
+        password: hashPassword(password.trim()),
+        token: userId,
+        createdAt: DateTime.now(),
+      );
+
+      // Insert user details into users table
+      await _supabase.from('users').upsert(user.toJson());
+
+      // Save the session token using the original method
+      await _saveSession(sessionToken);
+
+      return "User signed up successfully!";
+    } on supabase.AuthException catch (e) {
+      return "Authentication error: ${e.message}";
     } catch (error) {
       return "An error occurred: $error";
     }
   }
 
-
   /// Logout the user
   Future<void> logoutUser() async {
+    await _supabase.auth.signOut();
     await _clearSession();
   }
 }

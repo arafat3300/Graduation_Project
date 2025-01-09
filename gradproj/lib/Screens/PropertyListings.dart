@@ -97,9 +97,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
       final query = _searchController.text.toLowerCase();
 
       setState(() {
-        // 1) Filter
         List<Property> tempList = properties.where((property) {
-          // Search: if query is empty, everything matches
           final bool matchesQuery = query.isEmpty ||
               property.type.toLowerCase().contains(query) ||
               property.city.toLowerCase().contains(query) ||
@@ -123,7 +121,6 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
           return matchesQuery && matchesPaymentOption && matchesBedrooms && matchesBathrooms;
         }).toList();
 
-        // 2) Sort
         tempList = _applySorting(tempList);
 
         filteredProperties = tempList;

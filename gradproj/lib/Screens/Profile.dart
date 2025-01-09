@@ -6,7 +6,6 @@ class ViewProfilePage extends StatelessWidget {
 
   ViewProfilePage({super.key});
 
-  /// Fetch both email and name asynchronously
   Future<Map<String, String>> _getUserData() async {
     try {
       final email = await _userController.getLoggedInUserEmail();
