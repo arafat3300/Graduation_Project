@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
@@ -100,36 +101,36 @@ class SignUpController {
     }
 
     try {
-      // Use Supabase Auth to create user
-      final authResponse = await _supabase.auth.signUp(
-        email: email.trim(),
-        password: password.trim(),
-      );
+      // // Use Supabase Auth to create user
+      // final authResponse = await _supabase.auth.signUp(
+      //   email: email.trim(),
+      //   password: password.trim(),
+      // );
 
-      // Get the user ID from the auth response
-      final userId = authResponse.user?.id;
-      if (userId == null) {
-        return "Failed to create user";
-      }
-
+      // // Get the user ID from the auth response
+      // final userId = authResponse.user?.id;
+      // if (userId == null) {
+      //   return "Failed to create user";
+      // }
+      final id=_uuid.v4();
       // Generate session token using the original method
-      final sessionToken = generateSessionToken(userId);
+      final sessionToken = generateSessionToken(id);
 
       // Determine the user's job
       final userJob = job == 'Other' ? otherJob?.trim() ?? 'Unknown' : job;
 
       // Create the user object
       final user = local.User(
-        idd: userId,
+        idd: id,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         dob: dob.trim(),
         phone: phone.trim(),
         country: country,
-        job: userJob,
+        job: userJob ?? 'Unknown',
         email: email.trim(),
         password: hashPassword(password.trim()),
-        token: userId,
+        token: sessionToken,
         createdAt: DateTime.now(),
       );
 
