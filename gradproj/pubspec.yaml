@@ -7,7 +7,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.5.3 <4.0.0"
+  sdk: ">=3.6.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -31,6 +31,9 @@ dependencies:
   image_picker: ^0.8.7+4
   photo_manager: ^3.0.0
   carousel_slider: ^5.0.0
+  flutter_email_sender: ^6.0.3
+  mailer: ^6.4.1
+  google_sign_in: ^6.2.2
   
   
 
@@ -48,4 +51,5 @@ flutter:
     - images/background.jpg
     - images/listingPlaceholder.jpg
     - images/keyimage.jpg
+    - images/google-logo.png
 
