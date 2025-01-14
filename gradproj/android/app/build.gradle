@@ -61,6 +61,8 @@ dependencies {
     // Add Firebase dependencies (e.g., Authentication and Realtime Database)
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.firebase:firebase-database'
+     implementation 'com.google.android.gms:play-services-auth:20.7.0'  
+
 }
 
 // Apply the Google Services plugin
