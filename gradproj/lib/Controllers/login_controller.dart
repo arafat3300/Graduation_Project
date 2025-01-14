@@ -53,11 +53,47 @@ class LoginController {
 Future<BaseUser?> getUserByEmail(String email) async {
   try {
     print('Attempting to find user with email: $email');
-
+    
     // Normalize email
     final normalizedEmail = email.trim().toLowerCase();
 
-    // Check admin users
+    // Check regular users first
+    final userResponse = await _supabase
+        .from('users')
+        .select()
+        .eq('email', normalizedEmail)
+        .single();
+
+    print('Raw User Response: $userResponse');
+
+    if (userResponse != null) {
+      try {
+        // Detailed mapping with error handling for user
+        final user = User.fromJson({
+          'idd': userResponse['idd'],
+          'firstname': userResponse['firstname'] ?? userResponse['first_name'],
+          'lastname': userResponse['lastname'] ?? userResponse['last_name'],
+          'dob': userResponse['dob'],
+          'phone': userResponse['phone'],
+          'country': userResponse['country'],
+          'job': userResponse['job'],
+          'email': userResponse['email'],
+          'password': userResponse['password'],
+          'token': userResponse['token'] ?? '', // Default empty string
+          'created_at': userResponse['created_at'],
+          'role': userResponse['role']
+        });
+        
+        print('Successfully mapped user: ${user.email}');
+        return user;
+      } catch (mappingError) {
+        print('Error mapping user record: $mappingError');
+        print('Problematic map: $userResponse');
+        return null;
+      }
+    }
+
+    // If no user found, check admin users
     final adminResponse = await _supabase
         .from('admins')
         .select()
@@ -68,7 +104,7 @@ Future<BaseUser?> getUserByEmail(String email) async {
 
     if (adminResponse != null) {
       try {
-        // Detailed mapping with error handling
+        // Detailed mapping with error handling for admin
         final admin = AdminRecord.fromMap({
           'id': adminResponse['id'],
           'email': adminResponse['email'],
@@ -198,3 +234,6 @@ Future<BaseUser?> getUserByEmail(String email) async {
     }
   }
 }
+
+
+  
