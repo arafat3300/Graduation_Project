@@ -21,14 +21,14 @@ class PropertyCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Property image with placeholder handling
+           
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(12),
               ),
               child: Container(
                 width: double.infinity,
-                height: 680, // Adjust height as needed
+                height: 680, 
                 child: Image.network(
                   property.imgUrl?.isNotEmpty == true
                       ? property.imgUrl!.first
@@ -47,14 +47,14 @@ class PropertyCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Property details
+            
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 40, 0 , 50),
               child: 
                  Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Property name
+                   
                     Text(
                   
                       property.type,

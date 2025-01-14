@@ -34,7 +34,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image Slider
+            //slider
             if (property.imgUrl != null && property.imgUrl!.isNotEmpty)
               CarouselSlider(
                 options: CarouselOptions(
@@ -190,11 +190,11 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                 ),
               ),
             ] else ...[
-              Padding(
-                padding: const EdgeInsets.all(16.0),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
                 child: Text(
                   "No feedback available for this property.",
-                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
               ),
             ],
