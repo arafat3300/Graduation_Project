@@ -13,7 +13,6 @@ import 'screens/SignupScreen.dart';
 import 'screens/LoginScreen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -26,9 +25,9 @@ void main() async {
 
   try {
     await Supabase.initialize(
-      url: 'https://zodbnolhtcemthbjttab.supabase.co', 
+      url: 'https://zodbnolhtcemthbjttab.supabase.co',
       anonKey:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvZGJub2xodGNlbXRoYmp0dGFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE4MjMsImV4cCI6MjA1MDU0NzgyM30.bkW3OpxY1_IwU01GwybxHfrQQ9t3yFgLZVi406WvgVI', // Replace with your Supabase anon key
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvZGJub2xodGNlbXRoYmp0dGFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE4MjMsImV4cCI6MjA1MDU0NzgyM30.bkW3OpxY1_IwU01GwybxHfrQQ9t3yFgLZVi406WvgVI',
     );
     debugPrint("Supabase initialized successfully!");
   } catch (e) {
@@ -46,38 +45,53 @@ void main() async {
   );
 }
 
-/// Check if the user is logged in
 Future<bool> checkIsLoggedIn() async {
   final prefs = await SharedPreferences.getInstance();
-  return prefs.getString('token') != null; // Check if token exists
+  return prefs.getString('token') != null;
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final bool isLoggedIn;
 
   const MyApp({super.key, required this.isLoggedIn});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  ThemeMode _themeMode = ThemeMode.light;
+
+  void toggleTheme() {
+    setState(() {
+      _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Property Finder',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      initialRoute: '/signup',
-    routes: {
-      '/property-listings': (context) => const PropertyListScreen(),
-      '/signup': (context) => const SignUpScreen(),
-      '/login': (context) => const LoginScreen(),
-      '/favourites': (context) => const FavoritesScreen(),
-      '/search': (context) => const SearchScreen(),
-      '/profile': (context) => ViewProfilePage(),
-      '/addProperty' :(context)=>AddPropertyScreen(),
-      '/adminDashboard': (context) => const AdminDashboardScreen(),
-      '/manageAdmins': (context)=>const ManageAdminsScreen()
-    },
-  );
+ theme: ThemeData.light().copyWith(
+  colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.blue),
+),
+darkTheme: ThemeData.dark().copyWith(
+  colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.blueGrey),
+),
+      themeMode: _themeMode,
+      initialRoute: widget.isLoggedIn ? '/property-listings' : '/signup',
+      routes: {
+'/property-listings': (context) => PropertyListScreen(toggleTheme: toggleTheme),
+        '/signup': (context) =>  SignUpScreen(toggleTheme: toggleTheme),
+        '/login': (context) =>  LoginScreen(toggleTheme: toggleTheme),
+         '/favourites': (context) => FavoritesScreen(toggleTheme: toggleTheme),
+        '/search': (context) =>  SearchScreen(toggleTheme: toggleTheme),
+        '/profile': (context) => ViewProfilePage(),
+        '/addProperty': (context) => AddPropertyScreen(),
+        '/adminDashboard': (context) => const AdminDashboardScreen(),
+        '/manageAdmins': (context) => const ManageAdminsScreen(),
+      },
+    );
   }
 }

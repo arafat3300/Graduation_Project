@@ -6,7 +6,9 @@ import 'package:gradproj/Screens/PropertyListings.dart';
 import 'package:material_floating_search_bar_2/material_floating_search_bar_2.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+    final VoidCallback toggleTheme;
+
+  const SearchScreen({super.key, required this.toggleTheme});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -38,13 +40,13 @@ class _SearchScreenState extends State<SearchScreen> {
 Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PropertyListScreen(),
+                builder: (context) => PropertyListScreen(toggleTheme: widget.toggleTheme),
               ),
             );          } else if (_currentIndex == 1) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => SearchScreen(),
+                builder: (context) =>  SearchScreen(toggleTheme: widget.toggleTheme),
               ),
             );
           } else if (_currentIndex == 3) {
@@ -58,7 +60,7 @@ Navigator.push(
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => FavoritesScreen(),
+                builder: (context) =>  FavoritesScreen(toggleTheme: widget.toggleTheme),
               ),
             );
           }

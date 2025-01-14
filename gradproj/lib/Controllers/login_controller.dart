@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:gradproj/Models/Admin.dart';
+import 'package:gradproj/Models/Baseuser.dart';
+import 'package:gradproj/Models/User.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 class LoginController {
+  final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
+
   /// Save session token in SharedPreferences
-  Future<void> _saveSession(String token) async {
+  Future<void> _saveSession(String token,int role) async {
     final prefs = await SharedPreferences.getInstance();
+    
+    // Save user-specific information
     await prefs.setString('token', token);
+    await prefs.setInt("role", role);
+
   }
 
   /// Retrieve session token from SharedPreferences
@@ -17,92 +25,176 @@ class LoginController {
     return prefs.getString('token');
   }
 
-  /// Clear session token from SharedPreferences
-  Future<void> _clearSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
+   bool isValidPassword(String password) {
+    return password.isNotEmpty;
   }
 
-  /// Hash the password using SHA-256
-  String hashPassword(String password) {
-    final bytes = utf8.encode(password.trim()); // Trim and convert password to bytes
-    final digest = sha256.convert(bytes); // Perform SHA-256 hashing
-    return digest.toString(); // Return hashed password as a string
-  }
-
-  /// Validate if email is in correct format
-  bool isValidEmail(String email) {
+   bool isValidEmail(String email) {
     final RegExp emailRegex = RegExp(
       r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
     );
     return emailRegex.hasMatch(email);
   }
 
-  /// Validate if password is not empty
-  bool isValidPassword(String password) {
-    return password.isNotEmpty;
+  /// Clear session token from SharedPreferences
+  Future<void> _clearSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token');
+    await prefs.remove('role');
   }
-/// Retrieve and print the session token
-Future<void> printSessionToken() async {
-  final token = await _getSession();
-  if (token != null) {
-    debugPrint("Session Token: $token");
-  } else {
-    debugPrint("No session token found.");
+
+  /// Hash the password using SHA-256
+  String hashPassword(String password) {
+    final bytes = utf8.encode(password.trim());
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+Future<BaseUser?> getUserByEmail(String email) async {
+  try {
+    print('Attempting to find user with email: $email');
+
+    // Normalize email
+    final normalizedEmail = email.trim().toLowerCase();
+
+    // Check admin users
+    final adminResponse = await _supabase
+        .from('admins')
+        .select()
+        .eq('email', normalizedEmail)
+        .single();
+
+    print('Raw Admin Response: $adminResponse');
+
+    if (adminResponse != null) {
+      try {
+        // Detailed mapping with error handling
+        final admin = AdminRecord.fromMap({
+          'id': adminResponse['id'],
+          'email': adminResponse['email'],
+          'first_name': adminResponse['first_name'],
+          'last_name': adminResponse['last_name'],
+          'password': adminResponse['password'],
+          'token': adminResponse['token'] ?? '', // Default empty string
+          'idd': adminResponse['idd'] // Optional field
+        });
+        
+        print('Successfully mapped admin: ${admin.email}');
+        return admin;
+      } catch (mappingError) {
+        print('Error mapping admin record: $mappingError');
+        print('Problematic map: $adminResponse');
+        return null;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    print('Detailed error fetching user: $error');
+    return null;
   }
 }
 
-  /// Login the user by verifying credentials
+  /// Login method combining previous and new approaches
   Future<String> loginUser(String email, String password) async {
-  const databaseUrl =
-      "https://property-finder-3a4b1-default-rtdb.firebaseio.com/users.json";
+    try {
+      // Fetch user
+      final user = await getUserByEmail(email);
 
-  try {
-    final response = await http.get(Uri.parse(databaseUrl));
-
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> users = json.decode(response.body);
-
-      final hashedPassword = hashPassword(password);
-      debugPrint("Raw password during login: '$password', Hashed password: '$hashedPassword'");
-
-      for (var userId in users.keys) {
-        final user = users[userId];
-        if (user['email'] == email) {
-          if (user['password'] == hashedPassword) {
-            final sessionToken = user['token'] ?? userId;
-            await _saveSession(sessionToken);
-            return "Login successful!";
-           
-          } else {
-            return "Incorrect password.";
-          }
-        }
+      // Validate user existence
+      if (user == null) {
+        return "No user found with this email.";
       }
 
-      return "No user found with this email.";
-    } else {
-      debugPrint("Server error: ${response.body}");
-      return "Server error: ${response.statusCode}";
-    }
-  } catch (error) {
-    if (error is FormatException) {
-      debugPrint("Unexpected server response: $error");
-      return "Unexpected server response. Please check the database URL.";
-    }
-    return "An unexpected error occurred: $error";
-  }
-}
+      // Hash the provided password
+      final hashedPassword = hashPassword(password.trim());
 
+      // Validate password
+      if (!user.validatePassword(password)) {
+        return "Incorrect password.";
+      }
+
+      // Save session
+      await _saveSession(user.getToken(),user.getRole());
+
+      // Return success message
+      return "Login successful!";
+    } catch (error) {
+      print('Login error: $error');
+      return "An unexpected error occurred during login.";
+    }
+  }
+    /// Retrieve and print the session token
+  Future<void> printSessionToken() async {
+    final token = await _getSession();
+    if (token != null) {
+      debugPrint("Session Token: $token");
+    } else {
+      debugPrint("No session token found.");
+    }
+  }
+
+  /// Check if user is logged in
+  Future<bool> isLoggedIn() async {
+    try {
+      // 1. Retrieve the session token from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final userType = prefs.getString('user_type');
+
+      // 2. Check if token and user type exist
+      if (token == null || userType == null) {
+        return false;
+      }
+
+      // 3. Verify the token by attempting to fetch the user
+      BaseUser? user;
+      if (userType == 'User') {
+        user = await _supabase
+            .from('users')
+            .select()
+            .eq('id', token)
+            .single()
+            .then((response) => 
+                response != null ? User.fromJson(response) : null);
+      } else if (userType == 'AdminRecord') {
+        user = await _supabase
+            .from('admin')
+            .select()
+            .eq('id', token)
+            .single()
+            .then((response) => 
+                response != null ? AdminRecord.fromMap(response) : null);
+      }
+
+      // 4. Return true if a user is found with this token
+      return user != null;
+    } catch (error) {
+      // Log the error for debugging
+      debugPrint("Login status check error: $error");
+      
+      // In case of any error, consider the user not logged in
+      return false;
+    }
+  }
 
   /// Logout the user by clearing the session
   Future<void> logoutUser() async {
     await _clearSession();
   }
 
-  /// Check if the user is logged in by verifying session token
-  Future<bool> isLoggedIn() async {
-    final token = await _getSession();
-    return token != null;
+  /// Determine initial route based on user type
+  Future<String> determineInitialRoute() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userType = prefs.getString('user_type');
+
+    switch (userType) {
+      case 'User':
+        return '/user-dashboard';
+      case 'AdminRecord':
+        return '/admin-dashboard';
+      default:
+        return '/login';
+    }
   }
 }

@@ -2,11 +2,14 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:gradproj/Controllers/login_controller.dart';
-import 'PropertyListings.dart'; // Replace with the actual property listing screen import.
+import 'package:gradproj/Screens/AdminDashboardScreen.dart';
+import 'package:gradproj/Screens/PropertyListings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final VoidCallback toggleTheme;
+
+  const LoginScreen({super.key, required this.toggleTheme});
 
   @override
   _LoginScreenState createState() => _LoginScreenState();
@@ -14,10 +17,12 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
+  // Controller and input management
   final LoginController _controller = LoginController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  // Animation controllers for login screen entrance
   late AnimationController _animationController;
   late Animation<Offset> _offsetAnimation;
 
@@ -25,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen>
   void initState() {
     super.initState();
 
-    // Animation setup
+    // Setup sliding animation for login screen
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -44,18 +49,20 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   void dispose() {
+    // Cleanup controllers
     _animationController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  /// Handles login and shows appropriate messages or navigates to the next page.
+  /// Comprehensive login handler with role-based navigation
   Future<void> _handleLogin() async {
+    // Trim and validate input
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    // Validate email and password
+    // Input validation
     if (!_controller.isValidEmail(email)) {
       _showErrorDialog("Please enter a valid email address!");
       return;
@@ -69,42 +76,20 @@ class _LoginScreenState extends State<LoginScreen>
     final message = await _controller.loginUser(email, password);
 
     if (message.contains("successful")) {
-      print(_controller.printSessionToken());
+      // Print session token for debugging
+      await _controller.printSessionToken();
+      
+      // Show success dialog and navigate
       _showSuccessDialog();
     } else {
+      // Show error if login fails
       _showErrorDialog(message);
     }
   }
 
-  /// Shows an error dialog with the specified message.
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.error, color: Colors.red),
-              SizedBox(width: 10),
-              Text("Error"),
-            ],
-          ),
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// Shows a success dialog and navigates to the property listing screen.
-  void _showSuccessDialog() {
+  /// Shows a success dialog and navigates based on user role
+  void _showSuccessDialog() async {
+    // Show initial success dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -132,16 +117,74 @@ class _LoginScreenState extends State<LoginScreen>
       },
     );
 
-    Future.delayed(const Duration(seconds: 3), () {
-      Navigator.of(context).pop(); // Close the success dialog
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const PropertyListScreen()),
-      );
+    // Navigate based on role after a short delay
+    Future.delayed(const Duration(seconds: 3), () async {
+      try {
+        // Retrieve user role from SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        final role = prefs.getInt('role');
+
+        // Determine target screen based on role
+        Widget targetScreen;
+        switch (role) {
+          case 1: // Admin role
+            targetScreen = AdminDashboardScreen();
+            break;
+          case 2: // Regular user role
+            targetScreen = PropertyListScreen(toggleTheme: widget.toggleTheme);
+            break;
+          default:
+            // Fallback to property list for unknown roles
+            targetScreen = PropertyListScreen(toggleTheme: widget.toggleTheme);
+            _showErrorDialog("Undefined user role. Redirecting to default screen.");
+        }
+
+        // Close success dialog and navigate
+        Navigator.of(context).pop(); // Close success dialog
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => targetScreen),
+        );
+      } catch (e) {
+        // Handle navigation errors
+        print('Navigation error: $e');
+        Navigator.of(context).pop(); // Close success dialog
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PropertyListScreen(toggleTheme: widget.toggleTheme),
+          ),
+        );
+      }
     });
   }
 
-  /// Builds an input field widget.
+  /// Error dialog for showing login and validation issues
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.error, color: Colors.red),
+              SizedBox(width: 10),
+              Text("Error"),
+            ],
+          ),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Builds styled input fields for email and password
   Widget _buildInputField({
     required TextEditingController controller,
     required String hintText,
@@ -158,8 +201,7 @@ class _LoginScreenState extends State<LoginScreen>
         hintStyle: const TextStyle(color: Colors.white70, fontSize: 16),
         filled: true,
         fillColor: Colors.grey[800],
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
         ),
@@ -169,10 +211,11 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Detailed login screen UI with blurred background and sliding animation
     return Scaffold(
       body: Stack(
         children: [
-          // Blurred background image
+          // Blurred background
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -188,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
 
-          // Animated sliding content
+          // Animated login content
           SlideTransition(
             position: _offsetAnimation,
             child: Center(
@@ -206,6 +249,7 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                     ),
                     const SizedBox(height: 30),
+                    // Login form container
                     Container(
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
@@ -226,6 +270,7 @@ class _LoginScreenState extends State<LoginScreen>
                             obscureText: true,
                           ),
                           const SizedBox(height: 25),
+                          // Login button
                           ElevatedButton(
                             onPressed: _handleLogin,
                             style: ElevatedButton.styleFrom(
@@ -251,73 +296,33 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                     ),
                     const SizedBox(height: 15),
+                    // Forgot password section
                     GestureDetector(
-                        onTap: () {
-                          // TODO: Forgot Password Logic
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    "Forgot Password feature not implemented.")),
-                          );
-                        },
-                        child: Container(
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                shape: BoxShape.rectangle,
-                                color: Colors.white),
-                            child: const Padding(
-                              padding: EdgeInsets.all(10),
-                              child: Text(
-                                'Forgot Password?',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ))),
-                    const SizedBox(height: 15),
-                    GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, '/signup');
-                        },
-                        child: Container(
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                shape: BoxShape.rectangle,
-                                color: Colors.white),
-                            child: const Padding(
-                              padding: EdgeInsets.all(10),
-                              child: Text(
-                                'Don’t have an Account? Sign Up',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ))),
-                    const SizedBox(height: 15),
-                    GestureDetector(
-                        onTap: () {
-                          Navigator.pushNamed(context, '/adminDashboard');
-                        },
-                        child: Container(
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                shape: BoxShape.rectangle,
-                                color: Colors.white),
-                            child: const Padding(
-                              padding: EdgeInsets.all(10),
-                              child: const Text(
-                                'Login as admin',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ))),
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text("Forgot Password feature not implemented.")),
+                        );
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          shape: BoxShape.rectangle,
+                          color: Colors.white,
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(10),
+                          child: Text(
+                            'Forgot Password?',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

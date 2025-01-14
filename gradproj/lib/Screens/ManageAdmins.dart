@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../models/Admin.dart';
 
 class ManageAdminsScreen extends StatefulWidget {
-  const ManageAdminsScreen({Key? key}) : super(key: key);
+  const ManageAdminsScreen({super.key});
 
   @override
   _ManageAdminsScreenState createState() => _ManageAdminsScreenState();
@@ -19,43 +21,113 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
     _fetchAdmins();
   }
 
-  Future<void> _fetchAdmins() async {
-    try {
-      setState(() => _isLoading = true);
-      final supabase = Supabase.instance.client;
-
-      final response = await supabase
-          .from('admins')
-          .select('id, email, first_name, last_name, password');
-
-      if (response != null && response is List<dynamic>) {
-        final admins = response.map((map) => AdminRecord.fromMap(map as Map<String, dynamic>)).toList();
-        setState(() {
-          _admins = admins;
-        });
-      } else {
-        throw Exception('Unexpected response format.');
-      }
-    } catch (error) {
-      debugPrint('Error fetching admins: $error');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching admins: $error')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
+   Future<void> _saveSession(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('token', token);
   }
 
+
+Future<void> _fetchAdmins() async {
+  // Start a loading state to provide user feedback
+  setState(() => _isLoading = true);
+
+  try {
+    // Retrieve the Supabase client
+    final supabase = Supabase.instance.client;
+
+    // Perform the database query with explicit error handling
+    final List response = await supabase
+        .from('admins')
+        .select('id, email, first_name, last_name, password')
+        .then((result) {
+      // Explicitly convert to a list of maps
+      return result is List ? List<Map<String, dynamic>>.from(result) : [];
+    }).catchError((error) {
+      // Specific error handling for database queries
+      debugPrint('Supabase query error: $error');
+      return <Map<String, dynamic>>[];
+    });
+
+    // Validate and process the response
+    if (response.isEmpty) {
+      // Handle empty response scenario
+      debugPrint('No admin records found');
+      setState(() {
+        _admins = []; // Set to empty list
+      });
+      
+      // Optional: Show a user-friendly message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No admin records available')),
+      );
+      return;
+    }
+
+    // Safely map the response to AdminRecord objects
+    final List<AdminRecord> processedAdmins = response.map((adminData) {
+      try {
+        // Use safe mapping with default values
+        return AdminRecord.fromMap({
+          'id': adminData['id'] ?? 0,
+          'email': adminData['email'] ?? '',
+          'first_name': adminData['first_name'] ?? '',
+          'last_name': adminData['last_name'] ?? '',
+          'password': adminData['password'] ?? '',
+          'token': adminData['token'] ?? '', // Add token if needed
+        });
+      } catch (mappingError) {
+        // Log individual mapping errors
+        debugPrint('Error mapping admin record: $mappingError');
+        return null;
+      }
+    }).whereType<AdminRecord>().toList(); // Filter out any null entries
+
+    // Update the state with processed admins
+    setState(() {
+      _admins = processedAdmins;
+    });
+
+    // Log successful fetch
+    debugPrint('Successfully fetched ${processedAdmins.length} admin records');
+
+  } catch (generalError) {
+    // Catch-all error handling
+    debugPrint('Unexpected error in admin fetching: $generalError');
+    
+    // Show user-friendly error message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to load admin records: $generalError')),
+    );
+
+    // Ensure the list is reset in case of error
+    setState(() {
+      _admins = [];
+    });
+  } finally {
+    // Always ensure loading state is turned off
+    setState(() => _isLoading = false);
+  }
+}
+
+ String generateSessionToken(String id) {
+    return id;
+  }
   Future<void> _addAdmin(String email, String firstName, String lastName, String password) async {
     try {
       setState(() => _isLoading = true);
+    final Uuid _uuid = const Uuid();
 
       final supabase = Supabase.instance.client;
+      final id=_uuid.v4();
+      // Generate session token using the original method
+      final sessionToken = generateSessionToken(id);
       await supabase.from('admins').insert({
         'email': email,
         'first_name': firstName,
         'last_name': lastName,
         'password': password,
+        'token':sessionToken,
+        'idd':id
       });
 
       await _fetchAdmins();

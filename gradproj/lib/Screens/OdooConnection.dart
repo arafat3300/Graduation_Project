@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Odoo CRM Input',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: CRMInputScreen(),
+      home: const CRMInputScreen(),
     );
   }
 }

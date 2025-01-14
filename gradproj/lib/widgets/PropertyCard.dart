@@ -14,7 +14,7 @@ class PropertyCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
       child: Card(
-        elevation: 3,
+        elevation: 10,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -26,7 +26,7 @@ class PropertyCard extends StatelessWidget {
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(12),
               ),
-              child: Container(
+              child: SizedBox(
                 width: double.infinity,
                 height: 680, 
                 child: Image.network(
