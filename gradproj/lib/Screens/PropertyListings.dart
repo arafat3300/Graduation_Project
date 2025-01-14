@@ -128,7 +128,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
         sorted.sort((a, b) => b.price.compareTo(a.price));
         break;
       case 'BestSellers':
-        sorted.sort((a, b) => b.feedback.length.compareTo(a.feedback.length));
+        // sorted.sort((a, b) => b.feedback.length.compareTo(a.feedback.length));
         break;
     }
     return sorted;
