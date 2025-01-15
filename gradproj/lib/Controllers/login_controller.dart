@@ -87,7 +87,7 @@ Future<BaseUser?> getUserByEmail(String email) async {
         .from('users')
         .select()
         .eq('email', normalizedEmail)
-        .single();
+        .maybeSingle();
 
     print('Raw User Response: $userResponse');
 
@@ -109,6 +109,8 @@ Future<BaseUser?> getUserByEmail(String email) async {
           'created_at': userResponse['created_at'],
           'role': userResponse['role']
         });
+
+        singletonSession().userId=user.id;
         
         print('Successfully mapped user: ${user.email}');
         return user;
@@ -124,7 +126,7 @@ Future<BaseUser?> getUserByEmail(String email) async {
         .from('admins')
         .select()
         .eq('email', normalizedEmail)
-        .single();
+        .maybeSingle();
 
     print('Raw Admin Response: $adminResponse');
 
@@ -142,6 +144,7 @@ Future<BaseUser?> getUserByEmail(String email) async {
         });
         
         print('Successfully mapped admin: ${admin.email}');
+        singletonSession().userId=admin.id;
         return admin;
       } catch (mappingError) {
         print('Error mapping admin record: $mappingError');
