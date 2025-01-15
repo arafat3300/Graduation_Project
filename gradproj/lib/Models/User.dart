@@ -78,9 +78,10 @@ class User extends BaseUser {
   final String? job;
   final String password;
   final String token;
+  final String? idd;
 
   const User({
-    String? idd,
+    this.idd,
     required String firstName,
     required String lastName,
     required this.dob,
@@ -113,7 +114,8 @@ class User extends BaseUser {
       'password': password,
       'token': token,
       'created_at': createdAt?.toIso8601String(),
-      'role': role
+      'role': role,
+      'idd':idd
     };
   }
 

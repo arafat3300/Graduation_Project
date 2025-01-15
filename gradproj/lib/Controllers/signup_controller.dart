@@ -121,7 +121,7 @@ class SignUpController {
 
       // Create the user object
       final user = local.User(
-        idd: id,
+        idd: sessionToken,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         dob: dob.trim(),
