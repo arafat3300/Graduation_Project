@@ -83,20 +83,26 @@ class GoogleController {
   }
 
   // Enhanced session saving with null checks
-  Future<void> _saveSession(String userId, String email, int role) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('user_id', userId);
-      await prefs.setString('email', email);
-      await prefs.setInt('role', role);
-      await prefs.setBool('is_logged_in', true);
-    } catch (e) {
-      debugPrint('Error saving session: $e');
-      // Re-throw to handle in the calling method
-      rethrow;
-    }
+ Future<void> _saveSession(
+  String userId,
+  String email,
+  int role,
+  String accessToken,
+  String idToken,
+) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_id', userId);
+    await prefs.setString('email', email);
+    await prefs.setInt('role', role);
+    await prefs.setString('access_token', accessToken);
+    await prefs.setString('id_token', idToken);  // Added this line to save the ID token
+    await prefs.setBool('is_logged_in', true);
+  } catch (e) {
+    debugPrint('Error saving session: $e');
+    rethrow;
   }
-
+}
   Future<SignInResult> signInWithGoogle() async {
     try {
       await _googleSignIn.signOut();
@@ -112,12 +118,21 @@ class GoogleController {
       try {
         final existingUser = await _checkUserExists(account.email);
 
+        // Get Google authentication tokens
+        final GoogleSignInAuthentication authentication = await account.authentication;
+        final accessToken = authentication.accessToken ?? '';
+        final idToken = authentication.idToken ?? '';
+        // final expiresIn = authentication.expiresIn ?? 3600; // Default to 1 hour if not provided
+
         if (existingUser != null) {
           // Handle existing user
           await _saveSession(
             existingUser.id,
             existingUser.email,
-            existingUser.role
+            existingUser.role,
+            accessToken,
+            idToken,
+            // expiresIn,
           );
           
           return SignInResult(
@@ -144,7 +159,7 @@ class GoogleController {
             country: 'Unknown',
             job: 'Unknown',
             password: '',
-            token: userId,
+            token: accessToken, // Store Google access token as the user token
             createdAt: DateTime.now(),
             role: 2,
           );
@@ -155,7 +170,14 @@ class GoogleController {
               .insert(user.toJson());
           
           // Save session for new user
-          await _saveSession(userId, account.email, 2);
+          await _saveSession(
+            userId,
+            account.email,
+            2,
+            accessToken,
+            idToken
+            // expiresIn,
+          );
           
           return SignInResult(
             success: true,
@@ -187,6 +209,38 @@ class GoogleController {
     } catch (e) {
       debugPrint('Error getting user role: $e');
       return null;
+    }
+  }
+
+  Future<String?> getAccessToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('access_token');
+    } catch (e) {
+      debugPrint('Error getting access token: $e');
+      return null;
+    }
+  }
+
+  Future<String?> getIdToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('id_token');
+    } catch (e) {
+      debugPrint('Error getting ID token: $e');
+      return null;
+    }
+  }
+
+  Future<bool> isTokenValid() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final expiresAt = prefs.getInt('expires_at');
+      if (expiresAt == null) return false;
+      return DateTime.now().millisecondsSinceEpoch < expiresAt;
+    } catch (e) {
+      debugPrint('Error checking token validity: $e');
+      return false;
     }
   }
 }

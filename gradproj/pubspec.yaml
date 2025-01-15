@@ -34,6 +34,8 @@ dependencies:
   flutter_email_sender: ^6.0.3
   mailer: ^6.4.1
   google_sign_in: ^6.2.2
+  dart_jsonwebtoken: ^2.14.2
+  jwt_decoder: ^2.0.1
   
   
 
