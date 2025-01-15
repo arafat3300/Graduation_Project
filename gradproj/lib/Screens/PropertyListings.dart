@@ -78,8 +78,8 @@ Future<void> fetchProperties() async {
     final response = await supabase
         .from('properties')
         .select()
-        .filter('status', 'eq', 'approved') // Filter by status
-        .filter('user_id', 'eq', user.id);  // Use user ID for filtering
+        .filter('status', 'eq', 'approved'); // Filter by status
+       
 
     debugPrint("Response from Supabase: $response");
 
