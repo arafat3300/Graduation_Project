@@ -4,8 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:uuid/uuid.dart';
 import 'package:gradproj/Models/User.dart' as local;
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 
-// Define a class to represent user data from Supabase
 class UserData {
   final String id;
   final String email;
@@ -17,7 +17,6 @@ class UserData {
     required this.role,
   });
 
-  // Create from Supabase map with null safety
   static UserData? fromMap(Map<String, dynamic> map) {
     try {
       return UserData(
@@ -47,6 +46,10 @@ class SignInResult {
 }
 
 class GoogleController {
+  // Configuration constants
+  static const String _jwtSecret = 'samirencryption';
+  static const Duration _jwtDuration = Duration(minutes: 5);
+  
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email'],
     signInOption: SignInOption.standard,
@@ -55,7 +58,44 @@ class GoogleController {
   final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
   final Uuid _uuid = const Uuid();
 
-  // Enhanced user existence check with proper null safety
+  // Generate JWT token with standard claims
+  String _generateJwtToken(String userId, String email, int role) {
+    final jwt = JWT(
+      {
+        'sub': userId,
+        'email': email,
+        'role': role,
+        'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'exp': DateTime.now().add(_jwtDuration).millisecondsSinceEpoch ~/ 1000,
+        'jti': _uuid.v4(),
+      },
+      issuer: 'samirencryption',
+      subject: userId,
+    );
+
+    return jwt.sign(SecretKey(_jwtSecret));
+  }
+
+  // Verify JWT token and return payload if valid
+  Map<String, dynamic>? _verifyJwtToken(String token) {
+    try {
+      final jwt = JWT.verify(token, SecretKey(_jwtSecret));
+      
+      // Check expiration
+      final Map<String, dynamic> payload = jwt.payload;
+      if (payload.containsKey('exp')) {
+        final expiration = DateTime.fromMillisecondsSinceEpoch(payload['exp'] * 1000);
+        if (DateTime.now().isBefore(expiration)) {
+          return payload;
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('JWT verification failed: $e');
+      return null;
+    }
+  }
+
   Future<UserData?> _checkUserExists(String email) async {
     try {
       final List<dynamic> response = await _supabase
@@ -64,45 +104,45 @@ class GoogleController {
           .eq('email', email)
           .limit(1);
       
-      if (response.isEmpty) {
-        return null;
-      }
+      if (response.isEmpty) return null;
 
-      // Safely convert the response to UserData
-      final userData = UserData.fromMap(response.first as Map<String, dynamic>);
-      if (userData == null) {
-        debugPrint('Failed to parse user data from response');
-        return null;
-      }
-
-      return userData;
+      return UserData.fromMap(response.first as Map<String, dynamic>);
     } catch (e) {
       debugPrint('Error checking user existence: $e');
       return null;
     }
   }
 
-  // Enhanced session saving with null checks
- Future<void> _saveSession(
-  String userId,
-  String email,
-  int role,
-  String accessToken,
-  String idToken,
-) async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_id', userId);
-    await prefs.setString('email', email);
-    await prefs.setInt('role', role);
-    await prefs.setString('access_token', accessToken);
-    await prefs.setString('id_token', idToken);  // Added this line to save the ID token
-    await prefs.setBool('is_logged_in', true);
-  } catch (e) {
-    debugPrint('Error saving session: $e');
-    rethrow;
+  // Enhanced session saving with both JWT and OAuth tokens
+  Future<void> _saveSession(
+    String userId,
+    String email,
+    int role,
+    String accessToken,
+    String idToken,
+  ) async {
+    try {
+      // Generate JWT token
+      final jwtToken = _generateJwtToken(userId, email, role);
+      
+      // Calculate JWT expiration
+      final jwtExpiration = DateTime.now().add(_jwtDuration);
+      
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_id', userId);
+      await prefs.setString('email', email);
+      await prefs.setInt('role', role);
+      await prefs.setString('access_token', accessToken);    // Google access token
+      await prefs.setString('id_token', idToken);           // Google ID token
+      await prefs.setString('token', jwtToken);         // Our JWT token
+      await prefs.setString('jwt_expiry', jwtExpiration.toIso8601String());
+      await prefs.setBool('is_logged_in', true);
+    } catch (e) {
+      debugPrint('Error saving session: $e');
+      rethrow;
+    }
   }
-}
+
   Future<SignInResult> signInWithGoogle() async {
     try {
       await _googleSignIn.signOut();
@@ -118,11 +158,9 @@ class GoogleController {
       try {
         final existingUser = await _checkUserExists(account.email);
 
-        // Get Google authentication tokens
         final GoogleSignInAuthentication authentication = await account.authentication;
         final accessToken = authentication.accessToken ?? '';
         final idToken = authentication.idToken ?? '';
-        // final expiresIn = authentication.expiresIn ?? 3600; // Default to 1 hour if not provided
 
         if (existingUser != null) {
           // Handle existing user
@@ -132,7 +170,6 @@ class GoogleController {
             existingUser.role,
             accessToken,
             idToken,
-            // expiresIn,
           );
           
           return SignInResult(
@@ -142,13 +179,15 @@ class GoogleController {
             role: existingUser.role,
           );
         } else {
-          // Create new user with safe string handling
+          // Create new user
           final String userId = _uuid.v4();
           final List<String> nameParts = (account.displayName ?? '').split(' ');
           final String firstName = nameParts.isNotEmpty ? nameParts.first.trim() : 'Unknown';
           final String lastName = nameParts.length > 1 ? nameParts.last.trim() : 'Unknown';
 
-          // Create user with all required fields
+          // Generate JWT token for the new user
+          final jwtToken = _generateJwtToken(userId, account.email, 2);
+
           final user = local.User(
             idd: userId,
             firstName: firstName,
@@ -159,24 +198,21 @@ class GoogleController {
             country: 'Unknown',
             job: 'Unknown',
             password: '',
-            token: accessToken, // Store Google access token as the user token
+            token: jwtToken,  // Store JWT token instead of Google token
             createdAt: DateTime.now(),
             role: 2,
           );
 
-          // Insert new user with error handling
           await _supabase
               .from('users')
               .insert(user.toJson());
           
-          // Save session for new user
           await _saveSession(
             userId,
             account.email,
             2,
             accessToken,
             idToken
-            // expiresIn,
           );
           
           return SignInResult(
@@ -202,16 +238,18 @@ class GoogleController {
     }
   }
 
-  Future<int?> getUserRole() async {
+  // Get stored JWT token
+  Future<String?> getJwtToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getInt('role');
+      return prefs.getString('token');
     } catch (e) {
-      debugPrint('Error getting user role: $e');
+      debugPrint('Error getting JWT token: $e');
       return null;
     }
   }
 
+  // Get Google access token
   Future<String?> getAccessToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -222,6 +260,7 @@ class GoogleController {
     }
   }
 
+  // Get Google ID token
   Future<String?> getIdToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -232,15 +271,77 @@ class GoogleController {
     }
   }
 
-  Future<bool> isTokenValid() async {
+  // Get user role from stored data
+  Future<int?> getUserRole() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final expiresAt = prefs.getInt('expires_at');
-      if (expiresAt == null) return false;
-      return DateTime.now().millisecondsSinceEpoch < expiresAt;
+      return prefs.getInt('role');
     } catch (e) {
-      debugPrint('Error checking token validity: $e');
+      debugPrint('Error getting user role: $e');
+      return null;
+    }
+  }
+
+  // Check if JWT token is valid
+  Future<bool> isJwtValid() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt_token');
+      if (token == null) return false;
+      
+      return _verifyJwtToken(token) != null;
+    } catch (e) {
+      debugPrint('Error checking JWT validity: $e');
       return false;
+    }
+  }
+
+  // Refresh JWT token if needed
+  Future<bool> refreshJwtIfNeeded() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+      final email = prefs.getString('email');
+      final role = prefs.getInt('role');
+      
+      if (userId == null || email == null || role == null) {
+        return false;
+      }
+
+      // Check if current token is near expiration
+      if (!await isJwtValid()) {
+        // Generate new JWT token
+        final newToken = _generateJwtToken(userId, email, role);
+        final newExpiry = DateTime.now().add(_jwtDuration);
+        
+        // Save new token
+        await prefs.setString('token', newToken);
+        await prefs.setString('jwt_expiry', newExpiry.toIso8601String());
+        
+        // Update token in database
+        await _supabase
+            .from('users')
+            .update({'token': newToken})
+            .eq('idd', userId);
+            
+        return true;
+      }
+      
+      return false;
+    } catch (e) {
+      debugPrint('Error refreshing JWT: $e');
+      return false;
+    }
+  }
+
+  // Sign out user
+  Future<void> signOut() async {
+    try {
+      await _googleSignIn.signOut();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+    } catch (e) {
+      debugPrint('Error signing out: $e');
     }
   }
 }
