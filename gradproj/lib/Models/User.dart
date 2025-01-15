@@ -79,6 +79,7 @@ class User extends BaseUser {
   final String password;
   final String token;
   final String? idd;
+  final int? id ;
 
   const User({
     this.idd,
@@ -88,6 +89,7 @@ class User extends BaseUser {
     this.phone,
     this.country,
     this.job,
+    this.id,
     required String email,
     required this.password,
     required this.token,
@@ -122,6 +124,7 @@ class User extends BaseUser {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       idd: json['idd'],
+      id: json['id'],
       firstName: json['firstname'] ?? json['firstName'],
       lastName: json['lastname'] ?? json['lastName'],
       dob: json['dob'],

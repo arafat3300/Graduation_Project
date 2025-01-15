@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:gradproj/Controllers/user_controller.dart';
 import 'package:gradproj/Screens/CustomBottomNavBar.dart';
 import 'package:gradproj/Screens/FavouritesScreen.dart';
 import 'package:gradproj/Screens/Profile.dart';
@@ -34,7 +35,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   int? _selectedBedrooms;
   int? _selectedBathrooms;
   String? _selectedSortOption;
-
+UserController userCtrl = UserController();
   @override
   void initState() {
     super.initState();
@@ -49,41 +50,67 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
     _debounce?.cancel();
     super.dispose();
   }
-
-  Future<void> fetchProperties() async {
-    try {
-      setState(() => _isLoading = true);
-
-      final supabase = Supabase.instance.client;
-      final response = await supabase.from('properties').select();
-      debugPrint("Response from Supabase: $response");
-
-      if (response != null && response.isNotEmpty) {
-        final List<dynamic> data = response;
-        debugPrint("Data from Supabase: $data");
-
-        final newProperties = data.map((entry) => Property.fromJson(entry)).toList();
-        debugPrint("Parsed properties: $newProperties");
-
-        setState(() {
-          properties = newProperties;
-          filteredProperties = newProperties;
-        });
-      } else {
-        debugPrint("No data received from Supabase");
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("No properties found. Please try again later."),
-        ));
-      }
-    } catch (exception) {
-      debugPrint("Exception fetching properties: $exception");
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("Failed to load properties. Please try again later."),
-      ));
-    } finally {
-      setState(() => _isLoading = false);
+Future<void> fetchProperties() async {
+  try {
+    // Retrieve the session token
+    final token = await userCtrl.getSessionToken();
+    if (token == null) {
+      debugPrint("No session token found. Redirecting to login.");
+      Navigator.pushReplacementNamed(context, '/login');
+      return;
     }
+
+    // Fetch the user using the session token
+    final user = await userCtrl.getUserByToken(token);
+    if (user == null) {
+      debugPrint("Failed to retrieve user details. Redirecting to login.");
+      Navigator.pushReplacementNamed(context, '/login');
+      return;
+    }
+
+    debugPrint("Logged-in User: ${user.firstName} ${user.lastName}, ID: ${user.id}");
+
+    // Start loading state
+    setState(() => _isLoading = true);
+
+    // Fetch properties from the database
+    final supabase = Supabase.instance.client;
+    final response = await supabase
+        .from('properties')
+        .select()
+        .filter('status', 'eq', 'approved') // Filter by status
+        .filter('user_id', 'eq', user.id);  // Use user ID for filtering
+
+    debugPrint("Response from Supabase: $response");
+
+    if (response.isNotEmpty) {
+      final List<dynamic> data = response;
+      final newProperties = data.map((entry) => Property.fromJson(entry)).toList();
+
+      // Update the UI with fetched properties
+      setState(() {
+        properties = newProperties;
+        filteredProperties = newProperties;
+      });
+    } else {
+      debugPrint("No data received from Supabase.");
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("No properties found. Please try again later."),
+      ));
+    }
+  } catch (exception) {
+    debugPrint("Exception fetching properties: $exception");
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text("Failed to load properties. Please try again later."),
+    ));
+  } finally {
+    // End loading state
+    setState(() => _isLoading = false);
   }
+}
+
+
+
 
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();

@@ -96,7 +96,7 @@ darkTheme: ThemeData.dark().copyWith(
   colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.blueGrey),
 ),
       themeMode: _themeMode,
-      initialRoute: widget.isLoggedIn ? '/property-listings' : '/signup',
+      initialRoute: '/signup',
       routes: {
 '/property-listings': (context) => PropertyListScreen(toggleTheme: toggleTheme),
         '/signup': (context) =>  SignUpScreen(toggleTheme: toggleTheme),

@@ -69,6 +69,7 @@ class UserController {
       if (response != null) {
         return local.User(
           idd: response['idd'],
+          id : response['id'] ,
           firstName: response['first_name'] ?? response['firstname'] ?? '',
           lastName: response['last_name'] ?? response['lastname'] ?? '',
           dob: response['dob'] ?? '',
@@ -201,4 +202,30 @@ class UserController {
       return null;
     }
   }
+Future<int?> getUserId() async {
+  try {
+    final token = await getSessionToken();
+    if (token == null) {
+      debugPrint("No session token found.");
+      return null;
+    }
+
+    if (!isTokenValid(token)) {
+      debugPrint("Token is invalid or expired.");
+      return null;
+    }
+
+    final user = await getUserByToken(token);
+    if (user == null) {
+      debugPrint("No user found for the provided token.");
+      return null;
+    }
+
+    return user.id;
+  } catch (error) {
+    debugPrint("Error while fetching logged-in user's ID: $error");
+    return null;
+  }
+}
+
 }

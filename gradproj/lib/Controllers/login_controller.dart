@@ -70,6 +70,7 @@ Future<BaseUser?> getUserByEmail(String email) async {
       try {
         // Detailed mapping with error handling for user
         final user = User.fromJson({
+          'id' : userResponse['id'],
           'idd': userResponse['idd'],
           'firstname': userResponse['firstname'] ?? userResponse['first_name'],
           'lastname': userResponse['lastname'] ?? userResponse['last_name'],
