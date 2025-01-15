@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,8 +22,11 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   final TextEditingController _feedbackController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   List<propertyFeedbacks> _feedbacks = [];
+  bool _isLoading = false;
   final FeedbackController _feedbackService =
       FeedbackController(supabase: Supabase.instance.client);
+
+  final String fastApiUrl = 'http://localhost:8009/feedback';
 
   @override
   void initState() {
@@ -48,17 +52,64 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
     }
   }
 
+  Future<void> _sendFeedbackToFastAPI({
+    required String feedbackText,
+    required int propertyId,
+    required String? userId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(fastApiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'feedback_text': feedbackText,
+          'property_id': propertyId,
+          'user_id': userId ?? 'anonymous',
+        }),
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Timeout while sending feedback to AI pipeline');
+        },
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to send feedback to AI pipeline: ${response.body}');
+      }
+
+      // Log the AI response if needed
+      final aiResponse = jsonDecode(response.body);
+      print('AI Pipeline Response: $aiResponse');
+
+    } catch (e) {
+      // Re-throw the error to be handled by the calling function
+      throw Exception('Error sending feedback to AI pipeline: $e');
+    }
+  }
+
   Future<void> _submitFeedback() async {
     if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
 
     try {
       final supabase = Supabase.instance.client;
       final user = supabase.auth.currentUser;
 
+      // Save to Supabase
       await _feedbackService.addFeedback(
         widget.property.id!,
         _feedbackController.text,
-        user?.id, // Allow null if user not logged in
+        user?.id,
+      );
+
+      // Send to FastAPI
+      await _sendFeedbackToFastAPI(
+        feedbackText: _feedbackController.text,
+        propertyId: widget.property.id!,
+        userId: user?.id,
       );
 
       await _loadFeedbacks();
@@ -74,6 +125,10 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error submitting feedback: $e')),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -118,34 +173,29 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                         fit: BoxFit.cover,
                         width: double.infinity,
                         errorBuilder: (context, error, stackTrace) =>
-                            const Icon(
-                          Icons.broken_image,
-                          size: 70,
-                        ),
+                            const Icon(Icons.broken_image, size: 70),
                       );
                     },
                   );
                 }).toList(),
               )
             else
-       
-  Container(
-    height: 600,
-    width: double.infinity,
-    color: Colors.grey[200],
-    child: Center(
-      child: Image.network(
-        'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
-        fit: BoxFit.cover,
-        width: double.infinity,
-        errorBuilder: (context, error, stackTrace) => const Icon(
-          Icons.broken_image,
-          size: 70,
-        ),
-      ),
-    ),
-  ),
+              Container(
+                height: 600,
+                width: double.infinity,
+                color: Colors.grey[200],
+                child: Center(
+                  child: Image.network(
+                    'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.broken_image, size: 70),
+                  ),
+                ),
+              ),
 
+            // Property Details Section
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -170,10 +220,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                   const SizedBox(height: 8),
                   Text(
                     "City: ${property.city}",
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[700],
-                    ),
+                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
                   ),
                   Text(
                     "Bedrooms: ${property.bedrooms}",
@@ -210,27 +257,28 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                         favouritesNotifier.removeProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                              content: Text(
-                                  "${property.type} removed from favorites")),
+                            content: Text("${property.type} removed from favorites"),
+                          ),
                         );
                       } else {
                         favouritesNotifier.addProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                              content:
-                                  Text("${property.type} added to favorites")),
+                            content: Text("${property.type} added to favorites"),
+                          ),
                         );
                       }
                     },
-                    icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border),
-                    label: Text(isFavorite
-                        ? "Remove from Favorites"
-                        : "Add to Favorites"),
+                    icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
+                    label: Text(
+                      isFavorite ? "Remove from Favorites" : "Add to Favorites"
+                    ),
                   ),
                 ],
               ),
             ),
+
+            // Feedback Form Section
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Form(
@@ -238,103 +286,54 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Add Feedback",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
                     TextFormField(
                       controller: _feedbackController,
-                      decoration: InputDecoration(
-                        hintText: "Enter your feedback",
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF398AE5)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Color(0xFF398AE5), width: 2),
-                        ),
+                      decoration: const InputDecoration(
+                        labelText: 'Enter your feedback',
+                        border: OutlineInputBorder(),
                       ),
-                      maxLines: 3,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your feedback';
+                          return 'Please enter feedback';
                         }
                         return null;
                       },
                     ),
-                    const SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: _submitFeedback,
-                      child: const Text("Submit Feedback"),
-                    ),
+                    const SizedBox(height: 16),
+                    _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : ElevatedButton(
+                            onPressed: _submitFeedback,
+                            child: const Text('Submit Feedback'),
+                          ),
                   ],
                 ),
               ),
             ),
-            if (_feedbacks.isNotEmpty) ...[
-Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: _feedbacks.map((feedback) {
-      return FutureBuilder<String>(
-        future: feedback.user_id == null
-            ? Future.value("Anonymous")
-            : _feedbackService.getMailOfFeedbacker(feedback.user_id!),
-        builder: (context, snapshot) {
-          final userName = feedback.user_id == null
-              ? "Anonymous"
-              : (snapshot.hasData
-                  ? snapshot.data!.replaceAll(RegExp(r'[\{\}\[\]"]'), '').replaceFirst("email:", "")
-                  : "Loading...");
 
-          return Card(
-            shape: RoundedRectangleBorder(
-              side: BorderSide(color: const Color(0xFF398AE5), width: 1.5),
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-            margin: const EdgeInsets.only(bottom: 8.0),
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
+            // Feedback List Section
+            Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    userName,
-                    style: const TextStyle(
-                      color: Color.fromARGB(255, 233, 4, 80),
+                  const Text(
+                    'Feedbacks',
+                    style: TextStyle(
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    feedback.feedback,
-                    style: const TextStyle(fontSize: 16,
-                    fontWeight: FontWeight.bold),
-                  ),
+                  const SizedBox(height: 8),
+                  ..._feedbacks.map((feedback) {
+                    return ListTile(
+                      title: Text(feedback.feedback),
+                      subtitle: Text('User ID: ${feedback.user_id}'),
+                    );
+                  }).toList(),
                 ],
               ),
             ),
-          );
-        },
-      );
-    }).toList(),
-  ),
-),
-
-            ] else
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  "No feedback available for this property.",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              ),
           ],
         ),
       ),
