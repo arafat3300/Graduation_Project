@@ -142,6 +142,8 @@ Future<BaseUser?> getUserByEmail(String email) async {
           'token': adminResponse['token'] ?? '', // Default empty string
           'idd': adminResponse['idd'] // Optional field
         });
+        singletonSession().userId = admin.id;
+        debugPrint('user id : ${singletonSession().userId}');
         
         print('Successfully mapped admin: ${admin.email}');
         singletonSession().userId=admin.id;

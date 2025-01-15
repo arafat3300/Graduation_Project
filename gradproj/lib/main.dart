@@ -5,6 +5,7 @@ import 'package:gradproj/Screens/AddProperty.dart';
 import 'package:gradproj/Screens/FavouritesScreen.dart';
 import 'package:gradproj/Screens/ManagePropertiesScreen.dart';
 import 'package:gradproj/Screens/ManageUsersScreen.dart';
+import 'package:gradproj/Screens/MyListings.dart';
 import 'package:gradproj/Screens/Profile.dart';
 import 'package:gradproj/Screens/search.dart';
 import 'package:gradproj/Screens/ManageAdmins.dart';
@@ -111,6 +112,7 @@ darkTheme: ThemeData.dark().copyWith(
         '/manageAdmins': (context) => const ManageAdminsScreen(),
         '/manageUsers': (context) => const ManageUsersScreen(),
         '/manageProps': (context) => const ManagePropertiesScreen(),
+       
         
 
         
