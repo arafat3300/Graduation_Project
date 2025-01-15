@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +22,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   final _formKey = GlobalKey<FormState>();
   List<propertyFeedbacks> _feedbacks = [];
   bool _isLoading = false;
+  bool _isBulkLoading = false;
   final FeedbackController _feedbackService =
       FeedbackController(supabase: Supabase.instance.client);
 
@@ -32,6 +32,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   void initState() {
     super.initState();
     _loadFeedbacks();
+    _sendAllFeedbacksToFastAPI();
   }
 
   Future<void> _loadFeedbacks() async {
@@ -68,23 +69,12 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
           'property_id': propertyId,
           'user_id': userId ?? 'anonymous',
         }),
-      ).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          throw Exception('Timeout while sending feedback to AI pipeline');
-        },
       );
 
       if (response.statusCode != 200) {
         throw Exception('Failed to send feedback to AI pipeline: ${response.body}');
       }
-
-      // Log the AI response if needed
-      final aiResponse = jsonDecode(response.body);
-      print('AI Pipeline Response: $aiResponse');
-
     } catch (e) {
-      // Re-throw the error to be handled by the calling function
       throw Exception('Error sending feedback to AI pipeline: $e');
     }
   }
@@ -129,6 +119,37 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _sendAllFeedbacksToFastAPI() async {
+    setState(() => _isBulkLoading = true);
+
+    try {
+      final feedbacks = await _feedbackService.getAllFeedbacks();
+      for (final feedback in feedbacks) {
+        await _sendFeedbackToFastAPI(
+          feedbackText: feedback.feedback,
+          propertyId: feedback.property_id,
+          userId: feedback.user_id.toString() ?? 'anonymous',
+        );
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('All feedbacks sent to FastAPI successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sending feedbacks to FastAPI: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isBulkLoading = false);
       }
     }
   }
@@ -294,12 +315,12 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter feedback';
+                          return 'Feedback cannot be empty';
                         }
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     _isLoading
                         ? const Center(child: CircularProgressIndicator())
                         : ElevatedButton(
@@ -314,26 +335,30 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
             // Feedback List Section
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Feedbacks',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+              child: _feedbacks.isEmpty
+                  ? const Text('No feedbacks yet.')
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Feedbacks:',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ..._feedbacks.map(
+                          (feedback) => ListTile(
+                            title: Text(feedback.feedback),
+                            subtitle: Text('By ${feedback.user_id ?? 'Anonymous'}'),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  ..._feedbacks.map((feedback) {
-                    return ListTile(
-                      title: Text(feedback.feedback),
-                      subtitle: Text('User ID: ${feedback.user_id}'),
-                    );
-                  }).toList(),
-                ],
-              ),
             ),
+
+            
           ],
         ),
       ),

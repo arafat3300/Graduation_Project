@@ -26,6 +26,25 @@ class FeedbackController {
       rethrow;
     }
   }
+Future<List<propertyFeedbacks>> getAllFeedbacks() async {
+  try {
+    final response = await supabase
+        .from('feedbacks') // Table name 'feedbacks'
+        .select('*')  
+        .order('created_at', ascending: true) // Order by creation date
+        .limit(15); // Limit to 30 rows
+
+    return (response as List<dynamic>)
+        .map((f) => propertyFeedbacks(
+              property_id: f['property_id'], // Map property_id
+              feedback: f['feedback'],    // Map feedback text
+              user_id: f['user_id'] ,      // Map user_id
+            ))
+        .toList();
+  } catch (e) {
+    throw Exception('Error fetching all feedbacks: $e');
+  }
+}
 
   Future<String> getMailOfFeedbacker(int user_id) async {
     try {
