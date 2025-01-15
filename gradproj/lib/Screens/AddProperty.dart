@@ -26,6 +26,7 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
 
   String? _furnished = "Yes";
   String? _paymentOption = "Cash";
+  int? _userId= 3;
 
   List<Asset> _selectedImages = [];
   final List<String> _uploadedImageUrls = [];
@@ -141,6 +142,7 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
           "payment_option": _paymentOption,
           "city": _cityController.text,
           "img_url": _uploadedImageUrls,
+          "user_id" :_userId
         };
 
         await _uploadImages();
