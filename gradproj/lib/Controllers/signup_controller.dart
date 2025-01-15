@@ -98,6 +98,7 @@ class SignUpController {
 
   /// Handles the sign-up process
   Future<String> handleSignUp({
+   
     required String firstName,
     required String lastName,
     required String dob,
@@ -147,6 +148,7 @@ class SignUpController {
 
       await _supabase.from('users').upsert(user.toJson());
       await _saveSession(userId, sessionToken, expiryTime);
+  
 
       return "User signed up successfully!";
     } on supabase.AuthException catch (e) {

@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:gradproj/Controllers/signup_controller.dart';
+import 'package:gradproj/Screens/LoginScreen.dart';
 import '../models/user.dart';
 import 'PropertyListings.dart';
 import 'package:uuid/uuid.dart';
@@ -110,6 +111,7 @@ final Uuid _uuid = const Uuid();
 
   Future<void> _handleSignUp() async {
   final message = await _controller.handleSignUp(
+   
     firstName: _firstNameController.text,
     lastName: _lastNameController.text,
     dob: _dobController.text,
@@ -124,6 +126,7 @@ final Uuid _uuid = const Uuid();
 
   if (message.contains("successfully")) {
     _showSuccessDialog();
+
   } else {
     _showErrorDialog(message);
   }
@@ -184,12 +187,12 @@ final Uuid _uuid = const Uuid();
       },
     );
 
-    // Delay and navigate to the property listing page
+   
     Future.delayed(const Duration(seconds: 3), () {
       Navigator.of(context).pop(); // Close the success dialog
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) =>  PropertyListScreen(toggleTheme: widget.toggleTheme)),
+        MaterialPageRoute(builder: (context) =>  LoginScreen(toggleTheme: widget.toggleTheme)),
       );
     });
   }

@@ -118,20 +118,23 @@ Future<BaseUser?> getUserByEmail(String email) async {
           'password': adminResponse['password'],
           'token': adminResponse['token'] ?? '', // Default empty string
           'idd': adminResponse['idd'] // Optional field
+          
         });
+        singletonSession().userId = admin.id;
         
-        print('Successfully mapped admin: ${admin.email}');
+        
+        debugPrint('Successfully mapped admin: ${admin.email}');
         return admin;
       } catch (mappingError) {
-        print('Error mapping admin record: $mappingError');
-        print('Problematic map: $adminResponse');
+        debugPrint('Error mapping admin record: $mappingError');
+        debugPrint('Problematic map: $adminResponse');
         return null;
       }
     }
 
     return null;
   } catch (error) {
-    print('Detailed error fetching user: $error');
+    debugPrint('Detailed error fetching user: $error');
     return null;
   }
 }
