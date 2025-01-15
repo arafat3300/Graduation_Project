@@ -12,8 +12,9 @@ class ManagePropertiesScreen extends StatefulWidget {
 
 class _ManagePropertiesScreenState extends State<ManagePropertiesScreen> {
   bool _isLoading = false;
-  List<Property> _properties = []; // List to store properties
-
+  List<Property> _properties = []; 
+  List<Property> _filteredProperties = []; 
+  final TextEditingController _searchController = TextEditingController(); 
   @override
   void initState() {
     super.initState();
@@ -28,7 +29,7 @@ class _ManagePropertiesScreenState extends State<ManagePropertiesScreen> {
       final List response = await supabase
           .from('properties')
           .select('*')
-          .eq('status', 'approved') // Only fetch approved properties
+          .eq('status', 'approved') 
           .then((result) {
         return result is List ? List<Map<String, dynamic>>.from(result) : [];
       }).catchError((error) {
@@ -41,6 +42,7 @@ class _ManagePropertiesScreenState extends State<ManagePropertiesScreen> {
             response.map((data) => Property.fromJson(data)).toList();
         setState(() {
           _properties = properties;
+          _filteredProperties = properties; 
         });
       }
     } catch (e) {
@@ -53,6 +55,25 @@ class _ManagePropertiesScreenState extends State<ManagePropertiesScreen> {
     }
   }
 
+  void _searchProperties(String query) {
+    if (query.isEmpty) {
+      setState(() {
+        _filteredProperties = _properties;
+      });
+      return;
+    }
+
+    final lowerCaseQuery = query.toLowerCase();
+    setState(() {
+      _filteredProperties = _properties.where((property) {
+        final idMatch = property.id.toString().contains(lowerCaseQuery);
+        final typeMatch = property.type.toLowerCase().contains(lowerCaseQuery);
+        final cityMatch = property.city.toLowerCase().contains(lowerCaseQuery);
+        return idMatch || typeMatch || cityMatch;
+      }).toList();
+    });
+  }
+
   Future<void> _deleteProperty(int id) async {
     try {
       setState(() => _isLoading = true);
@@ -62,6 +83,7 @@ class _ManagePropertiesScreenState extends State<ManagePropertiesScreen> {
 
       setState(() {
         _properties.removeWhere((property) => property.id == id);
+        _filteredProperties.removeWhere((property) => property.id == id);
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -86,41 +108,61 @@ class _ManagePropertiesScreenState extends State<ManagePropertiesScreen> {
           IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchProperties),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _properties.isEmpty
-              ? const Center(child: Text('No approved properties found.'))
-              : SingleChildScrollView(
-                  child: DataTable(
-                    columns: const [
-                      DataColumn(label: Text('ID')),
-                      DataColumn(label: Text('Type')),
-                      DataColumn(label: Text('Price')),
-                      DataColumn(label: Text('Bedrooms')),
-                      DataColumn(label: Text('Bathrooms')),
-                      DataColumn(label: Text('City')),
-                      DataColumn(label: Text('Actions')),
-                    ],
-                    rows: _properties.map((property) {
-                      return DataRow(
-                        cells: [
-                          DataCell(Text(property.id.toString())),
-                          DataCell(Text(property.type)),
-                          DataCell(Text('\$${property.price}')),
-                          DataCell(Text(property.bedrooms.toString())),
-                          DataCell(Text(property.bathrooms.toString())),
-                          DataCell(Text(property.city)),
-                          DataCell(
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteProperty(property.id!),
-                            ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
-                  ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: 'Search by ID, Type, or City',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
                 ),
+              ),
+              onChanged: _searchProperties, 
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredProperties.isEmpty
+                    ? const Center(child: Text('No matching properties found.'))
+                    : SingleChildScrollView(
+                        child: DataTable(
+                          columns: const [
+                            DataColumn(label: Text('ID')),
+                            DataColumn(label: Text('Type')),
+                            DataColumn(label: Text('Price')),
+                            DataColumn(label: Text('Bedrooms')),
+                            DataColumn(label: Text('Bathrooms')),
+                            DataColumn(label: Text('City')),
+                            DataColumn(label: Text('Actions')),
+                          ],
+                          rows: _filteredProperties.map((property) {
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(property.id.toString())),
+                                DataCell(Text(property.type)),
+                                DataCell(Text('\$${property.price}')),
+                                DataCell(Text(property.bedrooms.toString())),
+                                DataCell(Text(property.bathrooms.toString())),
+                                DataCell(Text(property.city)),
+                                DataCell(
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () => _deleteProperty(property.id!),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+          ),
+        ],
+      ),
     );
   }
 }

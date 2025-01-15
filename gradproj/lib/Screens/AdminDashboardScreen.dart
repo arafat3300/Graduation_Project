@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:gradproj/Controllers/user_controller.dart';
+
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
+  
 
   @override
   _AdminDashboardScreenState createState() => _AdminDashboardScreenState();
@@ -16,6 +19,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   int _adminCount = 0;         
   int _activeProperties = 0;   
+    final UserController _userController = UserController();
+
 
   @override
   void initState() {
@@ -95,6 +100,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<void> _onRefresh() => _fetchAllDashboardData();
 
+Future<void> _logout(BuildContext context) async {
+    await _userController.saveSessionToken(""); 
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+  }
   @override
   Widget build(BuildContext context) {
     debugPrint(">>> BUILD: _userCount=$_userCount, _propertyCount=$_propertyCount");
@@ -107,6 +116,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _fetchAllDashboardData,
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await _logout(context);
+            },
           ),
         ],
       ),

@@ -33,7 +33,7 @@ Future<bool> deleteProperty(int propertyId, SupabaseClient supabase) async {
 
     // Check if the response data is not null and contains at least one item
     if (response == null || response.isEmpty) {
-    debugPrint("Property deleted successfully: $response}");
+    debugPrint("Property deleted successfully}");
     return true;
     }
 

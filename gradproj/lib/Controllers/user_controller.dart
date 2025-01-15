@@ -5,7 +5,10 @@ import 'package:gradproj/Models/User.dart' as local;
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 
 class UserController {
+  // Initialize Supabase client
   final _supabase = Supabase.instance.client;
+  
+  // Constants for token storage and JWT encryption
   static const String tokenKey = 'token';
   static const String _jwtSecret = 'samirencryption';
 
@@ -41,6 +44,48 @@ class UserController {
       return token;
     } catch (e) {
       debugPrint("Error retrieving token: $e");
+      return null;
+    }
+  }
+
+  /// Get user by their unique identifier
+  Future<local.User?> getUserById(String userId) async {
+    try {
+      debugPrint("Attempting to get user with ID: $userId");
+
+      // Query the users table using the provided ID
+      final response = await _supabase
+          .from('users')
+          .select()
+          .eq('idd', userId)
+          .single();
+
+      debugPrint("Raw User Response: $response");
+
+      if (response == null) {
+        debugPrint("No user found with ID: $userId");
+        return null;
+      }
+
+      // Convert the response into a User object
+      return local.User(
+        idd: response['idd'] ?? response['id']?.toString(),
+        firstName: response['first_name'] ?? response['firstname'] ?? '',
+        lastName: response['last_name'] ?? response['lastname'] ?? '',
+        dob: response['dob'] ?? '',
+        phone: response['phone'] ?? '',
+        country: response['country'] ?? '',
+        job: response['job'] ?? '',
+        email: response['email'] ?? '',
+        password: '', // Never retrieve password
+        token: '', // No token needed for ID-based lookup
+        role: response['role'] ?? '2',
+        createdAt: response['created_at'] != null 
+            ? DateTime.parse(response['created_at'])
+            : DateTime.now()
+      );
+    } catch (e) {
+      debugPrint("Error fetching user by ID: $e");
       return null;
     }
   }

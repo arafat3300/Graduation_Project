@@ -13,7 +13,9 @@ class ManageUsersScreen extends StatefulWidget {
 class _ManageUsersScreenState extends State<ManageUsersScreen> {
   bool _isLoading = false;
   List<local.User> _users = []; // Use the aliased User class
+  List<local.User> _filteredUsers = []; // For displaying filtered results
   Map<int, int> _activeListings = {}; // Map to store user ID and active listings count
+  final TextEditingController _searchController = TextEditingController(); // Controller for search input
 
   @override
   void initState() {
@@ -40,6 +42,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         final users = response.map((data) => local.User.fromJson(data)).toList();
         setState(() {
           _users = users;
+          _filteredUsers = users; // Initialize filtered list
         });
         await _fetchActiveListings(users);
       }
@@ -57,7 +60,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     try {
       final supabase = Supabase.instance.client;
 
-      // Iterate through users to fetch the count of their active properties
       for (var user in users) {
         final response = await supabase
             .from('properties')
@@ -66,9 +68,8 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             .eq('status', 'approved')
             .count(CountOption.exact);
 
-        // Update the active listings count for each user
         setState(() {
-          _activeListings[user.id!] = response.count ?? 0; // Use count from response
+          _activeListings[user.id!] = response.count ?? 0;
         });
       }
     } catch (e) {
@@ -85,7 +86,8 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
 
       setState(() {
         _users.removeWhere((user) => user.id == id);
-        _activeListings.remove(id); // Remove associated active listing count
+        _filteredUsers.removeWhere((user) => user.id == id);
+        _activeListings.remove(id);
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,6 +103,22 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     }
   }
 
+  void _searchUsers(String query) {
+    if (query.isEmpty) {
+      setState(() {
+        _filteredUsers = _users;
+      });
+      return;
+    }
+
+    final lowerCaseQuery = query.toLowerCase();
+    setState(() {
+      _filteredUsers = _users.where((user) {
+        return user.email.toLowerCase().contains(lowerCaseQuery);
+      }).toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,39 +128,59 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
           IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchUsers),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _users.isEmpty
-              ? const Center(child: Text('No users found.'))
-              : SingleChildScrollView(
-                  child: DataTable(
-                    columns: const [
-                      DataColumn(label: Text('ID')),
-                      DataColumn(label: Text('First Name')),
-                      DataColumn(label: Text('Last Name')),
-                      DataColumn(label: Text('Email')),
-                      DataColumn(label: Text('Active Listings')),
-                      DataColumn(label: Text('Actions')),
-                    ],
-                    rows: _users.map((user) {
-                      return DataRow(
-                        cells: [
-                          DataCell(Text(user.id.toString())),
-                          DataCell(Text(user.firstName)),
-                          DataCell(Text(user.lastName)),
-                          DataCell(Text(user.email)),
-                          DataCell(Text(_activeListings[user.id]?.toString() ?? 'Loading...')),
-                          DataCell(
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteUser(user.id!),
-                            ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
-                  ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: 'Search by Email',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.0),
                 ),
+              ),
+              onChanged: _searchUsers, // Trigger search on input change
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredUsers.isEmpty
+                    ? const Center(child: Text('No matching users found.'))
+                    : SingleChildScrollView(
+                        child: DataTable(
+                          columns: const [
+                            DataColumn(label: Text('ID')),
+                            DataColumn(label: Text('First Name')),
+                            DataColumn(label: Text('Last Name')),
+                            DataColumn(label: Text('Email')),
+                            DataColumn(label: Text('Active Listings')),
+                            DataColumn(label: Text('Actions')),
+                          ],
+                          rows: _filteredUsers.map((user) {
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(user.id.toString())),
+                                DataCell(Text(user.firstName)),
+                                DataCell(Text(user.lastName)),
+                                DataCell(Text(user.email)),
+                                DataCell(Text(_activeListings[user.id]?.toString() ?? 'Loading...')),
+                                DataCell(
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () => _deleteUser(user.id!),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+          ),
+        ],
+      ),
     );
   }
 }
