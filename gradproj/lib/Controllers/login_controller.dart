@@ -81,6 +81,7 @@ Future<BaseUser?> getUserByEmail(String email) async {
         'role': userResponse['role'],
       });
               singletonSession().userId = user.id;
+               debugPrint('user id : ${singletonSession().userId}');
               return user;
 
     }
@@ -107,6 +108,7 @@ Future<BaseUser?> getUserByEmail(String email) async {
           
         });
         singletonSession().userId = admin.id;
+        debugPrint('user id : ${singletonSession().userId}');
         
         
         debugPrint('Successfully mapped admin: ${admin.email}');

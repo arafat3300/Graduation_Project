@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:gradproj/Models/singletonSession.dart';
 import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -26,7 +27,7 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
 
   String? _furnished = "Yes";
   String? _paymentOption = "Cash";
-  int? _userId= 3;
+  int? _userId = singletonSession().userId;
 
   List<Asset> _selectedImages = [];
   final List<String> _uploadedImageUrls = [];

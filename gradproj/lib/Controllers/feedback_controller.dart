@@ -57,7 +57,7 @@ Future<List<propertyFeedbacks>> getAllFeedbacks() async {
     }
   }
 Future<void> addFeedback(
-    int propertyId, String feedbackText, String? userId) async {
+    int propertyId, String feedbackText, int? userId) async {
   try {
     await supabase.from('feedbacks').insert({
       'property_id': propertyId,

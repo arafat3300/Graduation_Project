@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:gradproj/Models/singletonSession.dart';
+import 'package:gradproj/Screens/MyListings.dart';
 import '../Controllers/user_controller.dart';
 import 'package:gradproj/Screens/CustomBottomNavBar.dart';
 import 'package:gradproj/Screens/FavouritesScreen.dart';
@@ -36,8 +37,8 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   int? _selectedBedrooms;
   int? _selectedBathrooms;
   String? _selectedSortOption;
-int? _userId;
-UserController userCtrl = UserController();
+  int? _userId;
+  UserController userCtrl = UserController();
   @override
   void initState() {
     super.initState();
@@ -52,65 +53,61 @@ UserController userCtrl = UserController();
     _debounce?.cancel();
     super.dispose();
   }
-Future<void> fetchProperties() async {
-  try {
-    // Fetch the logged-in user's ID
-_userId = singletonSession().userId;
 
-   
-    debugPrint('LOGGED IN USER ID IS: $_userId');
+  Future<void> fetchProperties() async {
+    try {
+      // Fetch the logged-in user's ID
+      _userId = singletonSession().userId;
 
-    if (_userId == null) {
-      debugPrint("No logged-in user found. Redirecting to login.");
+      debugPrint('LOGGED IN USER ID IS: $_userId');
+
+      if (_userId == null) {
+        debugPrint("No logged-in user found. Redirecting to login.");
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Session expired. Please log in."),
+        ));
+        return;
+      }
+
+      // Start loading state
+      setState(() => _isLoading = true);
+
+      // Fetch properties from the database
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('properties')
+          .select("*")
+          .filter('status', 'eq', 'approved');
+
+      debugPrint("Response from Supabase: $response");
+
+      if (response.isNotEmpty) {
+        final List<dynamic> data = response;
+        final newProperties =
+            data.map((entry) => Property.fromJson(entry)).toList();
+        debugPrint("New properties: $newProperties");
+
+        // Update the UI with fetched properties
+        setState(() {
+          properties = newProperties;
+          filteredProperties = newProperties;
+        });
+      } else {
+        debugPrint("No data received from Supabase.");
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("No properties found. Please try again later."),
+        ));
+      }
+    } catch (exception) {
+      debugPrint("Exception fetching properties: $exception");
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("Session expired. Please log in."),
+        content: Text("Failed to load properties. Please try again later."),
       ));
-      return;
+    } finally {
+      // End loading state
+      setState(() => _isLoading = false);
     }
-
-    // Start loading state
-    setState(() => _isLoading = true);
-
-    // Fetch properties from the database
-    final supabase = Supabase.instance.client;
-    final response = await supabase
-        .from('properties')
-        .select("*")
-        .filter('status', 'eq', 'approved');
-       
-
-    debugPrint("Response from Supabase: $response");
-
-    if (response.isNotEmpty) {
-      final List<dynamic> data = response;
-      final newProperties = data.map((entry) => Property.fromJson(entry)).toList();
-      debugPrint("New properties: $newProperties");
-
-      // Update the UI with fetched properties
-      setState(() {
-        properties = newProperties;
-        filteredProperties = newProperties;
-      });
-    } else {
-      debugPrint("No data received from Supabase.");
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("No properties found. Please try again later."),
-      ));
-    }
-  } catch (exception) {
-    debugPrint("Exception fetching properties: $exception");
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text("Failed to load properties. Please try again later."),
-    ));
-  } finally {
-    // End loading state
-    setState(() => _isLoading = false);
   }
-}
-
-
-
-
 
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
@@ -127,7 +124,8 @@ _userId = singletonSession().userId;
               property.paymentOption.toLowerCase().contains(query);
 
           final bool matchesPaymentOption = _selectedPaymentOption == null ||
-              property.paymentOption.toLowerCase() == _selectedPaymentOption!.toLowerCase();
+              property.paymentOption.toLowerCase() ==
+                  _selectedPaymentOption!.toLowerCase();
 
           final bool matchesBedrooms = _selectedBedrooms == null ||
               property.bedrooms == _selectedBedrooms;
@@ -135,7 +133,10 @@ _userId = singletonSession().userId;
           final bool matchesBathrooms = _selectedBathrooms == null ||
               property.bathrooms == _selectedBathrooms;
 
-          return matchesQuery && matchesPaymentOption && matchesBedrooms && matchesBathrooms;
+          return matchesQuery &&
+              matchesPaymentOption &&
+              matchesBedrooms &&
+              matchesBathrooms;
         }).toList();
 
         tempList = _applySorting(tempList);
@@ -217,9 +218,23 @@ _userId = singletonSession().userId;
                     },
                   ),
                   IconButton(
-                    icon: const Icon(Icons.add_home_work_outlined, color: Colors.black),
+                    icon: const Icon(Icons.add_home_work_outlined,
+                        color: Colors.black),
                     onPressed: () {
                       Navigator.pushNamed(context, '/addProperty');
+                    },
+                  ),
+                  IconButton(
+                    icon:
+                        const Icon(Icons.mobile_friendly, color: Colors.black),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              MyListings(userId: singletonSession().userId!),
+                        ),
+                      );
                     },
                   ),
                 ],
@@ -227,7 +242,8 @@ _userId = singletonSession().userId;
 
               // Search Bar
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
@@ -246,7 +262,8 @@ _userId = singletonSession().userId;
               // Filters
               if (_showFilters)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10.0, vertical: 5.0),
                   child: Column(
                     children: [
                       Row(
@@ -263,9 +280,13 @@ _userId = singletonSession().userId;
                               ),
                               value: _selectedPaymentOption,
                               items: const [
-                                DropdownMenuItem(value: null, child: Text('All')),
-                                DropdownMenuItem(value: 'Cash', child: Text('Cash')),
-                                DropdownMenuItem(value: 'Installments', child: Text('Installments')),
+                                DropdownMenuItem(
+                                    value: null, child: Text('All')),
+                                DropdownMenuItem(
+                                    value: 'Cash', child: Text('Cash')),
+                                DropdownMenuItem(
+                                    value: 'Installments',
+                                    child: Text('Installments')),
                               ],
                               onChanged: (value) {
                                 setState(() {
@@ -288,7 +309,8 @@ _userId = singletonSession().userId;
                               ),
                               value: _selectedBedrooms,
                               items: const [
-                                DropdownMenuItem(value: null, child: Text('All')),
+                                DropdownMenuItem(
+                                    value: null, child: Text('All')),
                                 DropdownMenuItem(value: 1, child: Text('1')),
                                 DropdownMenuItem(value: 2, child: Text('2')),
                                 DropdownMenuItem(value: 3, child: Text('3')),
@@ -319,7 +341,8 @@ _userId = singletonSession().userId;
                               ),
                               value: _selectedBathrooms,
                               items: const [
-                                DropdownMenuItem(value: null, child: Text('All')),
+                                DropdownMenuItem(
+                                    value: null, child: Text('All')),
                                 DropdownMenuItem(value: 1, child: Text('1')),
                                 DropdownMenuItem(value: 2, child: Text('2')),
                                 DropdownMenuItem(value: 3, child: Text('3')),
@@ -346,10 +369,17 @@ _userId = singletonSession().userId;
                               ),
                               value: _selectedSortOption,
                               items: const [
-                                DropdownMenuItem(value: null, child: Text('No Sorting')),
-                                DropdownMenuItem(value: 'PriceLowHigh', child: Text('Price: Low to High')),
-                                DropdownMenuItem(value: 'PriceHighLow', child: Text('Price: High to Low')),
-                                DropdownMenuItem(value: 'BestSellers', child: Text('Best Sellers')),
+                                DropdownMenuItem(
+                                    value: null, child: Text('No Sorting')),
+                                DropdownMenuItem(
+                                    value: 'PriceLowHigh',
+                                    child: Text('Price: Low to High')),
+                                DropdownMenuItem(
+                                    value: 'PriceHighLow',
+                                    child: Text('Price: High to Low')),
+                                DropdownMenuItem(
+                                    value: 'BestSellers',
+                                    child: Text('Best Sellers')),
                               ],
                               onChanged: (value) {
                                 setState(() {
@@ -386,11 +416,18 @@ _userId = singletonSession().userId;
                               return GridView.builder(
                                 controller: _scrollController,
                                 padding: const EdgeInsets.all(10.0),
-                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: orientation == Orientation.portrait ? 1 : 4,
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount:
+                                      orientation == Orientation.portrait
+                                          ? 1
+                                          : 4,
                                   mainAxisSpacing: 10.0,
                                   crossAxisSpacing: 10.0,
-                                  childAspectRatio: orientation == Orientation.portrait ? 0.75 : 0.8,
+                                  childAspectRatio:
+                                      orientation == Orientation.portrait
+                                          ? 0.75
+                                          : 0.8,
                                 ),
                                 itemCount: filteredProperties.length,
                                 itemBuilder: (context, index) {
@@ -400,7 +437,8 @@ _userId = singletonSession().userId;
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => PropertyDetails(property: property),
+                                          builder: (context) => PropertyDetails(
+                                              property: property),
                                         ),
                                       );
                                     },
@@ -430,7 +468,8 @@ _userId = singletonSession().userId;
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => FavoritesScreen(toggleTheme: widget.toggleTheme),
+                builder: (context) =>
+                    FavoritesScreen(toggleTheme: widget.toggleTheme),
               ),
             );
           } else if (index == 3) {
