@@ -12,6 +12,21 @@ import 'screens/PropertyListings.dart';
 import 'screens/SignupScreen.dart';
 import 'screens/LoginScreen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+Future<void> ensurePropertiesStatus() async {
+  try {
+    final supabase = Supabase.instance.client;
+
+    
+          await supabase
+        .from('properties')
+        .update({'status': 'unavailable'})
+        .filter('user_id', 'is',null); 
+
+
+  } catch (e) {
+    debugPrint('Error ensuring property status: $e');
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +50,7 @@ void main() async {
   }
 
   final isLoggedIn = await checkIsLoggedIn();
+  ensurePropertiesStatus();
 
   runApp(
     ProviderScope(

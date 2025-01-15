@@ -27,7 +27,7 @@ class PropertyCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Property image with placeholder handling
+           
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(12),
@@ -54,7 +54,7 @@ class PropertyCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Property details
+            
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 40, 0, 50),
               child: Column(

@@ -10,8 +10,9 @@ class Property {
   late String? compound;
   late String paymentOption;
   late String city;
-  late List<String> feedback;
+
   late List<String>? imgUrl;
+  late String ?status ;
 
   Property({
     this.id,
@@ -25,13 +26,15 @@ class Property {
     this.compound,
     required this.paymentOption,
     required this.city,
-    required this.feedback,
+
     this.imgUrl,
+     this.status,
   });
 
 factory Property.fromJson(Map<String, dynamic> json) {
   return Property(
     id: json['id'] as int?,
+    status : json['status'] as String ,
     type: json['type'] as String,
     price: (json['price'] as num).toInt(),
     bedrooms: (json['bedrooms'] as num).toInt(),
@@ -42,9 +45,7 @@ factory Property.fromJson(Map<String, dynamic> json) {
     compound: json['compound'] as String?,
     paymentOption: json['payment_option'] as String,
     city: json['city'] as String,
-    feedback: json['feedback'] != null
-        ? (json['feedback'] as List<dynamic>).cast<String>()
-        : [], 
+  
     imgUrl: json['img_url'] != null
         ? (json['img_url'] as List<dynamic>).map((e) => e.toString()).toList()
         : [], 
@@ -65,7 +66,6 @@ Map<String, dynamic> toJson() {
     'compound': compound,
     'payment_option': paymentOption,
     'city': city,
-    'feedback': feedback,
     'img_url': imgUrl,
   };
 }

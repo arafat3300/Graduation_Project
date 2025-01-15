@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:gradproj/Controllers/google_controller.dart';
 import 'package:gradproj/Controllers/login_controller.dart';
 import 'package:gradproj/Screens/AdminDashboardScreen.dart';
 import 'package:gradproj/Screens/PropertyListings.dart';
@@ -35,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen>
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-
+  
     _offsetAnimation = Tween<Offset>(
       begin: const Offset(0, 1),
       end: Offset.zero,
@@ -211,7 +212,88 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Detailed login screen UI with blurred background and sliding animation
+   final GoogleController _googleController = GoogleController();
+
+  // Add this method to handle Google Sign In
+  Future<void> _handleGoogleSignIn() async {
+  final result = await _googleController.signInWithGoogle();
+  
+  if (result.success) {
+    // Show success dialog and handle navigation
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green),
+              SizedBox(width: 10),
+              Text("Success"),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(result.message),
+              const SizedBox(height: 10),
+              const SpinKitCircle(
+                color: Colors.green,
+                size: 50.0,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    // Navigate after a short delay
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.of(context).pop(); // Close the dialog
+      
+      // Navigate based on role
+      Widget targetScreen;
+      switch (result.role) {
+        case 1: // Admin role
+          targetScreen = AdminDashboardScreen();
+          break;
+        case 2: // Regular user role
+          targetScreen = PropertyListScreen(toggleTheme: widget.toggleTheme);
+          break;
+        default:
+          targetScreen = PropertyListScreen(toggleTheme: widget.toggleTheme);
+      }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => targetScreen),
+      );
+    });
+  } else {
+    // Show error dialog
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.error, color: Colors.red),
+              SizedBox(width: 10),
+              Text("Error"),
+            ],
+          ),
+          content: Text(result.message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+} // Detailed login screen UI with blurred background and sliding animation
     return Scaffold(
       body: Stack(
         children: [
@@ -295,6 +377,52 @@ class _LoginScreenState extends State<LoginScreen>
                         ],
                       ),
                     ),
+                    const SizedBox(height: 15),
+  // Or divider with text
+  Row(
+    children: [
+      const Expanded(child: Divider(color: Colors.grey)),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: Text(
+          'OR',
+          style: TextStyle(
+            color: Colors.grey[700],
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      const Expanded(child: Divider(color: Colors.grey)),
+    ],
+  ),
+  const SizedBox(height: 15),
+  // Google Sign In button
+  ElevatedButton.icon(
+    onPressed: _handleGoogleSignIn,
+    icon: Image.asset(
+      'images/google-logo.png',
+      height: 24,
+      width: 24,
+    ),
+    label: const Text(
+      'Sign in with Google',
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black87,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 12,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(30),
+      ),
+    ),
+  ),
                     const SizedBox(height: 15),
                     // Forgot password section
                     GestureDetector(

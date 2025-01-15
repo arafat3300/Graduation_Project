@@ -10,7 +10,7 @@ class ViewProfilePage extends StatelessWidget {
     try {
       final email = await _userController.getLoggedInUserEmail();
       final name = await _userController.getLoggedInUserName();
-final phone =await _userController.getLoggedInUserNumber();
+      final phone =await _userController.getLoggedInUserNumber();
       return {
         "email": email ?? "Email not found",
         "name": name ?? "Name not found",

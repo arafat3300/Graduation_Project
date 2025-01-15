@@ -6,24 +6,186 @@ import 'package:uuid/uuid.dart';
 import 'package:gradproj/Models/User.dart' as local;
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
+import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 
 class SignUpController {
   final Uuid _uuid = const Uuid();
   final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
+  
+  // JWT Configuration
+  static const String _jwtSecret = 'samirencryption';
+  // Set token duration to 5 minutes
+  static const Duration _tokenDuration = Duration(minutes: 5);
+  // Warning threshold for token expiration (1 minute before expiry)
+  static const Duration _refreshThreshold = Duration(minutes: 1);
+  static const String _issuer = 'samirencryption';
 
-  /// Save session token in SharedPreferences
-  Future<void> _saveSession(String token) async {
+  // Storage Keys
+  static const String _tokenKey = 'token';
+  static const String _userIdKey = 'user_id';
+  static const String _tokenExpiryKey = 'token_expiry';
+
+  /// Saves session data including expiration time
+  Future<void> _saveSession(String userId, String token, DateTime expiry) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', token);
+    await prefs.setString(_userIdKey, userId);
+    await prefs.setString(_tokenKey, token);
+    await prefs.setString(_tokenExpiryKey, expiry.toIso8601String());
   }
 
-  /// Clear session token from SharedPreferences
+  /// Clears all session data
   Future<void> _clearSession() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
+    await prefs.remove(_userIdKey);
+    await prefs.remove(_tokenKey);
+    await prefs.remove(_tokenExpiryKey);
   }
 
-  /// Validate user input
+  /// Gets the token expiration time
+  Future<DateTime?> getTokenExpiry() async {
+    final prefs = await SharedPreferences.getInstance();
+    final expiryStr = prefs.getString(_tokenExpiryKey);
+    return expiryStr != null ? DateTime.parse(expiryStr) : null;
+  }
+
+  /// Generates a JWT token with 5-minute duration
+  String generateJwtToken(String userId, String email, int role) {
+    final expiryTime = DateTime.now().add(_tokenDuration);
+    
+    final jwt = JWT(
+      {
+        'sub': userId,
+        'email': email,
+        'role': role,
+        'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        'exp': expiryTime.millisecondsSinceEpoch ~/ 1000,
+        'jti': _uuid.v4(),
+      },
+      issuer: _issuer,
+      subject: userId,
+    );
+
+    return jwt.sign(SecretKey(_jwtSecret));
+  }
+
+  /// Verifies token and checks expiration
+  String? verifyTokenAndGetUserId(String token) {
+    try {
+      final jwt = JWT.verify(token, SecretKey(_jwtSecret));
+      
+      final Map<String, dynamic> payload = jwt.payload;
+      if (payload.containsKey('exp')) {
+        final expiration = DateTime.fromMillisecondsSinceEpoch(payload['exp'] * 1000);
+        if (DateTime.now().isBefore(expiration)) {
+          return payload['sub'] as String;
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Checks if token needs immediate refresh
+  Future<bool> needsRefresh() async {
+    final expiry = await getTokenExpiry();
+    if (expiry == null) return true;
+    
+    final timeUntilExpiry = expiry.difference(DateTime.now());
+    return timeUntilExpiry < _refreshThreshold;
+  }
+
+  /// Handles the sign-up process
+  Future<String> handleSignUp({
+    required String firstName,
+    required String lastName,
+    required String dob,
+    required String phone,
+    required String country,
+    required String job,
+    required String email,
+    required String password,
+    required String confirmPassword,
+    String? otherJob,
+  }) async {
+    final validationError = validateInputs(
+      firstName: firstName,
+      lastName: lastName,
+      dob: dob,
+      phone: phone,
+      email: email,
+      password: password,
+      confirmPassword: confirmPassword,
+    );
+
+    if (validationError != null) {
+      return validationError;
+    }
+
+    try {
+      final userId = _uuid.v4();
+      final sessionToken = generateJwtToken(userId, email.trim(), 2);
+      final expiryTime = DateTime.now().add(_tokenDuration);
+
+      final userJob = job == 'Other' ? otherJob?.trim() ?? 'Unknown' : job;
+
+      final user = local.User(
+        idd: userId,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        dob: dob.trim(),
+        phone: phone.trim(),
+        country: country,
+        job: userJob ?? 'Unknown',
+        email: email.trim(),
+        password: hashPassword(password.trim()),
+        token: sessionToken,
+        createdAt: DateTime.now(),
+        role: 2
+      );
+
+      await _supabase.from('users').upsert(user.toJson());
+      await _saveSession(userId, sessionToken, expiryTime);
+
+      return "User signed up successfully!";
+    } on supabase.AuthException catch (e) {
+      return "Authentication error: ${e.message}";
+    } catch (error) {
+      return "An error occurred: $error";
+    }
+  }
+
+  /// Refreshes the token before it expires
+  Future<bool> refreshToken() async {
+    final userId = await getCurrentUserId();
+    if (userId == null) return false;
+
+    try {
+      final user = await _supabase
+          .from('users')
+          .select()
+          .eq('idd', userId)
+          .single() as Map<String, dynamic>;
+          
+      final newToken = generateJwtToken(userId, user['email'], user['role']);
+      final newExpiry = DateTime.now().add(_tokenDuration);
+      
+      await _saveSession(userId, newToken, newExpiry);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Gets remaining token time
+  Future<Duration?> getTokenTimeRemaining() async {
+    final expiry = await getTokenExpiry();
+    if (expiry == null) return null;
+    return expiry.difference(DateTime.now());
+  }
+
+  /// Validates all required user input fields
   String? validateInputs({
     required String firstName,
     required String lastName,
@@ -60,98 +222,46 @@ class SignUpController {
     return null;
   }
 
-  /// Hash the password using SHA-256
+  /// Hashes password for secure storage
   String hashPassword(String password) {
     final bytes = utf8.encode(password.trim());
     final digest = sha256.convert(bytes);
     return digest.toString();
   }
 
-  /// Generate session token
-  String generateSessionToken(String id) {
-    return id;
+  /// Gets current user ID if available
+  Future<String?> getCurrentUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_userIdKey);
   }
 
-  /// Handle sign-up logic
-  Future<String> handleSignUp({
-    required String firstName,
-    required String lastName,
-    required String dob,
-    required String phone,
-    required String country,
-    required String job,
-    required String email,
-    required String password,
-    required String confirmPassword,
-    String? otherJob,
-  }) async {
-    // Validate inputs
-    final validationError = validateInputs(
-      firstName: firstName,
-      lastName: lastName,
-      dob: dob,
-      phone: phone,
-      email: email,
-      password: password,
-      confirmPassword: confirmPassword,
-    );
-
-    if (validationError != null) {
-      return validationError;
-    }
-
-    try {
-      // // Use Supabase Auth to create user
-      // final authResponse = await _supabase.auth.signUp(
-      //   email: email.trim(),
-      //   password: password.trim(),
-      // );
-
-      // // Get the user ID from the auth response
-      // final userId = authResponse.user?.id;
-      // if (userId == null) {
-      //   return "Failed to create user";
-      // }
-      final id=_uuid.v4();
-      // Generate session token using the original method
-      final sessionToken = generateSessionToken(id);
-
-      // Determine the user's job
-      final userJob = job == 'Other' ? otherJob?.trim() ?? 'Unknown' : job;
-
-      // Create the user object
-      final user = local.User(
-        idd: id,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        dob: dob.trim(),
-        phone: phone.trim(),
-        country: country,
-        job: userJob ?? 'Unknown',
-        email: email.trim(),
-        password: hashPassword(password.trim()),
-        token: sessionToken,
-        createdAt: DateTime.now(),
-        role: 2
-      );
-
-      // Insert user details into users table
-      await _supabase.from('users').upsert(user.toJson());
-
-      // Save the session token using the original method
-      await _saveSession(sessionToken);
-
-      return "User signed up successfully!";
-    } on supabase.AuthException catch (e) {
-      return "Authentication error: ${e.message}";
-    } catch (error) {
-      return "An error occurred: $error";
-    }
+  /// Gets current token if available
+  Future<String?> getCurrentToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_tokenKey);
   }
 
-  /// Logout the user
+  /// Logs out user and clears session
   Future<void> logoutUser() async {
     await _supabase.auth.signOut();
     await _clearSession();
+  }
+
+  /// Gets user information from token
+  Map<String, dynamic>? getUserFromToken(String token) {
+    try {
+      final userId = verifyTokenAndGetUserId(token);
+      if (userId == null) {
+        return null;
+      }
+      
+      final jwt = JWT.verify(token, SecretKey(_jwtSecret));
+      return {
+        ...jwt.payload,
+        'user_id': userId,
+      };
+    } catch (e) {
+      return null;
+    }
   }
 }
