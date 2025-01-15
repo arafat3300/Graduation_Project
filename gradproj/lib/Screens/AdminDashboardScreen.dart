@@ -229,7 +229,6 @@ class _DashboardCard extends StatelessWidget {
   final Color color;
 
   const _DashboardCard({
-    super.key,
     required this.title,
     required this.value,
     required this.icon,

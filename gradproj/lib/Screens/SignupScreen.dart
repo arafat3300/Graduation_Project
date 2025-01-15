@@ -101,13 +101,11 @@ final Uuid _uuid = const Uuid();
       },
     );
 
-    if (pickedDate != null) {
-      setState(() {
-        _dobController.text =
-            "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
-      });
+    setState(() {
+      _dobController.text =
+          "${pickedDate?.year}-${pickedDate?.month.toString().padLeft(2, '0')}-${pickedDate?.day.toString().padLeft(2, '0')}";
+    });
     }
-  }
 
 
   Future<void> _handleSignUp() async {

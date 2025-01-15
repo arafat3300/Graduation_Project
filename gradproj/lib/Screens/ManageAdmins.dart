@@ -172,18 +172,46 @@ Future<void> _fetchAdmins() async {
   }
 
   Future<void> _deleteAdmin(int id) async {
+    Map<String, dynamic>? deletedAdmin;
     try {
       setState(() => _isLoading = true);
 
       final supabase = Supabase.instance.client;
-      await supabase.from('admins').delete().eq('id', id);
+      final adminToDelete = _admins.firstWhere((admin) => admin.id == id);
+      deletedAdmin = {
+      'email': adminToDelete.email,
+      'first_name': adminToDelete.firstName,
+      'last_name': adminToDelete.lastName,
+      'password': adminToDelete.password,
+      'token': adminToDelete.token,
+      'idd': adminToDelete.id,
+      };
 
+      await supabase.from('admins').delete().eq('id', id);
       setState(() {
         _admins.removeWhere((admin) => admin.id == id);
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Admin deleted successfully!')),
-      );
+      SnackBar(
+        content: const Text('Admin deleted successfully!'),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            if (deletedAdmin != null) {
+              await supabase.from('admins').insert(deletedAdmin);
+
+              // Re-fetch admins to update the UI
+              await _fetchAdmins();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Admin restored successfully!')),
+              );
+            }
+          },
+        ),
+      ),
+    );
     } catch (e) {
       debugPrint('Exception in _deleteAdmin(): $e');
       ScaffoldMessenger.of(context).showSnackBar(

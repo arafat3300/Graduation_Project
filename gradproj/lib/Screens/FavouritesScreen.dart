@@ -82,9 +82,20 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () {
-                        ref
-                            .read(favouritesProvider.notifier)
-                            .removeProperty(property);
+                        final favouritesNotifier = ref.read(favouritesProvider.notifier);
+                        favouritesNotifier.removeProperty(property);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("${property.type} removed from favorites"),
+                            duration: const Duration(seconds: 5),
+                            action: SnackBarAction(
+                              label: "Undo",
+                              onPressed: () {
+                                favouritesNotifier.addProperty(property);
+                                },
+                            ),
+                          ),
+                        );
                       },
                     ),
                   ),
