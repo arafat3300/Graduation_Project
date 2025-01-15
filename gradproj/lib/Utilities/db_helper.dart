@@ -2,17 +2,21 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class DatabaseHelper {
+  // Singleton instance
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
   static Database? _database;
 
+  // Private constructor
   DatabaseHelper._privateConstructor();
 
+  // Getter for the database instance
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDatabase();
     return _database!;
   }
 
+  // Initialize the database
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'favorites.db');
     return await openDatabase(
@@ -22,55 +26,65 @@ class DatabaseHelper {
     );
   }
 
+  // Create the favorites table
   Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE favorites (
-        id INTEGER PRIMARY KEY,
-        type TEXT,
-        description TEXT
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER NOT NULL,
+        propertyId INTEGER NOT NULL,
+        propertyName TEXT,
+        propertyType TEXT,
+        UNIQUE(userId, propertyId) ON CONFLICT REPLACE
       )
     ''');
   }
 
-  Future<int> addFavorite(Map<String, dynamic> favorite) async {
+  // Insert a favorite item
+  Future<void> insertFavourite(Map<String, dynamic> favourite) async {
     Database db = await instance.database;
-    return await db.insert('favorites', favorite);
+    await db.insert(
+      'favorites',
+      favourite,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
-  Future<int> removeFavorite(int id) async {
+  // Delete a favorite item by userId and propertyId
+  Future<void> deleteFavourite(int userId, int? propertyId) async {
     Database db = await instance.database;
-    return await db.delete('favorites', where: 'id = ?', whereArgs: [id]);
+    await db.delete(
+      'favorites',
+      where: 'userId = ? AND propertyId = ?',
+      whereArgs: [userId, propertyId],
+    );
   }
 
-  Future<List<Map<String, dynamic>>> getFavorites() async {
+  // Check if a property is a favorite
+  Future<bool> isFavorite(int userId, int propertyId) async {
     Database db = await instance.database;
-    return await db.query('favorites');
-  }
-
-  Future<bool> isFavorite(int id) async {
-    Database db = await instance.database;
-    final result = await db.query('favorites', where: 'id = ?', whereArgs: [id]);
+    final result = await db.query(
+      'favorites',
+      where: 'userId = ? AND propertyId = ?',
+      whereArgs: [userId, propertyId],
+    );
     return result.isNotEmpty;
   }
 
+  // Fetch all favorites for a specific user
+  Future<List<Map<String, dynamic>>> fetchFavorites(int userId) async {
+    Database db = await instance.database;
+    return await db.query(
+      'favorites',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      orderBy: 'id DESC',
+    );
+  }
 
-  void addToFavorites(int id, String type, String description) async {
-  final favorite = {
-    'id': id,
-    'type': type,
-    'description': description,
-  };
-  await DatabaseHelper.instance.addFavorite(favorite);
-  print('Added to favorites'); }
-
-  void removeFromFavorites(int id) async {
-  await DatabaseHelper.instance.removeFavorite(id);
-  print('Removed from favorites'); }
-
-  Future<bool> isFavoritee(int id) async {
-  return await DatabaseHelper.instance.isFavorite(id); }
-
-  Future<List<Map<String, dynamic>>> fetchFavorites() async {
-  return await DatabaseHelper.instance.getFavorites(); }
-
+  // Clear all favorites (optional utility method)
+  Future<void> clearAllFavorites() async {
+    Database db = await instance.database;
+    await db.delete('favorites');
+  }
 }
