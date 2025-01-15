@@ -201,8 +201,6 @@ Future<void> _fetchAdmins() async {
           onPressed: () async {
             if (deletedAdmin != null) {
               await supabase.from('admins').insert(deletedAdmin);
-
-              // Re-fetch admins to update the UI
               await _fetchAdmins();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Admin restored successfully!')),
