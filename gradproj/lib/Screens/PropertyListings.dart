@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:gradproj/Screens/CustomBottomNavBar.dart';
 import 'package:gradproj/Screens/FavouritesScreen.dart';
 import 'package:gradproj/Screens/Profile.dart';
+import 'package:gradproj/Screens/emailtest.dart';
 import 'package:gradproj/Screens/search.dart';
 import 'package:gradproj/screens/PropertyDetails.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -391,7 +392,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => SearchScreen(toggleTheme: widget.toggleTheme),
+                builder: (context) => const EmailSenderScreen(),
               ),
             );
           } else if (index == 2) {
