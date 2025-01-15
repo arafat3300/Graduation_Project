@@ -11,70 +11,67 @@ class PropertyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Get the current theme
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
       child: Card(
         elevation: 10,
-        // Use theme-aware colors for the card
-        color: theme.cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-           
+            // Property image with placeholder handling
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(12),
               ),
               child: SizedBox(
                 width: double.infinity,
-                height: 680,
+                height: MediaQuery.of(context).orientation == Orientation.portrait ? 680 : 200,
                 child: Image.network(
                   property.imgUrl?.isNotEmpty == true
                       ? property.imgUrl!.first
                       : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
-                  fit: BoxFit.cover,
+                  fit: BoxFit.cover, // Ensures the image fills the container
                   errorBuilder: (context, error, stackTrace) {
                     debugPrint("Image failed to load: $error");
-                    return Center(
+                    return const Center(
                       child: Icon(
                         Icons.broken_image,
                         size: 70,
-                        // Use theme-aware color for the error icon
-                        color: theme.disabledColor,
+                        color: Colors.grey,
                       ),
                     );
                   },
                 ),
               ),
             ),
-            
+            // Property details
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 40, 0, 50),
+              padding: MediaQuery.of(context).orientation == Orientation.portrait 
+                  ? const EdgeInsets.fromLTRB(20, 40, 0, 50)
+                  : const EdgeInsets.fromLTRB(10, 10, 0, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Property name
                   Text(
                     property.type,
-                    style: theme.textTheme.titleLarge?.copyWith(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
+                      fontSize: MediaQuery.of(context).orientation == Orientation.portrait ? 18 : 14,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: MediaQuery.of(context).orientation == Orientation.portrait ? 24 : 8),
                   // Property type and rent/sale
                   Text(
                     "${property.type} - ${property.paymentOption}",
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                    style: TextStyle(
+                      fontSize: MediaQuery.of(context).orientation == Orientation.portrait ? 14 : 12,
+                      color: Colors.grey[700],
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -83,7 +80,8 @@ class PropertyCard extends StatelessWidget {
                   // Property price
                   Text(
                     "\$${property.price.toStringAsFixed(2)}",
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: TextStyle(
+                      fontSize: MediaQuery.of(context).orientation == Orientation.portrait ? 16 : 14,
                       color: const Color(0xFF398AE5),
                       fontWeight: FontWeight.bold,
                     ),
@@ -92,14 +90,18 @@ class PropertyCard extends StatelessWidget {
                   // Property size
                   Text(
                     "${property.area} sqft",
-                    style: theme.textTheme.bodySmall,
+                    style: TextStyle(
+                      fontSize: MediaQuery.of(context).orientation == Orientation.portrait ? 12 : 10,
+                      color: Colors.grey[600],
+                    ),
                   ),
                   const SizedBox(height: 6),
                   // Property location
                   Text(
                     "${property.city}, ${property.compound ?? 'Unknown Compound'}",
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                    style: TextStyle(
+                      fontSize: MediaQuery.of(context).orientation == Orientation.portrait ? 14 : 12,
+                      color: Colors.grey[600],
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -108,13 +110,19 @@ class PropertyCard extends StatelessWidget {
                   // Number of rooms and bathrooms
                   Text(
                     "${property.bedrooms} Beds • ${property.bathrooms} Baths",
-                    style: theme.textTheme.bodySmall,
+                    style: TextStyle(
+                      fontSize: MediaQuery.of(context).orientation == Orientation.portrait ? 12 : 10,
+                      color: Colors.grey[600],
+                    ),
                   ),
                   const SizedBox(height: 6),
                   // Furnished status
                   Text(
                     "Furnished: ${property.furnished}",
-                    style: theme.textTheme.bodySmall,
+                    style: TextStyle(
+                      fontSize: MediaQuery.of(context).orientation == Orientation.portrait ? 12 : 10,
+                      color: Colors.grey[600],
+                    ),
                   ),
                 ],
               ),
