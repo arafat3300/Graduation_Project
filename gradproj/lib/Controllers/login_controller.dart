@@ -5,6 +5,7 @@ import 'package:gradproj/Models/User.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import '../Models/singletonSession.dart';
 import 'package:crypto/crypto.dart';
 class LoginController {
   final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
@@ -86,6 +87,9 @@ Future<BaseUser?> getUserByEmail(String email) async {
         });
         
         print('Successfully mapped user: ${user.email}');
+         singletonSession().userId = user.id;
+         debugPrint("#################################################################################################################");
+         debugPrint("current user session : ${singletonSession().userId}");
         return user;
       } catch (mappingError) {
         print('Error mapping user record: $mappingError');

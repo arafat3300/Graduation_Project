@@ -96,7 +96,7 @@ darkTheme: ThemeData.dark().copyWith(
   colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.blueGrey),
 ),
       themeMode: _themeMode,
-      initialRoute: '/property-listings',
+      initialRoute: '/login',
       routes: {
 '/property-listings': (context) => PropertyListScreen(toggleTheme: toggleTheme),
         '/signup': (context) =>  SignUpScreen(toggleTheme: toggleTheme),
@@ -107,6 +107,7 @@ darkTheme: ThemeData.dark().copyWith(
         '/addProperty': (context) => AddPropertyScreen(),
         '/adminDashboard': (context) => const AdminDashboardScreen(),
         '/manageAdmins': (context) => const ManageAdminsScreen(),
+        
       },
     );
   }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:gradproj/Controllers/user_controller.dart';
+import 'package:gradproj/Models/singletonSession.dart';
+import '../Controllers/user_controller.dart';
 import 'package:gradproj/Screens/CustomBottomNavBar.dart';
 import 'package:gradproj/Screens/FavouritesScreen.dart';
 import 'package:gradproj/Screens/Profile.dart';
@@ -35,6 +36,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   int? _selectedBedrooms;
   int? _selectedBathrooms;
   String? _selectedSortOption;
+int? _userId;
 UserController userCtrl = UserController();
   @override
   void initState() {
@@ -52,23 +54,19 @@ UserController userCtrl = UserController();
   }
 Future<void> fetchProperties() async {
   try {
-    // Retrieve the session token
-    final token = await userCtrl.getSessionToken();
-    if (token == null) {
-      debugPrint("No session token found. Redirecting to login.");
-      Navigator.pushReplacementNamed(context, '/login');
+    // Fetch the logged-in user's ID
+_userId = singletonSession().userId;
+
+   
+    debugPrint('LOGGED IN USER ID IS: $_userId');
+
+    if (_userId == null) {
+      debugPrint("No logged-in user found. Redirecting to login.");
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Session expired. Please log in."),
+      ));
       return;
     }
-
-    // Fetch the user using the session token
-    final user = await userCtrl.getUserByToken(token);
-    if (user == null) {
-      debugPrint("Failed to retrieve user details. Redirecting to login.");
-      Navigator.pushReplacementNamed(context, '/login');
-      return;
-    }
-
-    debugPrint("Logged-in User: ${user.firstName} ${user.lastName}, ID: ${user.id}");
 
     // Start loading state
     setState(() => _isLoading = true);
@@ -77,8 +75,8 @@ Future<void> fetchProperties() async {
     final supabase = Supabase.instance.client;
     final response = await supabase
         .from('properties')
-        .select()
-        .filter('status', 'eq', 'approved'); // Filter by status
+        .select("*")
+        .filter('status', 'eq', 'approved');
        
 
     debugPrint("Response from Supabase: $response");
@@ -86,6 +84,7 @@ Future<void> fetchProperties() async {
     if (response.isNotEmpty) {
       final List<dynamic> data = response;
       final newProperties = data.map((entry) => Property.fromJson(entry)).toList();
+      debugPrint("New properties: $newProperties");
 
       // Update the UI with fetched properties
       setState(() {
@@ -108,6 +107,7 @@ Future<void> fetchProperties() async {
     setState(() => _isLoading = false);
   }
 }
+
 
 
 

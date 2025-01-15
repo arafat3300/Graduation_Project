@@ -66,6 +66,7 @@ class UserController {
 
       return local.User(
         idd: response['idd'] ?? response['id']?.toString(),
+        id:response['id'] as int ,
         firstName: response['first_name'] ?? response['firstname'] ?? '',
         lastName: response['last_name'] ?? response['lastname'] ?? '',
         dob: response['dob'] ?? '',
@@ -160,6 +161,10 @@ class UserController {
   Future<String?> getLoggedInUserNumber() async {
     final user = await getLoggedInUser();
     return user?.phone;
+  }
+   Future<int?> getLoggedInUserIndexId() async {
+    final user = await getLoggedInUser();
+    return user?.id;
   }
 
   /// Clear session token
