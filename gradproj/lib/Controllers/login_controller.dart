@@ -65,7 +65,7 @@ Future<BaseUser?> getUserByEmail(String email) async {
 
     if (userResponse != null) {
       print('User found: $userResponse');
-      return User.fromJson({
+      final user= User.fromJson({
         'id': userResponse['id'],
         'idd': userResponse['idd'],
         'firstname': userResponse['firstname'] ?? userResponse['first_name'],
@@ -80,7 +80,11 @@ Future<BaseUser?> getUserByEmail(String email) async {
         'created_at': userResponse['created_at'],
         'role': userResponse['role'],
       });
+              singletonSession().userId = user.id;
+              return user;
+
     }
+
 
     // Check admin users
     final adminResponse = await _supabase
