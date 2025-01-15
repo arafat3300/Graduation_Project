@@ -148,41 +148,61 @@ class SignUpController {
   /// Refreshes the token before it expires
   
   /// Validates all required user input fields
-  String? validateInputs({
-    required String firstName,
-    required String lastName,
-    required String dob,
-    required String phone,
-    required String email,
-    required String password,
-    required String confirmPassword,
-  }) {
-    if (firstName.isEmpty ||
-        lastName.isEmpty ||
-        dob.isEmpty ||
-        phone.isEmpty ||
-        email.isEmpty ||
-        password.isEmpty ||
-        confirmPassword.isEmpty) {
-      return "Please fill in all required fields!";
-    }
-
-    if (phone.length < 8 || !RegExp(r'^[0-9]+$').hasMatch(phone)) {
-      return "Phone number must be at least 8 digits long!";
-    }
-
-    if (!RegExp(
-            r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+$")
-        .hasMatch(email)) {
-      return "Invalid email address!";
-    }
-
-    if (password != confirmPassword) {
-      return "Passwords do not match!";
-    }
-
-    return null;
+  /// Validates all required user input fields
+String? validateInputs({
+  required String firstName,
+  required String lastName,
+  required String dob,
+  required String phone,
+  required String email,
+  required String password,
+  required String confirmPassword,
+}) {
+  if (firstName.isEmpty ||
+      lastName.isEmpty ||
+      dob.isEmpty ||
+      phone.isEmpty ||
+      email.isEmpty ||
+      password.isEmpty ||
+      confirmPassword.isEmpty) {
+    return "Please fill in all required fields!";
   }
+
+  // Age validation
+  try {
+    final birthDate = DateTime.parse(dob);
+    final today = DateTime.now();
+    int age = today.year - birthDate.year;
+    
+    // Adjust age if birthday hasn't occurred this year
+    if (today.month < birthDate.month || 
+        (today.month == birthDate.month && today.day < birthDate.day)) {
+      age--;
+    }
+    
+    if (age < 18) {
+      return "You must be at least 18 years old to sign up!";
+    }
+  } catch (e) {
+    return "Invalid date format. Please use YYYY-MM-DD format!";
+  }
+
+  if (phone.length < 8 || !RegExp(r'^[0-9]+$').hasMatch(phone)) {
+    return "Phone number must be at least 8 digits long!";
+  }
+
+  if (!RegExp(
+          r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+$")
+      .hasMatch(email)) {
+    return "Invalid email address!";
+  }
+
+  if (password != confirmPassword) {
+    return "Passwords do not match!";
+  }
+
+  return null;
+}
 
   /// Hashes password for secure storage
   String hashPassword(String password) {
