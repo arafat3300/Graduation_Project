@@ -53,59 +53,41 @@ class LoginController {
 
 Future<BaseUser?> getUserByEmail(String email) async {
   try {
-    print('Attempting to find user with email: $email');
-    
-    // Normalize email
+    print('Looking for user/admin with email: $email');
     final normalizedEmail = email.trim().toLowerCase();
 
-    // Check regular users first
+    // Check regular users
     final userResponse = await _supabase
         .from('users')
         .select()
         .eq('email', normalizedEmail)
-        .single();
-
-    print('Raw User Response: $userResponse');
+        .maybeSingle(); // Allow for no rows without throwing an error
 
     if (userResponse != null) {
-      try {
-        // Detailed mapping with error handling for user
-        final user = User.fromJson({
-          'id' : userResponse['id'],
-          'idd': userResponse['idd'],
-          'firstname': userResponse['firstname'] ?? userResponse['first_name'],
-          'lastname': userResponse['lastname'] ?? userResponse['last_name'],
-          'dob': userResponse['dob'],
-          'phone': userResponse['phone'],
-          'country': userResponse['country'],
-          'job': userResponse['job'],
-          'email': userResponse['email'],
-          'password': userResponse['password'],
-          'token': userResponse['token'] ?? '', // Default empty string
-          'created_at': userResponse['created_at'],
-          'role': userResponse['role']
-        });
-        
-        print('Successfully mapped user: ${user.email}');
-         singletonSession().userId = user.id;
-         debugPrint("#################################################################################################################");
-         debugPrint("current user session : ${singletonSession().userId}");
-        return user;
-      } catch (mappingError) {
-        print('Error mapping user record: $mappingError');
-        print('Problematic map: $userResponse');
-        return null;
-      }
+      print('User found: $userResponse');
+      return User.fromJson({
+        'id': userResponse['id'],
+        'idd': userResponse['idd'],
+        'firstname': userResponse['firstname'] ?? userResponse['first_name'],
+        'lastname': userResponse['lastname'] ?? userResponse['last_name'],
+        'dob': userResponse['dob'],
+        'phone': userResponse['phone'],
+        'country': userResponse['country'],
+        'job': userResponse['job'],
+        'email': userResponse['email'],
+        'password': userResponse['password'],
+        'token': userResponse['token'] ?? '',
+        'created_at': userResponse['created_at'],
+        'role': userResponse['role'],
+      });
     }
 
-    // If no user found, check admin users
+    // Check admin users
     final adminResponse = await _supabase
         .from('admins')
         .select()
         .eq('email', normalizedEmail)
-        .single();
-
-    print('Raw Admin Response: $adminResponse');
+        .maybeSingle();
 
     if (adminResponse != null) {
       try {
@@ -139,7 +121,7 @@ Future<BaseUser?> getUserByEmail(String email) async {
   }
 }
 
-  /// Login method combining previous and new approaches
+
   Future<String> loginUser(String email, String password) async {
     try {
       // Fetch user

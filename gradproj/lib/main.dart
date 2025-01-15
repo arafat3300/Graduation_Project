@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gradproj/Screens/AddProperty.dart';
 import 'package:gradproj/Screens/FavouritesScreen.dart';
+import 'package:gradproj/Screens/ManagePropertiesScreen.dart';
+import 'package:gradproj/Screens/ManageUsersScreen.dart';
 import 'package:gradproj/Screens/Profile.dart';
 import 'package:gradproj/Screens/search.dart';
 import 'package:gradproj/Screens/ManageAdmins.dart';
@@ -107,6 +109,10 @@ darkTheme: ThemeData.dark().copyWith(
         '/addProperty': (context) => AddPropertyScreen(),
         '/adminDashboard': (context) => const AdminDashboardScreen(),
         '/manageAdmins': (context) => const ManageAdminsScreen(),
+        '/manageUsers': (context) => const ManageUsersScreen(),
+        '/manageProps': (context) => const ManagePropertiesScreen(),
+        
+
         
       },
     );

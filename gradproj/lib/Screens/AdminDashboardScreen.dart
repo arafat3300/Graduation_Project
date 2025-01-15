@@ -31,9 +31,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
      
 
-      const userCount =  0;
+      final UserResponse= await supabase
+          .from('users')
+          .select()
+          .count(CountOption.exact);
 
-      // ---- 2) Count total properties
+      debugPrint('--- propertyResponse ---');
+      debugPrint('data: ${UserResponse.data}');
+      debugPrint('count: ${UserResponse.count}');
+
+      final userCount = UserResponse.count ?? 0;
       final propertyResponse = await supabase
           .from('properties')
           .select()
@@ -57,11 +64,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
       final adminCount = adminResponse.count ?? 0;
 
-      // ---- 4) Count how many properties are "active"
-      // Adjust if you do not have a 'status' column or need a different filter
+ 
       final activeResponse = await supabase
           .from('properties')
           .select()
+          .eq('status', "approved")
           .count(CountOption.exact);
 
       debugPrint('--- activeResponse ---');
@@ -69,6 +76,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       debugPrint('count: ${activeResponse.count}');
 
       final activeCount = activeResponse.count ?? 0;
+
+
+      
 
       setState(() {
         _userCount = userCount;
@@ -94,7 +104,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         title: const Text('Admin Dashboard'),
         centerTitle: true,
         actions: [
-          // A refresh icon
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _fetchAllDashboardData,
@@ -162,7 +171,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       children: [
                         ElevatedButton.icon(
                           icon: const Icon(Icons.list, size: 24),
-                          label: const Text('View All Users'),
+                          label: const Text('Manage Users'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -173,13 +182,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             minimumSize: const Size.fromHeight(50),
                           ),
                           onPressed: () {
-                            // TODO: navigate to user management screen
+                            Navigator.pushNamed(context, '/manageUsers');
                           },
                         ),
                         const SizedBox(height: 12),
                         ElevatedButton.icon(
                           icon: const Icon(Icons.business, size: 24),
-                          label: const Text('View All Properties'),
+                          label: const Text('Manage Properties'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -190,7 +199,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             minimumSize: const Size.fromHeight(50),
                           ),
                           onPressed: () {
-                            // TODO: navigate to property management screen
+                            Navigator.pushNamed(context, '/manageProps');
                           },
                         ),
                         const SizedBox(height: 12),
