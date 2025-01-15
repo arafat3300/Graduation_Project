@@ -7,44 +7,70 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../Models/singletonSession.dart';
 import 'package:crypto/crypto.dart';
+
 class LoginController {
+  // Initialize Supabase client for database operations
   final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
 
-  /// Save session token in SharedPreferences
-  Future<void> _saveSession(String token,int role) async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    // Save user-specific information
-    await prefs.setString('token', token);
-    await prefs.setInt("role", role);
-
+  /// Save all session information in SharedPreferences
+  /// Stores token, role, and phone number for the logged-in user
+  Future<void> _saveSession(String token, int role, String? phone) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Save all user-specific information
+      await prefs.setString('token', token);
+      await prefs.setInt("role", role);
+      await prefs.setString("phone", phone ?? ''); // Store empty string if phone is null
+      
+      // Log successful session storage
+      debugPrint('Session saved successfully for role: $role');
+    } catch (e) {
+      debugPrint('Error saving session: $e');
+      throw Exception('Failed to save session data');
+    }
   }
 
   /// Retrieve session token from SharedPreferences
   Future<String?> _getSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('token');
+    } catch (e) {
+      debugPrint('Error retrieving session: $e');
+      return null;
+    }
   }
 
-   bool isValidPassword(String password) {
+  /// Validate password is not empty
+  bool isValidPassword(String password) {
     return password.isNotEmpty;
   }
 
-   bool isValidEmail(String email) {
+  /// Validate email format using regex
+  bool isValidEmail(String email) {
     final RegExp emailRegex = RegExp(
       r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
     );
     return emailRegex.hasMatch(email);
   }
 
-  /// Clear session token from SharedPreferences
+  /// Clear all session data from SharedPreferences during logout
   Future<void> _clearSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-    await prefs.remove('role');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('token');
+      await prefs.remove('role');
+      await prefs.remove('phone');
+      await prefs.remove('user_type');
+      debugPrint('Session cleared successfully');
+    } catch (e) {
+      debugPrint('Error clearing session: $e');
+      throw Exception('Failed to clear session data');
+    }
   }
 
-  /// Hash the password using SHA-256
+  /// Hash the password using SHA-256 for secure storage
   String hashPassword(String password) {
     final bytes = utf8.encode(password.trim());
     final digest = sha256.convert(bytes);
@@ -56,42 +82,51 @@ Future<BaseUser?> getUserByEmail(String email) async {
     print('Looking for user/admin with email: $email');
     final normalizedEmail = email.trim().toLowerCase();
 
-    // Check regular users
+    // Check regular users first
     final userResponse = await _supabase
         .from('users')
         .select()
         .eq('email', normalizedEmail)
-        .maybeSingle(); // Allow for no rows without throwing an error
+        .single();
+
+    print('Raw User Response: $userResponse');
 
     if (userResponse != null) {
-      print('User found: $userResponse');
-      final user= User.fromJson({
-        'id': userResponse['id'],
-        'idd': userResponse['idd'],
-        'firstname': userResponse['firstname'] ?? userResponse['first_name'],
-        'lastname': userResponse['lastname'] ?? userResponse['last_name'],
-        'dob': userResponse['dob'],
-        'phone': userResponse['phone'],
-        'country': userResponse['country'],
-        'job': userResponse['job'],
-        'email': userResponse['email'],
-        'password': userResponse['password'],
-        'token': userResponse['token'] ?? '',
-        'created_at': userResponse['created_at'],
-        'role': userResponse['role'],
-      });
-              singletonSession().userId = user.id;
-              return user;
-
+      try {
+        // Detailed mapping with error handling for user
+        final user = User.fromJson({
+          'id' : userResponse['id'],
+          'idd': userResponse['idd'],
+          'firstname': userResponse['firstname'] ?? userResponse['first_name'],
+          'lastname': userResponse['lastname'] ?? userResponse['last_name'],
+          'dob': userResponse['dob'],
+          'phone': userResponse['phone'],
+          'country': userResponse['country'],
+          'job': userResponse['job'],
+          'email': userResponse['email'],
+          'password': userResponse['password'],
+          'token': userResponse['token'] ?? '', // Default empty string
+          'created_at': userResponse['created_at'],
+          'role': userResponse['role']
+        });
+        
+        print('Successfully mapped user: ${user.email}');
+        return user;
+      } catch (mappingError) {
+        print('Error mapping user record: $mappingError');
+        print('Problematic map: $userResponse');
+        return null;
+      }
     }
 
-
-    // Check admin users
+    // If no user found, check admin users
     final adminResponse = await _supabase
         .from('admins')
         .select()
         .eq('email', normalizedEmail)
-        .maybeSingle();
+        .single();
+
+    print('Raw Admin Response: $adminResponse');
 
     if (adminResponse != null) {
       try {
@@ -104,39 +139,36 @@ Future<BaseUser?> getUserByEmail(String email) async {
           'password': adminResponse['password'],
           'token': adminResponse['token'] ?? '', // Default empty string
           'idd': adminResponse['idd'] // Optional field
-          
         });
-        singletonSession().userId = admin.id;
         
-        
-        debugPrint('Successfully mapped admin: ${admin.email}');
+        print('Successfully mapped admin: ${admin.email}');
         return admin;
       } catch (mappingError) {
-        debugPrint('Error mapping admin record: $mappingError');
-        debugPrint('Problematic map: $adminResponse');
+        print('Error mapping admin record: $mappingError');
+        print('Problematic map: $adminResponse');
         return null;
       }
     }
 
     return null;
   } catch (error) {
-    debugPrint('Detailed error fetching user: $error');
+    print('Detailed error fetching user: $error');
     return null;
   }
 }
 
-
+  /// Login method combining previous and new approaches
   Future<String> loginUser(String email, String password) async {
     try {
-      // Fetch user
+      // Attempt to fetch user data
       final user = await getUserByEmail(email);
 
-      // Validate user existence
+      // Check if user exists
       if (user == null) {
         return "No user found with this email.";
       }
 
-      // Hash the provided password
+      // Hash the provided password for comparison
       final hashedPassword = hashPassword(password.trim());
 
       // Validate password
@@ -144,17 +176,31 @@ Future<BaseUser?> getUserByEmail(String email) async {
         return "Incorrect password.";
       }
 
-      // Save session
-      await _saveSession(user.getToken(),user.getRole());
+      // Get SharedPreferences instance
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Handle session storage based on user type
+      String? phoneNumber;
+      if (user is User) {
+        // For regular users, get their phone number
+        phoneNumber = user.getPhone();
+        await prefs.setString('user_type', 'User');
+      } else {
+        // For admin users
+        await prefs.setString('user_type', 'AdminRecord');
+      }
 
-      // Return success message
+      // Save all session data
+      await _saveSession(user.getToken(), user.getRole(), phoneNumber);
+
       return "Login successful!";
     } catch (error) {
-      print('Login error: $error');
+      debugPrint('Login error: $error');
       return "An unexpected error occurred during login.";
     }
   }
-    /// Retrieve and print the session token
+
+  /// Print current session token for debugging
   Future<void> printSessionToken() async {
     final token = await _getSession();
     if (token != null) {
@@ -164,20 +210,39 @@ Future<BaseUser?> getUserByEmail(String email) async {
     }
   }
 
-  /// Check if user is logged in
+  /// Print all session data including phone number
+  Future<void> printSessionData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final role = prefs.getInt('role');
+      final phone = prefs.getString('phone');
+      final userType = prefs.getString('user_type');
+
+      debugPrint('\n=== Session Data ===');
+      debugPrint('Token: ${token ?? 'Not set'}');
+      debugPrint('Role: ${role ?? 'Not set'}');
+      debugPrint('Phone: ${phone ?? 'Not set'}');
+      debugPrint('User Type: ${userType ?? 'Not set'}');
+      debugPrint('==================\n');
+    } catch (e) {
+      debugPrint('Error printing session data: $e');
+    }
+  }
+
+  /// Check if user is currently logged in
   Future<bool> isLoggedIn() async {
     try {
-      // 1. Retrieve the session token from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       final userType = prefs.getString('user_type');
 
-      // 2. Check if token and user type exist
+      // Basic validation of stored session data
       if (token == null || userType == null) {
         return false;
       }
 
-      // 3. Verify the token by attempting to fetch the user
+      // Verify token by attempting to fetch user data
       BaseUser? user;
       if (userType == 'User') {
         user = await _supabase
@@ -197,23 +262,19 @@ Future<BaseUser?> getUserByEmail(String email) async {
                 response != null ? AdminRecord.fromMap(response) : null);
       }
 
-      // 4. Return true if a user is found with this token
       return user != null;
     } catch (error) {
-      // Log the error for debugging
       debugPrint("Login status check error: $error");
-      
-      // In case of any error, consider the user not logged in
       return false;
     }
   }
 
-  /// Logout the user by clearing the session
+  /// Logout user and clear all session data
   Future<void> logoutUser() async {
     await _clearSession();
   }
 
-  /// Determine initial route based on user type
+  /// Determine initial app route based on user type
   Future<String> determineInitialRoute() async {
     final prefs = await SharedPreferences.getInstance();
     final userType = prefs.getString('user_type');
@@ -227,7 +288,15 @@ Future<BaseUser?> getUserByEmail(String email) async {
         return '/login';
     }
   }
+
+  /// Get stored phone number from session
+  Future<String?> getStoredPhoneNumber() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('phone');
+    } catch (e) {
+      debugPrint('Error retrieving phone number: $e');
+      return null;
+    }
+  }
 }
-
-
-  

@@ -14,20 +14,22 @@ class EmailSenderScreen extends StatefulWidget {
 }
 
 class _EmailSenderScreenState extends State<EmailSenderScreen> {
+  // Initialize Google Sign In with required scopes
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: [
       'email',
       'openid',
       'https://www.googleapis.com/auth/gmail.send',
       'https://www.googleapis.com/auth/userinfo.email',
-      'https://www.googleapis.com/auth/gmail.settings.sharing',  // For delegation
-
+      'https://www.googleapis.com/auth/gmail.settings.sharing',
     ],
     signInOption: SignInOption.standard,
   );
 
+  // Initialize Supabase client  
   final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
 
+  // State variables
   bool _isSending = false;
   String? _userEmail;
   int? _userRole;
@@ -41,6 +43,7 @@ class _EmailSenderScreenState extends State<EmailSenderScreen> {
     _loadUserSession();
   }
 
+  // Load saved session data when the screen initializes
   Future<void> _loadUserSession() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -56,183 +59,184 @@ class _EmailSenderScreenState extends State<EmailSenderScreen> {
     }
   }
 
-Future<Map<String, String>?> _authenticateAndGetTokens() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final accessToken = prefs.getString('access_token');
-    final email = prefs.getString('email');
-    final expiresAt = prefs.getInt('expires_at');
+  // Check for valid authentication tokens
+  Future<Map<String, String>?> _authenticateAndGetTokens() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token');
+      final email = prefs.getString('email');
+      final expiresAt = prefs.getInt('expires_at');
 
-    if (accessToken != null &&
-        email != null &&
-        expiresAt != null &&
-        expiresAt > DateTime.now().millisecondsSinceEpoch) {
-      return {
-        'access_token': accessToken,
-        'email': email,
-      };
-    } else {
+      // Return tokens only if they exist and haven't expired
+      if (accessToken != null && 
+          email != null &&
+          expiresAt != null &&  
+          expiresAt > DateTime.now().millisecondsSinceEpoch) {
+        return {
+          'access_token': accessToken,
+          'email': email,
+        }; 
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error retrieving tokens: $e');
       return null;
     }
-  } catch (e) {
-    print('Error retrieving tokens: $e');
-    return null;
   }
-}
-Future<bool> _handleSignIn() async {
-  try {
-    print("Starting Google Sign-In process");
-    
-    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-    
-    if (googleUser == null) {
-      print("Sign-in process was cancelled by the user");
-      _showErrorSnackBar("Sign-in was cancelled");
+
+  // Handle the Google Sign-In process
+  Future<bool> _handleSignIn() async {
+    try {
+      debugPrint("Starting Google Sign-In process");
+      
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      
+      if (googleUser == null) {
+        debugPrint("Sign-in process was cancelled by the user");
+        _showErrorSnackBar("Sign-in was cancelled");
+        return false;
+      }
+
+      debugPrint("User signed in: ${googleUser.email}");
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      
+      if (googleAuth.accessToken == null) {
+        debugPrint("Failed to retrieve access token");
+        _showErrorSnackBar("Failed to get authentication token");
+        return false;
+      }
+
+      debugPrint("Successfully retrieved auth token");
+      
+      // Save session data to SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('access_token', googleAuth.accessToken!);
+      await prefs.setString('email', googleUser.email);
+      
+      // Set token expiration to 1 hour from now
+      final expiresAt = DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch;  
+      await prefs.setInt('expires_at', expiresAt);
+
+      // Update state with new session data
+      setState(() {
+        _userEmail = googleUser.email;
+        _accessToken = googleAuth.accessToken;
+        _expiresAt = expiresAt;
+      });
+
+      debugPrint("Sign-in process completed successfully");
+      return true;
+    } catch (e) {
+      debugPrint("Error during sign-in process: $e");
+      _logAndShowError('Sign-In Error', e);
       return false;
-    }
+    }    
+  }
 
-    print("User signed in: ${googleUser.email}");
-
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-    
-    if (googleAuth.accessToken == null) {
-      print("Failed to retrieve access token");
-      _showErrorSnackBar("Failed to get authentication token");
-      return false;
-    }
-
-    print("Successfully retrieved auth token");
-    
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('access_token', googleAuth.accessToken!);
-    await prefs.setString('email', googleUser.email);
-    
-    final expiresAt = DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch;
-    await prefs.setInt('expires_at', expiresAt);
+  // Main email sending function using Gmail API
+  Future<void> sendEmailViaGmailAPI() async {
+    if (_isSending) return;
 
     setState(() {
-      _userEmail = googleUser.email;
-      _accessToken = googleAuth.accessToken;
-      _expiresAt = expiresAt;
+      _isSending = true;
     });
 
-    print("Sign-in process completed successfully");
-    return true;
-  } catch (e) {
-    print("Error during sign-in process: $e");
-    _logAndShowError('Sign-In Error', e);
-    return false;
-  }
-}
-  Future<void> sendEmailViaGmailAPI() async {
-  if (_isSending) return;
+    try {
+      // Check user role permissions
+      if (_userRole == null || _userRole! > 2) {
+        _showErrorSnackBar("Insufficient permissions");
+        return;
+      } 
 
-  setState(() {
-    _isSending = true;
-  });
+      // Verify authentication
+      var tokens = await _authenticateAndGetTokens();
+      if (tokens == null) {
+        final signedIn = await _handleSignIn();
+        if (!signedIn) {
+          _showErrorSnackBar("Failed to sign in. Please try again.");
+          return;
+        }
+        tokens = await _authenticateAndGetTokens();
+      }
 
-  try {
-    // Role-based access control
-    if (_userRole == null || _userRole! > 2) {
-      _showErrorSnackBar("Insufficient permissions");
-      return;
-    }
-
-    // Check if user is signed in and has valid tokens
-    var tokens = await _authenticateAndGetTokens();
-    if (tokens == null) {
-      // If no valid tokens, attempt to sign in
-      final signedIn = await _handleSignIn();
-      if (!signedIn) {
-        _showErrorSnackBar("Failed to sign in. Please try again.");
+      if (tokens == null) {
+        _showErrorSnackBar("Failed to obtain authentication tokens");
         return;
       }
-      // Retrieve tokens after successful sign-in
-      tokens = await _authenticateAndGetTokens();
-    }
 
-    if (tokens == null) {
-      _showErrorSnackBar("Failed to obtain authentication tokens");
-      return;
-    }
+      // Send the email
+      final response = await _sendEmailUsingGmailAPI(
+        tokens['access_token']!,
+        tokens['email']!,
+      );
 
-    // Use Gmail API for sending email
-    final response = await _sendEmailUsingGmailAPI(
-      tokens['access_token']!,
-      tokens['email']!,
-    );
-
-    if (response) {
-      _showSuccessSnackBar("Email Sent Successfully via Gmail API");
-    } else {
-      _showErrorSnackBar("Failed to send email via Gmail API");
+      if (response) {
+        _showSuccessSnackBar("Email Sent Successfully via Gmail API");  
+      } else {
+        _showErrorSnackBar("Failed to send email via Gmail API");
+      }
+    } catch (e, stackTrace) {
+      _logAndShowError('Email Sending Error', e, stackTrace);
+    } finally {
+      setState(() {
+        _isSending = false;
+      });
     }
-  } catch (e, stackTrace) {
-    _logAndShowError('Email Sending Error', e, stackTrace);
-  } finally {
-    setState(() {
-      _isSending = false;
-    });
   }
-}
 
+  // Function to actually send the email using Gmail API
   Future<bool> _sendEmailUsingGmailAPI(String accessToken, String userEmail) async {
-  try {
-    // Gmail API endpoint for sending mail
-    final Uri url = Uri.parse(
-      'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
-    );
+    try {
+      final Uri url = Uri.parse(
+        'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+      );
 
-    // Using your email as the sender
-    // Note: This will only work if your account has proper delegation set up
-    final String senderEmail = "abdelrahman.200300@gmail.com";
-    
-    // Prepare email message with proper headers
-    final emailMessage = _base64UrlEncode(
-      'From: $senderEmail\n'
-      'To: $userEmail\n'
-      'Subject: Test Email from Flutter App\n\n'
-      'This is a test email sent using Gmail API',
-    );
+      final String senderEmail = "your-sender-email@gmail.com"; // Replace with your email
+      
+      final emailMessage = _base64UrlEncode(
+        'From: $senderEmail\n'
+        'To: $userEmail\n'
+        'Subject: Test Email from Flutter App\n\n'
+        'This is a test email sent using Gmail API',
+      );
 
-    // Prepare request body
-    final body = json.encode({
-      'raw': emailMessage,
-    });
+      final body = json.encode({
+        'raw': emailMessage,
+      });
 
-    // Send email via Gmail API
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-        'Content-Type': 'application/json',
-      },
-      body: body,
-    );
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+        body: body,
+      );
 
-    // Enhanced error logging to help diagnose authentication issues
-    debugPrint('Gmail API Response: ${response.statusCode}');
-    debugPrint('Gmail API Response Body: ${response.body}');
-    
-    if (response.statusCode != 200) {
-      debugPrint('Sender Email: $senderEmail');
-      debugPrint('Recipient Email: $userEmail');
-      debugPrint('Full Response Headers: ${response.headers}');
+      // Log response for debugging
+      debugPrint('Gmail API Response: ${response.statusCode}');
+      debugPrint('Gmail API Response Body: ${response.body}');
+      
+      if (response.statusCode != 200) {
+        debugPrint('Sender Email: $senderEmail');
+        debugPrint('Recipient Email: $userEmail');
+        debugPrint('Full Response Headers: ${response.headers}');
+      }
+
+      return response.statusCode == 200;
+    } catch (e, stackTrace) {
+      _logAndShowError('Gmail API Email Send Error', e, stackTrace);
+      return false;
     }
-
-    return response.statusCode == 200;
-  } catch (e, stackTrace) {
-    _logAndShowError('Gmail API Email Send Error', e, stackTrace);
-    return false;
   }
-}
 
-  // Base64 URL encoding for raw email message
+  // Helper function to encode email content
   String _base64UrlEncode(String input) {
     return base64Url.encode(utf8.encode(input));
   }
 
-  // Utility method for comprehensive error logging
+  // Error logging utility
   void _logAndShowError(String context, Object error, [StackTrace? stackTrace]) {
     debugPrint('$context: $error');
     if (stackTrace != null) {
@@ -241,7 +245,7 @@ Future<bool> _handleSignIn() async {
     _showErrorSnackBar(error.toString());
   }
 
-  // User existence check remains the same
+  // Check if user exists in Supabase
   Future<UserData?> _checkUserExists(String email) async {
     try {
       final List<dynamic> response = await _supabase
@@ -262,7 +266,7 @@ Future<bool> _handleSignIn() async {
     }
   }
 
-  // SnackBar methods remain the same
+  // Success message display
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -276,6 +280,7 @@ Future<bool> _handleSignIn() async {
     );
   }
 
+  // Error message display  
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -289,7 +294,81 @@ Future<bool> _handleSignIn() async {
     );
   }
 
-  // Method to display tokens
+  // Function to print all session data
+Future<void> printSessionData() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    
+    // Get all session values
+    final email = prefs.getString('email') ?? 'Not set';
+    final accessToken = prefs.getString('access_token') ?? 'Not set';
+    final idToken = prefs.getString('id_token') ?? 'Not set';
+    final role = prefs.getInt('role')?.toString() ?? 'Not set';
+    final phone = prefs.getString('phone') ?? 'Not set';  // Correctly get phone
+    final expiresAt = prefs.getInt('expires_at');  // Get actual expiration time
+    
+    // Format expiration time
+    String expirationFormatted = 'Not set';
+    if (expiresAt != null) {
+      final expirationDate = DateTime.fromMillisecondsSinceEpoch(expiresAt);
+      expirationFormatted = expirationDate.toLocal().toString();
+    }
+
+    // Print to debug console  
+    debugPrint('\n=== Session Data ===');
+    debugPrint('Email: $email');
+    debugPrint('Role: $role'); 
+    debugPrint('Access Token: ${_truncateToken(accessToken)}');
+    debugPrint('ID Token: ${_truncateToken(idToken)}');
+    debugPrint('Phone: $phone');  // Add phone number display
+    debugPrint('Expires At: $expirationFormatted');
+    debugPrint('==================\n');
+    
+    // Show in UI
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Session Data'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Email: $email'),
+              const SizedBox(height: 8),
+              Text('Role: $role'),
+              const SizedBox(height: 8),
+              Text('Access Token: ${_truncateToken(accessToken)}'),
+              const SizedBox(height: 8),
+              Text('ID Token: ${_truncateToken(idToken)}'),
+              const SizedBox(height: 8),
+              Text('Phone: $phone'),  // Add phone display
+              const SizedBox(height: 8),
+              Text('Expires At: $expirationFormatted'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  } catch (e, stackTrace) {
+    _logAndShowError('Session Data Print Error', e, stackTrace);
+  }
+}
+
+  // Helper to truncate long tokens for display
+  String _truncateToken(String token) {
+    if (token == 'Not set') return token;
+    if (token.length <= 20) return token;
+    return '${token.substring(0, 10)}...${token.substring(token.length - 10)}';
+  }
+
+  // Display tokens in a dialog
   void _displayTokens() {
     if (_accessToken == null || _idToken == null) {
       _showErrorSnackBar("No tokens available. Please sign in first.");
@@ -344,6 +423,11 @@ Future<bool> _handleSignIn() async {
               onPressed: _displayTokens,
               child: const Text("Display Tokens"),
             ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: printSessionData,
+              child: const Text("Print All Session Data"),
+            ),
           ],
         ),
       ),
@@ -351,7 +435,7 @@ Future<bool> _handleSignIn() async {
   }
 }
 
-// UserData class remains the same
+// User data model
 class UserData {
   final String id;
   final String email;

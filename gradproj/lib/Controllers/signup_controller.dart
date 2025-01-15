@@ -50,23 +50,10 @@ class SignUpController {
   }
 
   /// Generates a JWT token with 5-minute duration
-  String generateJwtToken(String userId, String email, int role) {
-    final expiryTime = DateTime.now().add(_tokenDuration);
-    
-    final jwt = JWT(
-      {
-        'sub': userId,
-        'email': email,
-        'role': role,
-        'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        'exp': expiryTime.millisecondsSinceEpoch ~/ 1000,
-        'jti': _uuid.v4(),
-      },
-      issuer: _issuer,
-      subject: userId,
-    );
+  String generateJwtToken(String userId ){
+   
 
-    return jwt.sign(SecretKey(_jwtSecret));
+    return userId;
   }
 
   /// Verifies token and checks expiration
@@ -126,7 +113,7 @@ class SignUpController {
 
     try {
       final userId = _uuid.v4();
-      final sessionToken = generateJwtToken(userId, email.trim(), 2);
+      final sessionToken = generateJwtToken(userId);
       final expiryTime = DateTime.now().add(_tokenDuration);
 
       final userJob = job == 'Other' ? otherJob?.trim() ?? 'Unknown' : job;
@@ -159,34 +146,7 @@ class SignUpController {
   }
 
   /// Refreshes the token before it expires
-  Future<bool> refreshToken() async {
-    final userId = await getCurrentUserId();
-    if (userId == null) return false;
-
-    try {
-      final user = await _supabase
-          .from('users')
-          .select()
-          .eq('idd', userId)
-          .single() as Map<String, dynamic>;
-          
-      final newToken = generateJwtToken(userId, user['email'], user['role']);
-      final newExpiry = DateTime.now().add(_tokenDuration);
-      
-      await _saveSession(userId, newToken, newExpiry);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// Gets remaining token time
-  Future<Duration?> getTokenTimeRemaining() async {
-    final expiry = await getTokenExpiry();
-    if (expiry == null) return null;
-    return expiry.difference(DateTime.now());
-  }
-
+  
   /// Validates all required user input fields
   String? validateInputs({
     required String firstName,

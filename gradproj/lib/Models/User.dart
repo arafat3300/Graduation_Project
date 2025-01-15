@@ -73,7 +73,7 @@ import 'Baseuser.dart';
 
 class User extends BaseUser {
   final String dob;
-  final String? phone;
+  final String phone;
   final String? country;
   final String? job;
   final String password;
@@ -86,7 +86,7 @@ class User extends BaseUser {
     required String firstName,
     required String lastName,
     required this.dob,
-    this.phone,
+    required this.phone,
     this.country,
     this.job,
     this.id,
@@ -163,5 +163,8 @@ class User extends BaseUser {
   {
     return this.role;
   }
-
+ String getPhone()
+  {
+    return this.phone;
+  }
 }
