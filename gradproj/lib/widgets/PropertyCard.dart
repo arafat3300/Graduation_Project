@@ -21,14 +21,14 @@ class PropertyCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-           
+            // Property image with placeholder handling
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(12),
               ),
               child: SizedBox(
                 width: double.infinity,
-                height: 680, 
+                height: MediaQuery.of(context).orientation == Orientation.portrait ? 680 : 200,
                 child: Image.network(
                   property.imgUrl?.isNotEmpty == true
                       ? property.imgUrl!.first
@@ -47,87 +47,86 @@ class PropertyCard extends StatelessWidget {
                 ),
               ),
             ),
-            
+            // Property details
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 40, 0 , 50),
-              child: 
-                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                   
-                    Text(
-                  
-                      property.type,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+              padding: MediaQuery.of(context).orientation == Orientation.portrait 
+                  ? const EdgeInsets.fromLTRB(20, 40, 0, 50)
+                  : const EdgeInsets.fromLTRB(10, 10, 0, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Property name
+                  Text(
+                    property.type,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: MediaQuery.of(context).orientation == Orientation.portrait ? 18 : 14,
                     ),
-                    const SizedBox(height: 24),
-                    // Property type and rent/sale
-                    Text(
-                      "${property.type} - ${property.paymentOption}",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: MediaQuery.of(context).orientation == Orientation.portrait ? 24 : 8),
+                  // Property type and rent/sale
+                  Text(
+                    "${property.type} - ${property.paymentOption}",
+                    style: TextStyle(
+                      fontSize: MediaQuery.of(context).orientation == Orientation.portrait ? 14 : 12,
+                      color: Colors.grey[700],
                     ),
-                    const SizedBox(height: 6),
-                    // Property price
-                    Text(
-                      "\$${property.price.toStringAsFixed(2)}",
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF398AE5),
-                        fontWeight: FontWeight.bold,
-                      ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  // Property price
+                  Text(
+                    "\$${property.price.toStringAsFixed(2)}",
+                    style: TextStyle(
+                      fontSize: MediaQuery.of(context).orientation == Orientation.portrait ? 16 : 14,
+                      color: const Color(0xFF398AE5),
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 6),
-                    // Property size
-                    Text(
-                      "${property.area} sqft",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                  ),
+                  const SizedBox(height: 6),
+                  // Property size
+                  Text(
+                    "${property.area} sqft",
+                    style: TextStyle(
+                      fontSize: MediaQuery.of(context).orientation == Orientation.portrait ? 12 : 10,
+                      color: Colors.grey[600],
                     ),
-                    const SizedBox(height: 6),
-                    // Property location
-                    Text(
-                      "${property.city}, ${property.compound ?? 'Unknown Compound'}",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  // Property location
+                  Text(
+                    "${property.city}, ${property.compound ?? 'Unknown Compound'}",
+                    style: TextStyle(
+                      fontSize: MediaQuery.of(context).orientation == Orientation.portrait ? 14 : 12,
+                      color: Colors.grey[600],
                     ),
-                    const SizedBox(height: 6),
-                    // Number of rooms and bathrooms
-                    Text(
-                      "${property.bedrooms} Beds • ${property.bathrooms} Baths",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  // Number of rooms and bathrooms
+                  Text(
+                    "${property.bedrooms} Beds • ${property.bathrooms} Baths",
+                    style: TextStyle(
+                      fontSize: MediaQuery.of(context).orientation == Orientation.portrait ? 12 : 10,
+                      color: Colors.grey[600],
                     ),
-                    const SizedBox(height: 6),
-                    // Furnished status
-                    Text(
-                      "Furnished: ${property.furnished}",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                  ),
+                  const SizedBox(height: 6),
+                  // Furnished status
+                  Text(
+                    "Furnished: ${property.furnished}",
+                    style: TextStyle(
+                      fontSize: MediaQuery.of(context).orientation == Orientation.portrait ? 12 : 10,
+                      color: Colors.grey[600],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-          
+            ),
           ],
         ),
       ),

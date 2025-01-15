@@ -56,7 +56,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
 
       final supabase = Supabase.instance.client;
       final response = await supabase.from('properties').select();
-      debugPrint("Response from Supabase: $response"); // Debug log
+      debugPrint("Response from Supabase: $response");
 
       if (response != null && response.isNotEmpty) {
         final List<dynamic> data = response;
@@ -354,28 +354,32 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                               ),
                             ),
                           )
-                        : GridView.builder(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.all(10.0),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 1,
-                              mainAxisSpacing: 10.0,
-                              crossAxisSpacing: 10.0,
-                              childAspectRatio: 0.75,
-                            ),
-                            itemCount: filteredProperties.length,
-                            itemBuilder: (context, index) {
-                              final property = filteredProperties[index];
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => PropertyDetails(property: property),
-                                    ),
+                        : OrientationBuilder(
+                            builder: (context, orientation) {
+                              return GridView.builder(
+                                controller: _scrollController,
+                                padding: const EdgeInsets.all(10.0),
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: orientation == Orientation.portrait ? 1 : 4,
+                                  mainAxisSpacing: 10.0,
+                                  crossAxisSpacing: 10.0,
+                                  childAspectRatio: orientation == Orientation.portrait ? 0.75 : 0.8,
+                                ),
+                                itemCount: filteredProperties.length,
+                                itemBuilder: (context, index) {
+                                  final property = filteredProperties[index];
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => PropertyDetails(property: property),
+                                        ),
+                                      );
+                                    },
+                                    child: PropertyCard(property: property),
                                   );
                                 },
-                                child: PropertyCard(property: property),
                               );
                             },
                           ),
