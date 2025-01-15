@@ -20,6 +20,8 @@ class _EmailSenderScreenState extends State<EmailSenderScreen> {
       'openid',
       'https://www.googleapis.com/auth/gmail.send',
       'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/gmail.settings.sharing',  // For delegation
+
     ],
     signInOption: SignInOption.standard,
   );
@@ -77,6 +79,51 @@ Future<Map<String, String>?> _authenticateAndGetTokens() async {
     return null;
   }
 }
+Future<bool> _handleSignIn() async {
+  try {
+    print("Starting Google Sign-In process");
+    
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    
+    if (googleUser == null) {
+      print("Sign-in process was cancelled by the user");
+      _showErrorSnackBar("Sign-in was cancelled");
+      return false;
+    }
+
+    print("User signed in: ${googleUser.email}");
+
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    
+    if (googleAuth.accessToken == null) {
+      print("Failed to retrieve access token");
+      _showErrorSnackBar("Failed to get authentication token");
+      return false;
+    }
+
+    print("Successfully retrieved auth token");
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('access_token', googleAuth.accessToken!);
+    await prefs.setString('email', googleUser.email);
+    
+    final expiresAt = DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch;
+    await prefs.setInt('expires_at', expiresAt);
+
+    setState(() {
+      _userEmail = googleUser.email;
+      _accessToken = googleAuth.accessToken;
+      _expiresAt = expiresAt;
+    });
+
+    print("Sign-in process completed successfully");
+    return true;
+  } catch (e) {
+    print("Error during sign-in process: $e");
+    _logAndShowError('Sign-In Error', e);
+    return false;
+  }
+}
   Future<void> sendEmailViaGmailAPI() async {
   if (_isSending) return;
 
@@ -128,91 +175,57 @@ Future<Map<String, String>?> _authenticateAndGetTokens() async {
     });
   }
 }
-Future<bool> _handleSignIn() async {
+
+  Future<bool> _sendEmailUsingGmailAPI(String accessToken, String userEmail) async {
   try {
-    print("Starting Google Sign-In process");
-    
-    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-    
-    if (googleUser == null) {
-      print("Sign-in process was cancelled by the user");
-      _showErrorSnackBar("Sign-in was cancelled");
-      return false;
-    }
+    // Gmail API endpoint for sending mail
+    final Uri url = Uri.parse(
+      'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+    );
 
-    print("User signed in: ${googleUser.email}");
-
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    // Using your email as the sender
+    // Note: This will only work if your account has proper delegation set up
+    final String senderEmail = "abdelrahman.200300@gmail.com";
     
-    if (googleAuth.accessToken == null) {
-      print("Failed to retrieve access token");
-      _showErrorSnackBar("Failed to get authentication token");
-      return false;
-    }
+    // Prepare email message with proper headers
+    final emailMessage = _base64UrlEncode(
+      'From: $senderEmail\n'
+      'To: $userEmail\n'
+      'Subject: Test Email from Flutter App\n\n'
+      'This is a test email sent using Gmail API',
+    );
 
-    print("Successfully retrieved auth token");
-    
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('access_token', googleAuth.accessToken!);
-    await prefs.setString('email', googleUser.email);
-    
-    final expiresAt = DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch;
-    await prefs.setInt('expires_at', expiresAt);
-
-    setState(() {
-      _userEmail = googleUser.email;
-      _accessToken = googleAuth.accessToken;
-      _expiresAt = expiresAt;
+    // Prepare request body
+    final body = json.encode({
+      'raw': emailMessage,
     });
 
-    print("Sign-in process completed successfully");
-    return true;
-  } catch (e) {
-    print("Error during sign-in process: $e");
-    _logAndShowError('Sign-In Error', e);
+    // Send email via Gmail API
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+      },
+      body: body,
+    );
+
+    // Enhanced error logging to help diagnose authentication issues
+    debugPrint('Gmail API Response: ${response.statusCode}');
+    debugPrint('Gmail API Response Body: ${response.body}');
+    
+    if (response.statusCode != 200) {
+      debugPrint('Sender Email: $senderEmail');
+      debugPrint('Recipient Email: $userEmail');
+      debugPrint('Full Response Headers: ${response.headers}');
+    }
+
+    return response.statusCode == 200;
+  } catch (e, stackTrace) {
+    _logAndShowError('Gmail API Email Send Error', e, stackTrace);
     return false;
   }
 }
-  Future<bool> _sendEmailUsingGmailAPI(String accessToken, String userEmail) async {
-    try {
-      // Gmail API endpoint for sending mail
-      final Uri url = Uri.parse(
-        'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
-      );
-
-      // Prepare email message
-      final emailMessage = _base64UrlEncode(
-        'From: $userEmail\n'
-        'To: $userEmail\n'
-        'Subject: Test Email from Flutter App\n\n'
-        'This is a test email sent using Gmail API',
-      );
-
-      // Prepare request body
-      final body = json.encode({
-        'raw': emailMessage,
-      });
-
-      // Send email via Gmail API
-      final response = await http.post(
-        url,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-        body: body,
-      );
-
-      // Check response status
-      debugPrint('Gmail API Response: ${response.statusCode}');
-      debugPrint('Gmail API Response Body: ${response.body}');
-
-      return response.statusCode == 200;
-    } catch (e, stackTrace) {
-      _logAndShowError('Gmail API Email Send Error', e, stackTrace);
-      return false;
-    }
-  }
 
   // Base64 URL encoding for raw email message
   String _base64UrlEncode(String input) {
