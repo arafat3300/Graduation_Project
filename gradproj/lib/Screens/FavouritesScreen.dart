@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gradproj/Screens/CustomBottomNavBar.dart';
 import 'package:gradproj/Screens/Profile.dart';
+import 'package:gradproj/Screens/PropertyDetails.dart';
 import 'package:gradproj/Screens/PropertyListings.dart';
 import 'package:gradproj/Screens/search.dart';
 import '../Providers/FavouritesProvider.dart';
@@ -79,6 +80,14 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                         ),
                       ],
                     ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PropertyDetails(property: property),
+                        ),
+                      );
+                    },
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () {
