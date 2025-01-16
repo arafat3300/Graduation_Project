@@ -29,7 +29,6 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
     await prefs.setString('token', token);
   }
 
-
 Future<void> _fetchAdmins() async {
   setState(() => _isLoading = true);
 
@@ -101,6 +100,25 @@ Future<void> _fetchAdmins() async {
   Future<void> _addAdmin(
     String email, String firstName, String lastName, String password) async {
   try {
+    if (email.isEmpty || !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+\$').hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid email address')),
+      );
+      return;
+    }
+    if (firstName.isEmpty || lastName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('First and last names cannot be empty')),
+      );
+      return;
+    }
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 6 characters long')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     final Uuid _uuid = const Uuid();
 
@@ -143,6 +161,25 @@ Future<void> _fetchAdmins() async {
   Future<void> _updateAdmin(
       int id, String newEmail, String newFirstName, String newLastName, String newPassword) async {
     try {
+      // if (newEmail.isEmpty || !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+\$').hasMatch(newEmail)) {
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(content: Text('Invalid email address')),
+      //   );
+      //   return;
+      // }
+      if (newFirstName.isEmpty || newLastName.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('First and last names cannot be empty')),
+        );
+        return;
+      }
+      if (newPassword.isNotEmpty && newPassword.length < 6) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password must be at least 6 characters long')),
+        );
+        return;
+      }
+
       setState(() => _isLoading = true);
 
       final supabase = Supabase.instance.client;
