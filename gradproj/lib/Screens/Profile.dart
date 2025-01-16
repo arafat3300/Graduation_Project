@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gradproj/Controllers/user_controller.dart';
+import './ChatsScreen.dart';
 
 class ViewProfilePage extends StatelessWidget {
   final UserController _userController = UserController();
@@ -10,21 +11,19 @@ class ViewProfilePage extends StatelessWidget {
     try {
       final email = await _userController.getLoggedInUserEmail();
       final name = await _userController.getLoggedInUserName();
-      final phone =await _userController.getLoggedInUserNumber();
+      final phone = await _userController.getLoggedInUserNumber();
       return {
         "email": email ?? "Email not found",
         "name": name ?? "Name not found",
         "phone": phone ?? "phone not found",
-
       };
     } catch (error) {
       return {"error": error.toString()};
     }
   }
 
-  /// Log out method
   Future<void> _logout(BuildContext context) async {
-    await _userController.saveSessionToken(""); // Clear the token
+    await _userController.saveSessionToken("");
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
@@ -42,6 +41,17 @@ class ViewProfilePage extends StatelessWidget {
               await _logout(context);
             },
           ),
+                                    IconButton(
+                            icon: const Icon(Icons.chat, color: Colors.white),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ChatsScreen(),
+                                ),
+                              );
+                            },
+                          ),
         ],
       ),
       body: FutureBuilder<Map<String, String>>(
@@ -63,7 +73,6 @@ class ViewProfilePage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Profile Header Section
                   Container(
                     color: Colors.teal,
                     child: Padding(
@@ -77,7 +86,7 @@ class ViewProfilePage extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            name, 
+                            name,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 24,
@@ -91,7 +100,7 @@ class ViewProfilePage extends StatelessWidget {
                               const Icon(Icons.email, color: Colors.white70),
                               const SizedBox(width: 5),
                               Text(
-                                email, 
+                                email,
                                 style: const TextStyle(color: Colors.white70),
                               ),
                             ],
@@ -99,21 +108,21 @@ class ViewProfilePage extends StatelessWidget {
                           const SizedBox(height: 5),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children:  [
+                            children: [
                               const Icon(Icons.phone, color: Colors.white70),
                               const SizedBox(width: 5),
                               Text(
-                                phone, 
+                                phone,
                                 style: const TextStyle(color: Colors.white70),
                               ),
                             ],
                           ),
+                          const SizedBox(height: 10),
+
                         ],
                       ),
                     ),
                   ),
-
-                  // About Me Section
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -128,15 +137,12 @@ class ViewProfilePage extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'John is a passionate real estate agent with over 10 years of experience. He specializes in helping clients find their dream homes and investment properties.', // Dummy bio
-                          style:
-                              TextStyle(fontSize: 16, color: Colors.grey[700]),
+                          'John is a passionate real estate agent with over 10 years of experience. He specializes in helping clients find their dream homes and investment properties.',
+                          style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                         ),
                       ],
                     ),
                   ),
-
-                  // Active Listings Section
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -150,7 +156,6 @@ class ViewProfilePage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        // Property 1
                         Card(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -158,30 +163,27 @@ class ViewProfilePage extends StatelessWidget {
                           elevation: 3,
                           child: Row(
                             children: [
-                              // Property Image
                               ClipRRect(
                                 borderRadius: const BorderRadius.only(
                                   topLeft: Radius.circular(10),
                                   bottomLeft: Radius.circular(10),
                                 ),
                                 child: Image.asset(
-                                  'images/listingPlaceholder.jpg', // Dummy image
+                                  'images/listingPlaceholder.jpg',
                                   width: 100,
                                   height: 80,
                                   fit: BoxFit.cover,
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              // Property Details
                               const Expanded(
                                 child: Padding(
                                   padding: EdgeInsets.symmetric(vertical: 10),
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Modern Apartment in NYC', // Dummy title
+                                        'Modern Apartment in NYC',
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -190,7 +192,7 @@ class ViewProfilePage extends StatelessWidget {
                                       ),
                                       SizedBox(height: 5),
                                       Text(
-                                        '\$2,500,000', // Dummy price
+                                        '\$2,500,000',
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Colors.teal,
@@ -205,7 +207,6 @@ class ViewProfilePage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        // Property 2
                         Card(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -213,30 +214,27 @@ class ViewProfilePage extends StatelessWidget {
                           elevation: 3,
                           child: Row(
                             children: [
-                              // Property Image
                               ClipRRect(
                                 borderRadius: const BorderRadius.only(
                                   topLeft: Radius.circular(10),
                                   bottomLeft: Radius.circular(10),
                                 ),
                                 child: Image.asset(
-                                  'images/listingPlaceholder.jpg', // Dummy image
+                                  'images/listingPlaceholder.jpg',
                                   width: 100,
                                   height: 80,
                                   fit: BoxFit.cover,
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              // Property Details
                               const Expanded(
                                 child: Padding(
                                   padding: EdgeInsets.symmetric(vertical: 10),
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Cozy Family Home', // Dummy title
+                                        'Cozy Family Home',
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -245,7 +243,7 @@ class ViewProfilePage extends StatelessWidget {
                                       ),
                                       SizedBox(height: 5),
                                       Text(
-                                        '\$850,000', // Dummy price
+                                        '\$850,000',
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Colors.teal,
@@ -262,8 +260,6 @@ class ViewProfilePage extends StatelessWidget {
                       ],
                     ),
                   ),
-
-                  // Contact Information Section
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -282,9 +278,8 @@ class ViewProfilePage extends StatelessWidget {
                             const Icon(Icons.location_on, color: Colors.teal),
                             const SizedBox(width: 10),
                             Text(
-                              '123 Real Estate Lane, Miami, FL', // Dummy address
-                              style: TextStyle(
-                                  fontSize: 16, color: Colors.grey[700]),
+                              '123 Real Estate Lane, Miami, FL',
+                              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                             ),
                           ],
                         ),
@@ -294,9 +289,8 @@ class ViewProfilePage extends StatelessWidget {
                             const Icon(Icons.language, color: Colors.teal),
                             const SizedBox(width: 10),
                             Text(
-                              'www.johndoe-realestate.com', // Dummy website
-                              style: TextStyle(
-                                  fontSize: 16, color: Colors.grey[700]),
+                              'www.johndoe-realestate.com',
+                              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                             ),
                           ],
                         ),

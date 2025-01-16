@@ -7,11 +7,13 @@ import 'package:http/http.dart' as http;
 import '../Providers/FavouritesProvider.dart';
 import '../models/Property.dart';
 import '../Models/Feedback.dart';
+import '../Models/Message.dart';
 import '../Controllers/feedback_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PropertyDetails extends ConsumerStatefulWidget {
   final Property property;
+
   const PropertyDetails({super.key, required this.property});
 
   @override
@@ -20,9 +22,12 @@ class PropertyDetails extends ConsumerStatefulWidget {
 
 class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   final TextEditingController _feedbackController = TextEditingController();
+  final TextEditingController _messageController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   List<propertyFeedbacks> _feedbacks = [];
+  List<dynamic> _messages = [];
   bool _isLoading = false;
+  bool _isSending = false;
   bool _isBulkLoading = false;
   final FeedbackController _feedbackService =
       FeedbackController(supabase: Supabase.instance.client);
@@ -34,6 +39,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
     super.initState();
     _loadFeedbacks();
     _sendAllFeedbacksToFastAPI();
+    _loadMessages();
   }
 
   Future<void> _loadFeedbacks() async {
@@ -88,7 +94,6 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
 
     try {
       final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
       final userId = singletonSession().userId;
 
       // Save to Supabase
@@ -158,9 +163,73 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
     }
   }
 
+  Future<void> _loadMessages() async {
+    try {
+      final propertyId = widget.property.id;
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('messages')
+          .select('*')
+          .eq('property_id', propertyId)
+          .order('created_at', ascending: false);
+
+      if (response != null && response is List<dynamic>) {
+        final messages = response
+            .map((message) {
+              try {
+                return Message.fromMap(message as Map<String, dynamic>);
+              } catch (e) {
+                return null;
+              }
+            })
+            .whereType<Message>()
+            .toList();
+
+        if (mounted) {
+          setState(() {
+            _messages = messages;
+          });
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading messages: $e')),
+      );
+    }
+  }
+
+  Future<void> _sendMessage() async {
+    if (_messageController.text.isEmpty) return;
+
+    setState(() => _isSending = true);
+
+    try {
+      final supabase = Supabase.instance.client;
+      final messageContent = _messageController.text.trim();
+
+      await supabase.from('messages').insert({
+        'sender_id': singletonSession().userId,
+        'rec_id': widget.property.userId,
+        'property_id': widget.property.id,
+        'content': messageContent,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      _messageController.clear();
+      await _loadMessages();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sending message: $e')),
+      );
+    } finally {
+      setState(() => _isSending = false);
+    }
+  }
+
   @override
   void dispose() {
     _feedbackController.dispose();
+    _messageController.dispose();
     super.dispose();
   }
 
@@ -168,14 +237,13 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   Widget build(BuildContext context) {
     final property = widget.property;
     final favouritesNotifier = ref.watch(favouritesProvider.notifier);
-    final isFavorite =
-        ref.watch(favouritesProvider).any((p) => p.id == property.id);
-    final theme = Theme.of(context); // Get the current theme
+    final isFavorite = ref.watch(favouritesProvider).any((p) => p.id == property.id);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Property Details"),
-        backgroundColor: theme.colorScheme.primary, // Use theme primary color
+        backgroundColor: theme.colorScheme.primary,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -201,8 +269,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                         errorBuilder: (context, error, stackTrace) => Icon(
                           Icons.broken_image,
                           size: 70,
-                          color:
-                              theme.colorScheme.error, // Use theme error color
+                          color: theme.colorScheme.error,
                         ),
                       );
                     },
@@ -213,7 +280,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
               Container(
                 height: 600,
                 width: double.infinity,
-                color: theme.colorScheme.surface, // Use theme surface color
+                color: theme.colorScheme.surface,
                 child: Center(
                   child: Image.network(
                     'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
@@ -234,8 +301,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                 children: [
                   Text(
                     property.type,
-                    style:
-                        theme.textTheme.headlineMedium, // Use theme text style
+                    style: theme.textTheme.headlineMedium,
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -245,57 +311,22 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  _buildPropertyDetail("City", property.city, theme),
-                  _buildPropertyDetail(
-                      "Bedrooms", property.bedrooms.toString(), theme),
-                  _buildPropertyDetail(
-                      "Bathrooms", property.bathrooms.toString(), theme),
-                  _buildPropertyDetail("Area", "${property.area} sqft", theme),
-                  _buildPropertyDetail(
-                      "Furnished", property.furnished.toString(), theme),
-                  _buildPropertyDetail(
-                      "Level", property.level?.toString() ?? 'N/A', theme),
-                  _buildPropertyDetail(
-                      "Compound", property.compound ?? 'N/A', theme),
-                  _buildPropertyDetail(
-                      "Payment Option", property.paymentOption, theme),
-                  const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: () {
                       if (isFavorite) {
                         favouritesNotifier.removeProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text(
-                                  "${property.type} removed from favorites")),
+                          SnackBar(content: Text("${property.type} removed from favorites")),
                         );
                       } else {
                         favouritesNotifier.addProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content:Text("${property.type} added to favorites"),
-                            duration: const Duration(seconds: 5),
-                            action: SnackBarAction(
-                              label: "Manage your Favorites",
-                              textColor: Colors.blue,
-                              onPressed: () {
-                                Navigator.pushNamed(context, '/favourites');
-                                },
-                              ),
-                          ),
+                          SnackBar(content: Text("${property.type} added to favorites")),
                         );
                       }
                     },
-                    icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border),
-                    label: Text(isFavorite
-                        ? "Remove from Favorites"
-                        : "Add to Favorites"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor:  Colors.red,
-                    ),
+                    icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
+                    label: Text(isFavorite ? "Remove from Favorites" : "Add to Favorites"),
                   ),
                 ],
               ),
@@ -316,22 +347,9 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                       controller: _feedbackController,
                       decoration: InputDecoration(
                         hintText: "Enter your feedback",
-                        hintStyle: TextStyle(
-                          color: theme.colorScheme.onBackground
-                              .withOpacity(0.6), // Adjust hint text color
-                        ),
                         border: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: theme.colorScheme.primary),
+                          borderSide: BorderSide(color: theme.colorScheme.primary),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: theme.colorScheme.primary,
-                            width: 2,
-                          ),
-                        ),
-                        filled: true, // To ensure a proper background
-                        fillColor: theme.colorScheme.background,
                       ),
                       maxLines: 3,
                       validator: (value) {
@@ -344,109 +362,145 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                     const SizedBox(height: 8),
                     ElevatedButton(
                       onPressed: _isLoading ? null : _submitFeedback,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: theme.colorScheme.onPrimary,
-                      ),
-                      child: Text(
-                          _isLoading ? "Submitting..." : "Submit Feedback"),
+                      child: Text(_isLoading ? "Submitting..." : "Submit Feedback"),
                     ),
                   ],
                 ),
               ),
             ),
-            if (_feedbacks.isNotEmpty) ...[
+            if (_feedbacks.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: _feedbacks.map((feedback) {
-                    return FutureBuilder<String>(
-                      future: feedback.user_id == null
-                          ? Future.value("Anonymous")
-                          : _feedbackService
-                              .getMailOfFeedbacker(feedback.user_id!),
-                      builder: (context, snapshot) {
-                        final userName = feedback.user_id == null
-                            ? "Anonymous"
-                            : (snapshot.hasData
-                                ? snapshot.data!
-                                    .replaceAll(RegExp(r'[\{\}\[\]"]'), '')
-                                    .replaceFirst("email:", "")
-                                : "Loading...");
-
-                        return Card(
-                          shape: RoundedRectangleBorder(
-                            side: BorderSide(
-                                color: theme.colorScheme.primary, width: 1.5),
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          margin: const EdgeInsets.only(bottom: 8.0),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  userName,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    color: theme.colorScheme.secondary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  feedback.feedback,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                     color: theme.colorScheme.secondary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                    return Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(feedback.user_id.toString() ?? "Anonymous"),
+                            Text(feedback.feedback),
+                          ],
+                        ),
+                      ),
                     );
                   }).toList(),
                 ),
-              ),
-            ] else
+              )
+            else
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  "No feedback available for this property.",
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
+                child: Text("No feedback available for this property."),
               ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Chat:',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  StreamBuilder<List<Map<String, dynamic>>>(
+                    stream: Supabase.instance.client
+                        .from('messages')
+                        .stream(primaryKey: ['id'])
+                        .eq('property_id', widget.property.id)
+                        .order('created_at'),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text(
+                            'Error: ${snapshot.error}',
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        );
+                      }
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            'No messages yet. Start a conversation!',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        );
+                      }
+
+                      final messages = snapshot.data!;
+                      return Container(
+                        height: 300,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ListView.builder(
+                          reverse: true,
+                          itemCount: messages.length,
+                          itemBuilder: (context, index) {
+                            final message = messages[index];
+                            final isMe =
+                                message['sender_id'] == singletonSession().userId;
+
+                            return Align(
+                              alignment: isMe
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(
+                                    vertical: 5, horizontal: 10),
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: isMe ? Colors.blue : Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  message['content'],
+                                  style: TextStyle(
+                                      color:
+                                          isMe ? Colors.white : Colors.black),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _messageController,
+                          decoration: const InputDecoration(
+                            hintText: 'Type your message...',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _isSending
+                          ? const CircularProgressIndicator()
+                          : IconButton(
+                              icon: const Icon(Icons.send, color: Colors.blue),
+                              onPressed: _sendMessage,
+                            ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildPropertyDetail(String label, String value, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onBackground, // Adjust color for theme
-            ),
-          ),
-          Text(
-            value,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onBackground, // Adjust color for theme
-            ),
-          ),
-        ],
       ),
     );
   }
