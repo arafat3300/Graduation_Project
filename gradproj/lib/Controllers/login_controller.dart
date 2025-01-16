@@ -166,13 +166,26 @@ Future<BaseUser?> getUserByEmail(String email) async {
   /// Login method combining previous and new approaches
   Future<String> loginUser(String email, String password) async {
     try {
-      // Attempt to fetch user data
-      final user = await getUserByEmail(email);
+// Validate input fields
+    if (email.trim().isEmpty) {
+      return "Email is required.";
+    }
+    if (password.trim().isEmpty) {
+      return "Password is required.";
+    }
 
-      // Check if user exists
-      if (user == null) {
-        return "No user found with this email.";
-      }
+    // Check if email format is valid
+    if (!isValidEmail(email)) {
+      return "Invalid email format.";
+    }
+
+    // Attempt to fetch user data
+    final user = await getUserByEmail(email);
+
+    // Check if user exists
+    if (user == null) {
+      return "No account found with the provided email.";
+    }
 
       // Hash the provided password for comparison
       final hashedPassword = hashPassword(password.trim());
