@@ -427,10 +427,7 @@ class _LoginScreenState extends State<LoginScreen>
                     // Forgot password section
                     GestureDetector(
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text("Forgot Password feature not implemented.")),
-                        );
+                
                       },
                       child: Container(
                         decoration: BoxDecoration(

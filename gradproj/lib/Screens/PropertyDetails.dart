@@ -294,7 +294,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                         : "Add to Favorites"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
-                      foregroundColor:  Colors.red,
+                      foregroundColor:  const Color.fromARGB(255, 255, 255, 255),
                     ),
                   ),
                 ],
