@@ -111,12 +111,13 @@ Future<BaseUser?> getUserByEmail(String email) async {
         });
 
         singletonSession().userId=user.id;
+      
         
-        print('Successfully mapped user: ${user.email}');
+        debugPrint('Successfully mapped user: ${user.email}');
         return user;
       } catch (mappingError) {
-        print('Error mapping user record: $mappingError');
-        print('Problematic map: $userResponse');
+        debugPrint('Error mapping user record: $mappingError');
+        debugPrint('Problematic map: $userResponse');
         return null;
       }
     }
@@ -145,12 +146,12 @@ Future<BaseUser?> getUserByEmail(String email) async {
         singletonSession().userId = admin.id;
         debugPrint('user id : ${singletonSession().userId}');
         
-        print('Successfully mapped admin: ${admin.email}');
+        debugPrint('Successfully mapped admin: ${admin.email}');
         singletonSession().userId=admin.id;
         return admin;
       } catch (mappingError) {
-        print('Error mapping admin record: $mappingError');
-        print('Problematic map: $adminResponse');
+        debugPrint('Error mapping admin record: $mappingError');
+        debugPrint('Problematic map: $adminResponse');
         return null;
       }
     }
