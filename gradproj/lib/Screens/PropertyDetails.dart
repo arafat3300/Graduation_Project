@@ -88,55 +88,57 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
       throw Exception('Error sending feedback to AI pipeline: $e');
     }
   }
-Future<void> _submitFeedback() async {
-  if (!_formKey.currentState!.validate()) return;
 
-  setState(() => _isLoading = true);
+  Future<void> _submitFeedback() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  try {
-    final supabase = Supabase.instance.client;
-    final userId = singletonSession().userId;
+    setState(() => _isLoading = true);
 
-    // Save to Supabase
-    await _feedbackService.addFeedback(
-      widget.property.id!,
-      _feedbackController.text,
-      userId,
-    );
+    try {
+      final supabase = Supabase.instance.client;
+      final userId = singletonSession().userId;
 
-    // Send to FastAPI
-    await _sendFeedbackToFastAPI(
-      feedbackText: _feedbackController.text,
-      propertyId: widget.property.id!,
-      userId: userId.toString(),
-    );
-
-    // Send email
-    final emailSender = ref.read(emailSenderProvider);
-    await emailSender.sendEmail(
-      propertyId: widget.property.id!,
-      userId: userId!,
-      feedbackText: _feedbackController.text, // Pass the feedback text here
-    );
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Feedback submitted successfully!')),
+      // Save to Supabase
+      await _feedbackService.addFeedback(
+        widget.property.id!,
+        _feedbackController.text,
+        userId,
       );
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error submitting feedback: $e')),
+
+      // Send to FastAPI
+      await _sendFeedbackToFastAPI(
+        feedbackText: _feedbackController.text,
+        propertyId: widget.property.id!,
+        userId: userId.toString(),
       );
+
+      // Send email
+      final emailSender = ref.read(emailSenderProvider);
+      await emailSender.sendEmail(
+        propertyId: widget.property.id!,
+        userId: userId!,
+        feedbackText: _feedbackController.text, // Pass the feedback text here
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Feedback submitted successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error submitting feedback: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+      _feedbackController
+          .clear(); // Clear the feedback text AFTER sending the email
     }
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
-    _feedbackController.clear(); // Clear the feedback text AFTER sending the email
   }
-}
 
   Future<void> _sendAllFeedbacksToFastAPI() async {
     setState(() => _isBulkLoading = true);
@@ -244,7 +246,8 @@ Future<void> _submitFeedback() async {
   Widget build(BuildContext context) {
     final property = widget.property;
     final favouritesNotifier = ref.watch(favouritesProvider.notifier);
-    final isFavorite = ref.watch(favouritesProvider).any((p) => p.id == property.id);
+    final isFavorite =
+        ref.watch(favouritesProvider).any((p) => p.id == property.id);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -323,12 +326,24 @@ Future<void> _submitFeedback() async {
                       if (isFavorite) {
                         favouritesNotifier.removeProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${property.type} removed from favorites")),
+                          SnackBar(
+                              content: Text(
+                                  "${property.type} removed from favorites")),
                         );
                       } else {
                         favouritesNotifier.addProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${property.type} added to favorites")),
+                          SnackBar(
+                            content:
+                                Text("${property.type} added to favorites"),
+                            duration: const Duration(seconds: 5),
+                            action: SnackBarAction(
+                              label: "Manage your favorites",
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/favourites');
+                              },
+                            ),
+                          ),
                         );
                       }
                     },
@@ -338,8 +353,8 @@ Future<void> _submitFeedback() async {
                         ? "Remove from Favorites"
                         : "Add to Favorites"),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor:  const Color.fromARGB(255, 255, 255, 255),
+                      backgroundColor: const Color.fromARGB(255, 244, 239, 239),
+                      foregroundColor: const Color.fromARGB(255, 93, 66, 247),
                     ),
                   ),
                 ],
@@ -362,7 +377,8 @@ Future<void> _submitFeedback() async {
                       decoration: InputDecoration(
                         hintText: "Enter your feedback",
                         border: OutlineInputBorder(
-                          borderSide: BorderSide(color: theme.colorScheme.primary),
+                          borderSide:
+                              BorderSide(color: theme.colorScheme.primary),
                         ),
                       ),
                       maxLines: 3,
@@ -376,7 +392,8 @@ Future<void> _submitFeedback() async {
                     const SizedBox(height: 8),
                     ElevatedButton(
                       onPressed: _isLoading ? null : _submitFeedback,
-                      child: Text(_isLoading ? "Submitting..." : "Submit Feedback"),
+                      child: Text(
+                          _isLoading ? "Submitting..." : "Submit Feedback"),
                     ),
                   ],
                 ),
@@ -461,8 +478,8 @@ Future<void> _submitFeedback() async {
                           itemCount: messages.length,
                           itemBuilder: (context, index) {
                             final message = messages[index];
-                            final isMe =
-                                message['sender_id'] == singletonSession().userId;
+                            final isMe = message['sender_id'] ==
+                                singletonSession().userId;
 
                             return Align(
                               alignment: isMe

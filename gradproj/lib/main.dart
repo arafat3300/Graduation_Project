@@ -101,7 +101,7 @@ darkTheme: ThemeData.dark().copyWith(
       themeMode: _themeMode,
       initialRoute: '/signup',
       routes: {
-'/property-listings': (context) => PropertyListScreen(toggleTheme: toggleTheme),
+        '/property-listings': (context) => PropertyListScreen(toggleTheme: toggleTheme),
         '/signup': (context) =>  SignUpScreen(toggleTheme: toggleTheme),
         '/login': (context) =>  LoginScreen(toggleTheme: toggleTheme),
          '/favourites': (context) => FavoritesScreen(toggleTheme: toggleTheme),
