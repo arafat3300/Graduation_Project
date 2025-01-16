@@ -37,7 +37,8 @@ dependencies:
   google_sign_in: ^6.2.2
   dart_jsonwebtoken: ^2.14.2
   jwt_decoder: ^2.0.1
-
+  webview_flutter: ^4.10.0
+  
   
   
 
