@@ -8,11 +8,18 @@ import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server.dart';
+
 
 class SignUpController {
   final Uuid _uuid = const Uuid();
   final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
-  
+  //email controller
+   static const String _smtpHost = 'smtp.gmail.com';
+  static const int _smtpPort = 587;
+  static const String _smtpUser = 'propertyfinderegyy@gmail.com'; // Your email
+  static const String _smtpPassword = 'lilO_khaled20'; // Your email password or app password
   // JWT Configuration
   static const String _jwtSecret = 'samirencryption';
   // Set token duration to 5 minutes
@@ -54,6 +61,23 @@ class SignUpController {
    
 
     return userId;
+  }
+
+   Future<void> sendWelcomeEmail(String userEmail) async {
+    final smtpServer = gmail(_smtpUser, _smtpPassword);
+
+    final message = Message()
+      ..from = Address(_smtpUser)
+      ..recipients.add(userEmail)
+      ..subject = 'Welcome to Property Finder App!'
+      ..text = 'We are excited to introduce you to the first-ever AI-powered Property Finder app, designed to make your property search smarter and more personalized. With our cutting-edge AI models, we dont just show you listings — we recommend properties that match your preferences based on your activity and behavior within the app Our intelligent system learns from your interactions and feedback to deliver tailored recommendations, ensuring that you always find the best properties that meet your unique needs.Experience the future of property hunting with Property Finder AI — where your dream property is just a recommendation away!';
+
+    try {
+      final sendReport = await send(message, smtpServer);
+      print('Message sent: ${sendReport.toString()}');
+    } catch (e) {
+      print('Error sending email: $e');
+    }
   }
 
   /// Verifies token and checks expiration
@@ -135,7 +159,7 @@ class SignUpController {
 
       await _supabase.from('users').upsert(user.toJson());
       await _saveSession(userId, sessionToken, expiryTime);
-  
+      await sendWelcomeEmail(email);
 
       return "User signed up successfully!";
     } on supabase.AuthException catch (e) {

@@ -38,6 +38,8 @@ dependencies:
   dart_jsonwebtoken: ^2.14.2
   jwt_decoder: ^2.0.1
   path: ^1.8.2
+  webview_flutter: ^4.10.0
+  
   
   
 

@@ -15,7 +15,7 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  int _currentIndex = 1; // Default index for Search Screen
+  int _currentIndex = 3; // Default index for Search Screen
 
   @override
   Widget build(BuildContext context) {

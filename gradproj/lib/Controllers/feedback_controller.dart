@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class FeedbackController {
   final SupabaseClient supabase;
 
+  static var text;
+
   FeedbackController({required this.supabase});
 
   Future<List<propertyFeedbacks>> getFeedbacksByProperty(int propertyId) async {

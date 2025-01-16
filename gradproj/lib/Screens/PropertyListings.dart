@@ -211,12 +211,12 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                       });
                     },
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.account_circle, color: Colors.black),
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/signup');
-                    },
-                  ),
+                  // IconButton(
+                  //   icon: const Icon(Icons.account_circle, color: Colors.black),
+                  //   onPressed: () {
+                  //     Navigator.pushNamed(context, '/signup');
+                  //   },
+                  // ),
                   IconButton(
                     icon: const Icon(Icons.add_home_work_outlined,
                         color: Colors.black),
@@ -457,14 +457,14 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() => _currentIndex = index);
-          if (index == 1) {
+          if (index == 0) {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const EmailSenderScreen(),
+                builder: (context) => const ViewProfilePage(),
               ),
             );
-          } else if (index == 2) {
+          } else if (index == 1) {
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -472,7 +472,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                     FavoritesScreen(toggleTheme: widget.toggleTheme),
               ),
             );
-          } else if (index == 3) {
+          } else if (index == 2) {
             Navigator.push(
               context,
               MaterialPageRoute(

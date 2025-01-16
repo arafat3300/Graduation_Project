@@ -10,7 +10,7 @@ class Property {
   late String? compound;
   late String paymentOption;
   late String city;
-late int? userId ;
+  late int? userId ;
   late List<String>? imgUrl;
   late String ?status ;
 
@@ -45,7 +45,7 @@ factory Property.fromJson(Map<String, dynamic> json) {
     compound: json['compound'] as String?,
     paymentOption: json['payment_option'] as String,
     city: json['city'] as String,
-  userId : json['user_id'] as int ,
+  userId:json['user_id'] != null ? (json['user_id'] as num).toInt() : null,
     imgUrl: json['img_url'] != null
         ? (json['img_url'] as List<dynamic>).map((e) => e.toString()).toList()
         : [], 
@@ -67,45 +67,8 @@ Map<String, dynamic> toJson() {
     'payment_option': paymentOption,
     'city': city,
     'img_url': imgUrl,
-    'user_id' : userId
+    'user_id' : userId,
   };
 }
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'type': type,
-      'price': price,
-      'bedrooms': bedrooms,
-      'bathrooms': bathrooms,
-      'area': area,
-      'furnished': furnished,
-      'level': level,
-      'compound': compound,
-      'payment_option': paymentOption,
-      'city': city,
-      'img_url': imgUrl?.join(',') ?? '',
-      'user_id': userId,
-      'status': status,
-    };
-  }
-
-  factory Property.fromMap(Map<String, dynamic> map) {
-    return Property(
-      id: map['id'],
-      type: map['type'],
-      price: map['price'],
-      bedrooms: map['bedrooms'],
-      bathrooms: map['bathrooms'],
-      area: map['area'],
-      furnished: map['furnished'],
-      level: map['level'],
-      compound: map['compound'],
-      paymentOption: map['payment_option'],
-      city: map['city'],
-      imgUrl: map['img_url']?.split(','),
-      userId: map['user_id'],
-      status: map['status'],
-    );
-  }
 
 }
