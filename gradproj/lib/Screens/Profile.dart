@@ -1,11 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:gradproj/Controllers/user_controller.dart';
+import 'package:gradproj/Models/singletonSession.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import './ChatsScreen.dart';
+import '../models/Property.dart';
+import '../Screens/PropertyDetails.dart';
 
-class ViewProfilePage extends StatelessWidget {
+class ViewProfilePage extends StatefulWidget {
+  const ViewProfilePage({super.key});
+
+  @override
+  _ViewProfilePageState createState() => _ViewProfilePageState();
+}
+
+class _ViewProfilePageState extends State<ViewProfilePage> {
   final UserController _userController = UserController();
+  List<Property> userProperties = [];
+  bool _isLoading = true;
 
-  ViewProfilePage({super.key});
+  @override
+  void initState() {
+    super.initState();
+    fetchUserProperties();
+  }
 
   Future<Map<String, String>> _getUserData() async {
     try {
@@ -15,10 +32,42 @@ class ViewProfilePage extends StatelessWidget {
       return {
         "email": email ?? "Email not found",
         "name": name ?? "Name not found",
-        "phone": phone ?? "phone not found",
+        "phone": phone ?? "Phone not found",
       };
     } catch (error) {
       return {"error": error.toString()};
+    }
+  }
+
+  /// Fetch user-specific properties
+  Future<void> fetchUserProperties() async {
+    setState(() => _isLoading = true);
+    try {
+      final supabase = Supabase.instance.client;
+      final userId = singletonSession().userId;
+
+      if (userId == null) {
+        debugPrint("User ID is null");
+        return;
+      }
+
+      final response = await supabase
+          .from('properties')
+          .select('*')
+          .eq('user_id', userId);
+
+      if (response is List) {
+        setState(() {
+          userProperties =
+              response.map((item) => Property.fromJson(item)).toList();
+        });
+      } else {
+        debugPrint("Unexpected response format: $response");
+      }
+    } catch (error) {
+      debugPrint("Exception fetching user listings: $error");
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -41,17 +90,17 @@ class ViewProfilePage extends StatelessWidget {
               await _logout(context);
             },
           ),
-                                    IconButton(
-                            icon: const Icon(Icons.chat, color: Colors.white),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ChatsScreen(),
-                                ),
-                              );
-                            },
-                          ),
+          IconButton(
+            icon: const Icon(Icons.chat, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChatsScreen(),
+                ),
+              );
+            },
+          ),
         ],
       ),
       body: FutureBuilder<Map<String, String>>(
@@ -69,237 +118,118 @@ class ViewProfilePage extends StatelessWidget {
             final name = userData['name']!;
             final phone = userData['phone']!;
 
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    color: Colors.teal,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 30.0),
-                      child: Column(
-                        children: [
-                          const CircleAvatar(
-                            radius: 60,
-                            backgroundImage:
-                                AssetImage('assets/profile_picture.jpg'),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.email, color: Colors.white70),
-                              const SizedBox(width: 5),
-                              Text(
-                                email,
-                                style: const TextStyle(color: Colors.white70),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 5),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.phone, color: Colors.white70),
-                              const SizedBox(width: 5),
-                              Text(
-                                phone,
-                                style: const TextStyle(color: Colors.white70),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-
-                        ],
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
+            return _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'About Me',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'John is a passionate real estate agent with over 10 years of experience. He specializes in helping clients find their dream homes and investment properties.',
-                          style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Active Listings',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          elevation: 3,
-                          child: Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(10),
-                                  bottomLeft: Radius.circular(10),
+                        Container(
+                          color: Colors.teal,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 30.0),
+                            child: Column(
+                              children: [
+                                const CircleAvatar(
+                                  radius: 60,
+                                  backgroundImage:
+                                      AssetImage('assets/profile_picture.jpg'),
                                 ),
-                                child: Image.asset(
-                                  'images/listingPlaceholder.jpg',
-                                  width: 100,
-                                  height: 80,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              const Expanded(
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 10),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Modern Apartment in NYC',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      SizedBox(height: 5),
-                                      Text(
-                                        '\$2,500,000',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.teal,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
+                                const SizedBox(height: 10),
+                                Text(
+                                  name,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 5),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.email, color: Colors.white70),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      email,
+                                      style: const TextStyle(color: Colors.white70),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 5),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.phone, color: Colors.white70),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      phone,
+                                      style: const TextStyle(color: Colors.white70),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                              ],
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          elevation: 3,
-                          child: Row(
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              ClipRRect(
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(10),
-                                  bottomLeft: Radius.circular(10),
-                                ),
-                                child: Image.asset(
-                                  'images/listingPlaceholder.jpg',
-                                  width: 100,
-                                  height: 80,
-                                  fit: BoxFit.cover,
+                              const Text(
+                                'Active Listings',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              const Expanded(
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 10),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Cozy Family Home',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
+                              const SizedBox(height: 10),
+                              if (userProperties.isEmpty)
+                                const Center(
+                                  child: Text('No active listings found.'),
+                                )
+                              else
+                                ListView.builder(
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  shrinkWrap: true,
+                                  itemCount: userProperties.length,
+                                  itemBuilder: (context, index) {
+                                    final property = userProperties[index];
+                                    return Card(
+                                      margin: const EdgeInsets.all(10),
+                                      elevation: 4,
+                                      child: ListTile(
+                                        title: Text(
+                                          property.type,
+                                          style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold),
                                         ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      SizedBox(height: 5),
-                                      Text(
-                                        '\$850,000',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.teal,
-                                          fontWeight: FontWeight.w500,
+                                        trailing: ElevatedButton(
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    PropertyDetails(
+                                                        property: property),
+                                              ),
+                                            );
+                                          },
+                                          child: const Text("View Details"),
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                    );
+                                  },
                                 ),
-                              ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Contact Information',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on, color: Colors.teal),
-                            const SizedBox(width: 10),
-                            Text(
-                              '123 Real Estate Lane, Miami, FL',
-                              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            const Icon(Icons.language, color: Colors.teal),
-                            const SizedBox(width: 10),
-                            Text(
-                              'www.johndoe-realestate.com',
-                              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
+                  );
           }
         },
       ),
