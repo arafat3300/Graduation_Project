@@ -22,6 +22,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   @override
   Widget build(BuildContext context) {
     final favourites = ref.watch(favouritesProvider);
+    final theme = Theme.of(context); // Get the current theme
 
     return Scaffold(
       appBar: AppBar(
@@ -29,16 +30,16 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.dark_mode),
+            icon: Icon(Icons.dark_mode, color: theme.iconTheme.color),
             onPressed: widget.toggleTheme,
           ),
         ],
       ),
       body: favourites.isEmpty
-          ? const Center(
+          ? Center(
               child: Text(
                 'No favorite properties yet!',
-                style: TextStyle(fontSize: 18),
+                style: theme.textTheme.bodyLarge, // Use theme text style
               ),
             )
           : ListView.builder(
@@ -48,6 +49,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  color: theme.cardColor, // Use theme card color
                   child: ListTile(
                     leading: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
@@ -59,22 +61,25 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                         height: 70,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.broken_image, size: 70),
+                            Icon(Icons.broken_image, size: 70, color: theme.colorScheme.error), // Use theme error color
                       ),
                     ),
                     title: Text(
                       property.type,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold), // Use theme text style
                     ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(property.city),
+                        Text(
+                          property.city,
+                          style: theme.textTheme.bodyMedium, // Use theme text style
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           '\$${property.price.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            color: Colors.green,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: theme.colorScheme.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -89,7 +94,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       );
                     },
                     trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: Icon(Icons.delete, color: theme.colorScheme.error), // Use theme error color
                       onPressed: () {
                         final favouritesNotifier = ref.read(favouritesProvider.notifier);
                         favouritesNotifier.removeProperty(property);
@@ -101,7 +106,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                               label: "Undo",
                               onPressed: () {
                                 favouritesNotifier.addProperty(property);
-                                },
+                              },
                             ),
                           ),
                         );
@@ -128,7 +133,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) =>  SearchScreen(toggleTheme: widget.toggleTheme),
+                builder: (context) => SearchScreen(toggleTheme: widget.toggleTheme),
               ),
             );
           } else if (_currentIndex == 3) {

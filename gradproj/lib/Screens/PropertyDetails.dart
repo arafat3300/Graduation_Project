@@ -161,18 +161,17 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
     _feedbackController.dispose();
     super.dispose();
   }
-
-  @override
+ @override
   Widget build(BuildContext context) {
     final property = widget.property;
     final favouritesNotifier = ref.watch(favouritesProvider.notifier);
-    final isFavorite =
-        ref.watch(favouritesProvider).any((p) => p.id == property.id);
+    final isFavorite = ref.watch(favouritesProvider).any((p) => p.id == property.id);
+    final theme = Theme.of(context); // Get the current theme
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Property Details"),
-        backgroundColor: const Color(0xFF398AE5),
+        backgroundColor: theme.colorScheme.primary, // Use theme primary color
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -195,10 +194,10 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                         imageUrl,
                         fit: BoxFit.cover,
                         width: double.infinity,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(
+                        errorBuilder: (context, error, stackTrace) => Icon(
                           Icons.broken_image,
                           size: 70,
+                          color: theme.colorScheme.error, // Use theme error color
                         ),
                       );
                     },
@@ -206,23 +205,23 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                 }).toList(),
               )
             else
-       
-  Container(
-    height: 600,
-    width: double.infinity,
-    color: Colors.grey[200],
-    child: Center(
-      child: Image.network(
-        'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
-        fit: BoxFit.cover,
-        width: double.infinity,
-        errorBuilder: (context, error, stackTrace) => const Icon(
-          Icons.broken_image,
-          size: 70,
-        ),
-      ),
-    ),
-  ),
+              Container(
+                height: 600,
+                width: double.infinity,
+                color: theme.colorScheme.surface, // Use theme surface color
+                child: Center(
+                  child: Image.network(
+                    'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      Icons.broken_image,
+                      size: 70,
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ),
+              ),
 
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -231,80 +230,46 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                 children: [
                   Text(
                     property.type,
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: theme.textTheme.headlineMedium, // Use theme text style
                   ),
                   const SizedBox(height: 8),
                   Text(
                     "Price: \$${property.price}",
-                    style: const TextStyle(
-                      fontSize: 20,
-                      color: Colors.green,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: theme.colorScheme.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    "City: ${property.city}",
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                  Text(
-                    "Bedrooms: ${property.bedrooms}",
-                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                  ),
-                  Text(
-                    "Bathrooms: ${property.bathrooms}",
-                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                  ),
-                  Text(
-                    "Area: ${property.area} sqft",
-                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                  ),
-                  Text(
-                    "Furnished: ${property.furnished}",
-                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                  ),
-                  Text(
-                    "Level: ${property.level ?? 'N/A'}",
-                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                  ),
-                  Text(
-                    "Compound: ${property.compound ?? 'N/A'}",
-                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                  ),
-                  Text(
-                    "Payment Option: ${property.paymentOption}",
-                    style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-                  ),
+                  _buildPropertyDetail("City", property.city, theme),
+                  _buildPropertyDetail("Bedrooms", property.bedrooms.toString(), theme),
+                  _buildPropertyDetail("Bathrooms", property.bathrooms.toString(), theme),
+                  _buildPropertyDetail("Area", "${property.area} sqft", theme),
+                  _buildPropertyDetail("Furnished", property.furnished.toString(), theme),
+                  _buildPropertyDetail("Level", property.level?.toString() ?? 'N/A', theme),
+                  _buildPropertyDetail("Compound", property.compound ?? 'N/A', theme),
+                  _buildPropertyDetail("Payment Option", property.paymentOption, theme),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: () {
                       if (isFavorite) {
                         favouritesNotifier.removeProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text(
-                                  "${property.type} removed from favorites")),
+                          SnackBar(content: Text("${property.type} removed from favorites")),
                         );
                       } else {
                         favouritesNotifier.addProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content:
-                                  Text("${property.type} added to favorites")),
+                          SnackBar(content: Text("${property.type} added to favorites")),
                         );
                       }
                     },
-                    icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border),
-                    label: Text(isFavorite
-                        ? "Remove from Favorites"
-                        : "Add to Favorites"),
+                    icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
+                    label: Text(isFavorite ? "Remove from Favorites" : "Add to Favorites"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                    ),
                   ),
                 ],
               ),
@@ -316,12 +281,9 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       "Add Feedback",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: theme.textTheme.titleLarge,
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -329,11 +291,13 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                       decoration: InputDecoration(
                         hintText: "Enter your feedback",
                         border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF398AE5)),
+                          borderSide: BorderSide(color: theme.colorScheme.primary),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Color(0xFF398AE5), width: 2),
+                          borderSide: BorderSide(
+                            color: theme.colorScheme.primary,
+                            width: 2,
+                          ),
                         ),
                       ),
                       maxLines: 3,
@@ -346,75 +310,89 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                     ),
                     const SizedBox(height: 8),
                     ElevatedButton(
-                      onPressed: _submitFeedback,
-                      child: const Text("Submit Feedback"),
+                      onPressed: _isLoading ? null : _submitFeedback,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                      ),
+                      child: Text(_isLoading ? "Submitting..." : "Submit Feedback"),
                     ),
                   ],
                 ),
               ),
             ),
             if (_feedbacks.isNotEmpty) ...[
-Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: _feedbacks.map((feedback) {
-      return FutureBuilder<String>(
-        future: feedback.user_id == null
-            ? Future.value("Anonymous")
-            : _feedbackService.getMailOfFeedbacker(feedback.user_id!),
-        builder: (context, snapshot) {
-          final userName = feedback.user_id == null
-              ? "Anonymous"
-              : (snapshot.hasData
-                  ? snapshot.data!.replaceAll(RegExp(r'[\{\}\[\]"]'), '').replaceFirst("email:", "")
-                  : "Loading...");
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: _feedbacks.map((feedback) {
+                    return FutureBuilder<String>(
+                      future: feedback.user_id == null
+                          ? Future.value("Anonymous")
+                          : _feedbackService.getMailOfFeedbacker(feedback.user_id!),
+                      builder: (context, snapshot) {
+                        final userName = feedback.user_id == null
+                            ? "Anonymous"
+                            : (snapshot.hasData
+                                ? snapshot.data!.replaceAll(RegExp(r'[\{\}\[\]"]'), '').replaceFirst("email:", "")
+                                : "Loading...");
 
-          return Card(
-            shape: RoundedRectangleBorder(
-              side: BorderSide(color: const Color(0xFF398AE5), width: 1.5),
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-            margin: const EdgeInsets.only(bottom: 8.0),
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    userName,
-                    style: const TextStyle(
-                      color: Color.fromARGB(255, 233, 4, 80),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    feedback.feedback,
-                    style: const TextStyle(fontSize: 16,
-                    fontWeight: FontWeight.bold),
-                  ),
-                ],
+                        return Card(
+                          shape: RoundedRectangleBorder(
+                            side: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          margin: const EdgeInsets.only(bottom: 8.0),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  userName,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: theme.colorScheme.secondary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  feedback.feedback,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
-          );
-        },
-      );
-    }).toList(),
-  ),
-),
-
             ] else
-              const Padding(
-                padding: EdgeInsets.all(16.0),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Text(
                   "No feedback available for this property.",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPropertyDetail(String label, String value, ThemeData theme) {
+    return Text(
+      "$label: $value",
+      style: theme.textTheme.bodyLarge?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
       ),
     );
   }
