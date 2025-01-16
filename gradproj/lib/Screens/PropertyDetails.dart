@@ -73,7 +73,8 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('Failed to send feedback to AI pipeline: ${response.body}');
+        throw Exception(
+            'Failed to send feedback to AI pipeline: ${response.body}');
       }
     } catch (e) {
       throw Exception('Error sending feedback to AI pipeline: $e');
@@ -140,7 +141,8 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All feedbacks sent to FastAPI successfully!')),
+          const SnackBar(
+              content: Text('All feedbacks sent to FastAPI successfully!')),
         );
       }
     } catch (e) {
@@ -161,11 +163,13 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
     _feedbackController.dispose();
     super.dispose();
   }
- @override
+
+  @override
   Widget build(BuildContext context) {
     final property = widget.property;
     final favouritesNotifier = ref.watch(favouritesProvider.notifier);
-    final isFavorite = ref.watch(favouritesProvider).any((p) => p.id == property.id);
+    final isFavorite =
+        ref.watch(favouritesProvider).any((p) => p.id == property.id);
     final theme = Theme.of(context); // Get the current theme
 
     return Scaffold(
@@ -197,7 +201,8 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                         errorBuilder: (context, error, stackTrace) => Icon(
                           Icons.broken_image,
                           size: 70,
-                          color: theme.colorScheme.error, // Use theme error color
+                          color:
+                              theme.colorScheme.error, // Use theme error color
                         ),
                       );
                     },
@@ -222,7 +227,6 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                   ),
                 ),
               ),
-
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -230,7 +234,8 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                 children: [
                   Text(
                     property.type,
-                    style: theme.textTheme.headlineMedium, // Use theme text style
+                    style:
+                        theme.textTheme.headlineMedium, // Use theme text style
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -242,30 +247,43 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                   ),
                   const SizedBox(height: 8),
                   _buildPropertyDetail("City", property.city, theme),
-                  _buildPropertyDetail("Bedrooms", property.bedrooms.toString(), theme),
-                  _buildPropertyDetail("Bathrooms", property.bathrooms.toString(), theme),
+                  _buildPropertyDetail(
+                      "Bedrooms", property.bedrooms.toString(), theme),
+                  _buildPropertyDetail(
+                      "Bathrooms", property.bathrooms.toString(), theme),
                   _buildPropertyDetail("Area", "${property.area} sqft", theme),
-                  _buildPropertyDetail("Furnished", property.furnished.toString(), theme),
-                  _buildPropertyDetail("Level", property.level?.toString() ?? 'N/A', theme),
-                  _buildPropertyDetail("Compound", property.compound ?? 'N/A', theme),
-                  _buildPropertyDetail("Payment Option", property.paymentOption, theme),
+                  _buildPropertyDetail(
+                      "Furnished", property.furnished.toString(), theme),
+                  _buildPropertyDetail(
+                      "Level", property.level?.toString() ?? 'N/A', theme),
+                  _buildPropertyDetail(
+                      "Compound", property.compound ?? 'N/A', theme),
+                  _buildPropertyDetail(
+                      "Payment Option", property.paymentOption, theme),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: () {
                       if (isFavorite) {
                         favouritesNotifier.removeProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${property.type} removed from favorites")),
+                          SnackBar(
+                              content: Text(
+                                  "${property.type} removed from favorites")),
                         );
                       } else {
                         favouritesNotifier.addProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${property.type} added to favorites")),
+                          SnackBar(
+                              content:
+                                  Text("${property.type} added to favorites")),
                         );
                       }
                     },
-                    icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
-                    label: Text(isFavorite ? "Remove from Favorites" : "Add to Favorites"),
+                    icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border),
+                    label: Text(isFavorite
+                        ? "Remove from Favorites"
+                        : "Add to Favorites"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.colorScheme.primary,
                       foregroundColor: theme.colorScheme.onPrimary,
@@ -290,8 +308,13 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                       controller: _feedbackController,
                       decoration: InputDecoration(
                         hintText: "Enter your feedback",
+                        hintStyle: TextStyle(
+                          color: theme.colorScheme.onBackground
+                              .withOpacity(0.6), // Adjust hint text color
+                        ),
                         border: OutlineInputBorder(
-                          borderSide: BorderSide(color: theme.colorScheme.primary),
+                          borderSide:
+                              BorderSide(color: theme.colorScheme.primary),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderSide: BorderSide(
@@ -299,6 +322,8 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                             width: 2,
                           ),
                         ),
+                        filled: true, // To ensure a proper background
+                        fillColor: theme.colorScheme.background,
                       ),
                       maxLines: 3,
                       validator: (value) {
@@ -315,7 +340,8 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                         backgroundColor: theme.colorScheme.primary,
                         foregroundColor: theme.colorScheme.onPrimary,
                       ),
-                      child: Text(_isLoading ? "Submitting..." : "Submit Feedback"),
+                      child: Text(
+                          _isLoading ? "Submitting..." : "Submit Feedback"),
                     ),
                   ],
                 ),
@@ -330,17 +356,21 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                     return FutureBuilder<String>(
                       future: feedback.user_id == null
                           ? Future.value("Anonymous")
-                          : _feedbackService.getMailOfFeedbacker(feedback.user_id!),
+                          : _feedbackService
+                              .getMailOfFeedbacker(feedback.user_id!),
                       builder: (context, snapshot) {
                         final userName = feedback.user_id == null
                             ? "Anonymous"
                             : (snapshot.hasData
-                                ? snapshot.data!.replaceAll(RegExp(r'[\{\}\[\]"]'), '').replaceFirst("email:", "")
+                                ? snapshot.data!
+                                    .replaceAll(RegExp(r'[\{\}\[\]"]'), '')
+                                    .replaceFirst("email:", "")
                                 : "Loading...");
 
                         return Card(
                           shape: RoundedRectangleBorder(
-                            side: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+                            side: BorderSide(
+                                color: theme.colorScheme.primary, width: 1.5),
                             borderRadius: BorderRadius.circular(8.0),
                           ),
                           margin: const EdgeInsets.only(bottom: 8.0),
@@ -389,10 +419,25 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   }
 
   Widget _buildPropertyDetail(String label, String value, ThemeData theme) {
-    return Text(
-      "$label: $value",
-      style: theme.textTheme.bodyLarge?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onBackground, // Adjust color for theme
+            ),
+          ),
+          Text(
+            value,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onBackground, // Adjust color for theme
+            ),
+          ),
+        ],
       ),
     );
   }

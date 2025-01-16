@@ -66,7 +66,7 @@ class PropertyCard extends StatelessWidget {
                           property.type,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: isPortrait ? 16 : 12,
+                            fontSize: isPortrait ? 24 : 12,
                             color: isDark ? Colors.white : Colors.black,
                           ),
                           maxLines: 1,
@@ -76,7 +76,7 @@ class PropertyCard extends StatelessWidget {
                       Text(
                         "\$${property.price.toStringAsFixed(0)}",
                         style: TextStyle(
-                          fontSize: isPortrait ? 14 : 11,
+                          fontSize: isPortrait ? 24 : 11,
                           color: isDark ? Colors.lightBlue[300] : const Color(0xFF398AE5),
                           fontWeight: FontWeight.bold,
                         ),
