@@ -293,8 +293,8 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                         ? "Remove from Favorites"
                         : "Add to Favorites"),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: theme.colorScheme.onPrimary,
+                      backgroundColor: Colors.red,
+                      foregroundColor:  Colors.red,
                     ),
                   ),
                 ],
