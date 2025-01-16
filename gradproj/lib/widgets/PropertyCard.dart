@@ -12,14 +12,16 @@ class PropertyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Card(
       elevation: 5,
+      color: isDark ? Colors.grey[850] : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min, // Prevent expansion
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Property image
@@ -35,11 +37,11 @@ class PropertyCard extends StatelessWidget {
                     : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  return const Center(
+                  return Center(
                     child: Icon(
                       Icons.broken_image,
                       size: 40,
-                      color: Colors.grey,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
                     ),
                   );
                 },
@@ -65,6 +67,7 @@ class PropertyCard extends StatelessWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: isPortrait ? 16 : 12,
+                            color: isDark ? Colors.white : Colors.black,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -74,7 +77,7 @@ class PropertyCard extends StatelessWidget {
                         "\$${property.price.toStringAsFixed(0)}",
                         style: TextStyle(
                           fontSize: isPortrait ? 14 : 11,
-                          color: const Color(0xFF398AE5),
+                          color: isDark ? Colors.lightBlue[300] : const Color(0xFF398AE5),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -88,7 +91,7 @@ class PropertyCard extends StatelessWidget {
                     property.paymentOption,
                     style: TextStyle(
                       fontSize: isPortrait ? 13 : 10,
-                      color: Colors.grey[700],
+                      color: isDark ? Colors.grey[300] : Colors.grey[700],
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -105,7 +108,7 @@ class PropertyCard extends StatelessWidget {
                           "${property.city}",
                           style: TextStyle(
                             fontSize: isPortrait ? 12 : 10,
-                            color: Colors.grey[600],
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -115,7 +118,7 @@ class PropertyCard extends StatelessWidget {
                         "${property.area}sqft",
                         style: TextStyle(
                           fontSize: isPortrait ? 12 : 10,
-                          color: Colors.grey[600],
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
                         ),
                       ),
                     ],
@@ -131,14 +134,14 @@ class PropertyCard extends StatelessWidget {
                         "${property.bedrooms}B ${property.bathrooms}B",
                         style: TextStyle(
                           fontSize: isPortrait ? 12 : 10,
-                          color: Colors.grey[600],
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
                         ),
                       ),
                       Text(
                         property.furnished,
                         style: TextStyle(
                           fontSize: isPortrait ? 12 : 10,
-                          color: Colors.grey[600],
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
                         ),
                       ),
                     ],
