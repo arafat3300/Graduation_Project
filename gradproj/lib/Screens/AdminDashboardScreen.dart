@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gradproj/Screens/ApproveProperties.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gradproj/Controllers/user_controller.dart';
 
@@ -188,7 +189,7 @@ Future<void> _logout(BuildContext context) async {
                           icon: const Icon(Icons.list, size: 24),
                           label: const Text('Manage Users'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
+                            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             textStyle: const TextStyle(
                               fontSize: 18,
@@ -205,7 +206,7 @@ Future<void> _logout(BuildContext context) async {
                           icon: const Icon(Icons.business, size: 24),
                           label: const Text('Manage Properties'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
+                            backgroundColor:const Color.fromARGB(255, 0, 0, 0),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             textStyle: const TextStyle(
                               fontSize: 18,
@@ -234,7 +235,29 @@ Future<void> _logout(BuildContext context) async {
                             Navigator.pushNamed(context, '/manageAdmins');
 
                           },
-                        ),
+                        ),const SizedBox(height: 12),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.done_outline_outlined, size: 24),
+                          label: const Text('Approve Properties'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            textStyle: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            minimumSize: const Size.fromHeight(50),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                       const ApproveProperty(),
+                                  ),
+                                );
+                          },
+                        )
                       ],
                     ),
                   ],

@@ -21,7 +21,24 @@ Future<List<Property>> getUserPropertiesWithDetails(int userId, SupabaseClient s
       return [];
     }
   }
+Future<List<Property>> getPendingProperties(SupabaseClient supabase) async {
+    try {
+      final response = await supabase
+          .from('properties')
+          .select('*')
+          .filter('status', 'eq', 'pending');
 
+      if (response.isEmpty) {
+        return [];
+      }
+
+      // Map response to a list of Property objects
+      return (response as List).map((data) => Property.fromJson(data)).toList();
+    } catch (e) {
+      debugPrint("Error fetching  properties: $e");
+      return [];
+    }
+  }
 
 
 Future<bool> deleteProperty(int propertyId, SupabaseClient supabase) async {
