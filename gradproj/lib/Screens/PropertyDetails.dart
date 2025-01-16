@@ -260,7 +260,17 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                       } else {
                         favouritesNotifier.addProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${property.type} added to favorites")),
+                          SnackBar(
+                            content:Text("${property.type} added to favorites"),
+                            duration: const Duration(seconds: 5),
+                            action: SnackBarAction(
+                              label: "Manage your Favorites",
+                              textColor: Colors.blue,
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/favourites');
+                                },
+                              ),
+                          ),
                         );
                       }
                     },
