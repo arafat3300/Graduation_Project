@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gradproj/Models/singletonSession.dart';
 import 'package:http/http.dart' as http;
+import '../Providers/EmailProvider.dart';
 import '../Providers/FavouritesProvider.dart';
 import '../models/Property.dart';
 import '../Models/Feedback.dart';
 import '../Models/Message.dart';
 import '../Controllers/feedback_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class PropertyDetails extends ConsumerStatefulWidget {
   final Property property;
@@ -32,7 +34,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   final FeedbackController _feedbackService =
       FeedbackController(supabase: Supabase.instance.client);
 
-  final String fastApiUrl = 'http://localhost:8009/feedback';
+  final String fastApiUrl = 'http://192.168.1.36:8009/feedback';
 
   @override
   void initState() {
@@ -86,50 +88,55 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
       throw Exception('Error sending feedback to AI pipeline: $e');
     }
   }
+Future<void> _submitFeedback() async {
+  if (!_formKey.currentState!.validate()) return;
 
-  Future<void> _submitFeedback() async {
-    if (!_formKey.currentState!.validate()) return;
+  setState(() => _isLoading = true);
 
-    setState(() => _isLoading = true);
+  try {
+    final supabase = Supabase.instance.client;
+    final userId = singletonSession().userId;
 
-    try {
-      final supabase = Supabase.instance.client;
-      final userId = singletonSession().userId;
+    // Save to Supabase
+    await _feedbackService.addFeedback(
+      widget.property.id!,
+      _feedbackController.text,
+      userId,
+    );
 
-      // Save to Supabase
-      await _feedbackService.addFeedback(
-        widget.property.id!,
-        _feedbackController.text,
-        userId,
+    // Send to FastAPI
+    await _sendFeedbackToFastAPI(
+      feedbackText: _feedbackController.text,
+      propertyId: widget.property.id!,
+      userId: userId.toString(),
+    );
+
+    // Send email
+    final emailSender = ref.read(emailSenderProvider);
+    await emailSender.sendEmail(
+      propertyId: widget.property.id!,
+      userId: userId!,
+      feedbackText: _feedbackController.text, // Pass the feedback text here
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Feedback submitted successfully!')),
       );
-
-      // Send to FastAPI
-      await _sendFeedbackToFastAPI(
-        feedbackText: _feedbackController.text,
-        propertyId: widget.property.id!,
-        userId: userId.toString(),
-      );
-
-      await _loadFeedbacks();
-      _feedbackController.clear();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Feedback submitted successfully!')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error submitting feedback: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error submitting feedback: $e')),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+    _feedbackController.clear(); // Clear the feedback text AFTER sending the email
   }
+}
 
   Future<void> _sendAllFeedbacksToFastAPI() async {
     setState(() => _isBulkLoading = true);

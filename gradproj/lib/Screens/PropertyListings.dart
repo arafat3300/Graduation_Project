@@ -461,7 +461,7 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const EmailSenderScreen(),
+                builder: (context) => const ViewProfilePage(),
               ),
             );
           } else if (index == 2) {
