@@ -448,6 +448,30 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
                     ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pushNamed(context, '/signup');
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          shape: BoxShape.rectangle,
+                          color: Colors.white
+                          
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(10),
+                          child: Text(
+                        'Create an Account? Sign up',
+                        style: TextStyle(
+                           fontWeight: FontWeight.bold,
+                         
+                          color: Colors.grey,
+                          fontSize: 16,        
+                        ),
+                      ),)     
+                      )
+                    ),
                   ],
                 ),
               ),

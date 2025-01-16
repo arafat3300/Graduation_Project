@@ -12,11 +12,13 @@ class PropertyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    
     return Card(
       elevation: 5,
-      color: isDark ? Colors.grey[850] : Colors.white,
+      // Use surfaceVariant color for card background
+      color: theme.colorScheme.surfaceVariant,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -30,7 +32,7 @@ class PropertyCard extends StatelessWidget {
               top: Radius.circular(12),
             ),
             child: AspectRatio(
-              aspectRatio: isPortrait ? 16 / 9 : 16 / 10,
+              aspectRatio: isPortrait ? 16/9 : 16/10,
               child: Image.network(
                 property.imgUrl?.isNotEmpty == true
                     ? property.imgUrl!.first
@@ -41,18 +43,19 @@ class PropertyCard extends StatelessWidget {
                     child: Icon(
                       Icons.broken_image,
                       size: 40,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      // Use theme's disabled color for error icon
+                      color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
                     ),
                   );
                 },
               ),
             ),
           ),
-
+          
           // Property details
           Flexible(
             child: Padding(
-              padding: EdgeInsets.all(isPortrait ? 12.0 : 8.0), // Increase padding in portrait mode for better spacing
+              padding: EdgeInsets.all(isPortrait ? 8.0 : 6.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,10 +67,8 @@ class PropertyCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           property.type,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: isPortrait ? 24 : 14, // Slightly larger font for portrait
-                            color: isDark ? Colors.white : Colors.black,
+                          style: textTheme.titleLarge?.copyWith(
+                            fontSize: isPortrait ? 24 : 12,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -75,30 +76,29 @@ class PropertyCard extends StatelessWidget {
                       ),
                       Text(
                         "\$${property.price.toStringAsFixed(0)}",
-                        style: TextStyle(
-                          fontSize: isPortrait ? 26 : 16, // Larger price font in portrait mode
-                          color: isDark ? Colors.lightBlue[300] : const Color(0xFF398AE5),
-                          fontWeight: FontWeight.bold,
+                        style: textTheme.titleLarge?.copyWith(
+                          fontSize: isPortrait ? 24 : 11,
+                          color: theme.colorScheme.primary,
                         ),
                       ),
                     ],
                   ),
-
-                  SizedBox(height: isPortrait ? 6 : 3), // Increased space in portrait
-
+                  
+                  SizedBox(height: isPortrait ? 4 : 2),
+                  
                   // Payment Option
                   Text(
                     property.paymentOption,
-                    style: TextStyle(
-                      fontSize: isPortrait ? 14 : 11, // Adjusted size for payment option
-                      color: isDark ? Colors.grey[300] : Colors.grey[700],
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontSize: isPortrait ? 13 : 10,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-
-                  SizedBox(height: isPortrait ? 6 : 3), // Increased space in portrait
-
+                  
+                  SizedBox(height: isPortrait ? 4 : 2),
+                  
                   // Location and Area Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -106,9 +106,8 @@ class PropertyCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           "${property.city}",
-                          style: TextStyle(
-                            fontSize: isPortrait ? 14 : 11, // Larger text for city in portrait
-                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          style: textTheme.bodySmall?.copyWith(
+                            fontSize: isPortrait ? 12 : 10,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -116,32 +115,29 @@ class PropertyCard extends StatelessWidget {
                       ),
                       Text(
                         "${property.area}sqft",
-                        style: TextStyle(
-                          fontSize: isPortrait ? 14 : 11, // Larger text for area in portrait
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        style: textTheme.bodySmall?.copyWith(
+                          fontSize: isPortrait ? 12 : 10,
                         ),
                       ),
                     ],
                   ),
-
-                  SizedBox(height: isPortrait ? 6 : 3), // Increased space in portrait
-
+                  
+                  SizedBox(height: isPortrait ? 4 : 2),
+                  
                   // Beds, Baths and Furnished Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         "${property.bedrooms}B ${property.bathrooms}B",
-                        style: TextStyle(
-                          fontSize: isPortrait ? 14 : 11, // Larger text for bed and bath in portrait
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        style: textTheme.bodySmall?.copyWith(
+                          fontSize: isPortrait ? 12 : 10,
                         ),
                       ),
                       Text(
                         property.furnished,
-                        style: TextStyle(
-                          fontSize: isPortrait ? 14 : 11, // Larger text for furnished in portrait
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        style: textTheme.bodySmall?.copyWith(
+                          fontSize: isPortrait ? 12 : 10,
                         ),
                       ),
                     ],
