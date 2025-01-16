@@ -78,30 +78,84 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   }
 
   Future<void> _deleteUser(int id) async {
-    try {
-      setState(() => _isLoading = true);
+  Map<String, dynamic>? deletedUser;
+  bool isUndoTriggered = false;
 
-      final supabase = Supabase.instance.client;
-      await supabase.from('users').delete().eq('id', id);
+  try {
+    setState(() => _isLoading = true);
 
-      setState(() {
-        _users.removeWhere((user) => user.id == id);
-        _filteredUsers.removeWhere((user) => user.id == id);
-        _activeListings.remove(id);
-      });
+    final supabase = Supabase.instance.client;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User deleted successfully!')),
-      );
-    } catch (e) {
-      debugPrint('Error deleting user: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
+    final userToDelete = _users.firstWhere((user) => user.id == id);
+    deletedUser = {
+      'id': userToDelete.id,
+      'idd': userToDelete.idd,
+      'firstname': userToDelete.firstName,
+      'lastname': userToDelete.lastName,
+      'dob': userToDelete.dob,
+      'phone': userToDelete.phone,
+      'country': userToDelete.country,
+      'job': userToDelete.job,
+      'email': userToDelete.email,
+      'password': userToDelete.password, // Already hashed
+      'token': userToDelete.token,
+      'created_at': userToDelete.createdAt?.toIso8601String(),
+      'role': userToDelete.role,
+    };
+
+    await supabase.from('users').delete().eq('id', id);
+
+    setState(() {
+      _users.removeWhere((user) => user.id == id);
+      _filteredUsers.removeWhere((user) => user.id == id);
+      _activeListings.remove(id);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('User deleted successfully!'),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            if (deletedUser != null) {
+              try {
+                await supabase.from('users').insert(deletedUser);
+                await _fetchUsers();
+
+                isUndoTriggered = true;
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('User restored successfully!')),
+                );
+              } catch (e) {
+                debugPrint('Error restoring user: $e');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error restoring user: $e')),
+                );
+              }
+            }
+          },
+        ),
+      ),
+    );
+
+    await Future.delayed(const Duration(seconds: 5));
+
+    if (!isUndoTriggered) {
+      debugPrint('Undo was not triggered. User deletion finalized.');
     }
+  } catch (e) {
+    debugPrint('Error deleting user: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e')),
+    );
+  } finally {
+    setState(() => _isLoading = false);
   }
+}
+
+
 
   void _searchUsers(String query) {
     if (query.isEmpty) {
