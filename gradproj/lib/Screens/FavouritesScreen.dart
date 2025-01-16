@@ -17,7 +17,7 @@ class FavoritesScreen extends ConsumerStatefulWidget {
 }
 
 class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
-  int _currentIndex = 2;
+  int _currentIndex = 1;
 
   @override
   Widget build(BuildContext context) {
@@ -129,14 +129,14 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 builder: (context) => PropertyListScreen(toggleTheme: widget.toggleTheme),
               ),
             );
-          } else if (_currentIndex == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => SearchScreen(toggleTheme: widget.toggleTheme),
-              ),
-            );
-          } else if (_currentIndex == 3) {
+          // } else if (_currentIndex == 1) {
+          //   Navigator.push(
+          //     context,
+          //     MaterialPageRoute(
+          //       builder: (context) => SearchScreen(toggleTheme: widget.toggleTheme),
+          //     ),
+          //   );
+          } else if (_currentIndex == 2) {
             Navigator.push(
               context,
               MaterialPageRoute(
