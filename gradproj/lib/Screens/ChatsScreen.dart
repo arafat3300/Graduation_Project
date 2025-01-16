@@ -13,11 +13,34 @@ class ChatsScreen extends StatefulWidget {
 class _ChatsScreenState extends State<ChatsScreen> {
   List<dynamic> _chats = []; // Use dynamic to handle varied response structures
   bool _isLoading = true;
+  Map<int, String> userNames = {};
 
   @override
   void initState() {
     super.initState();
     _loadChats();
+  }
+
+  Future<void> _fetchUserName(int userId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('users')
+          .select('firstname, lastname')
+          .eq('id', userId)
+          .single();
+
+      if (response != null) {
+        final firstName = response['firstname'] ?? 'Unknown';
+        final lastName = response['lastname'] ?? 'User';
+        userNames[userId] = "$firstName $lastName";
+        setState(() {});
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching user name for ID $userId: $e')),
+      );
+    }
   }
 
   Future<void> _loadChats() async {
@@ -41,6 +64,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
               "${chat['property_id']}_${chat['sender_id']}_${chat['rec_id']}";
           if (!uniqueChats.containsKey(chatKey)) {
             uniqueChats[chatKey] = chat;
+            _fetchUserName(chat['sender_id']);
+            _fetchUserName(chat['rec_id']);
           }
         }
 
@@ -80,10 +105,11 @@ class _ChatsScreenState extends State<ChatsScreen> {
                     final isMe =
                         chat['sender_id'] == singletonSession().userId;
                     final chatWith = isMe ? chat['rec_id'] : chat['sender_id'];
+                    final userName = userNames[chatWith] ?? 'Loading...';
 
                     return ListTile(
                       leading: const Icon(Icons.chat),
-                      title: Text('Chat with User ID: $chatWith'),
+                      title: Text('Chat with $userName'),
                       subtitle: Text(chat['content'] ?? 'No messages yet'),
                       onTap: () {
                         // Navigate to ChatScreen
