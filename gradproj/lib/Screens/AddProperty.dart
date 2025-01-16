@@ -1,11 +1,11 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:gradproj/Models/singletonSession.dart';
 import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:image_picker/image_picker.dart'; // Add this import
+import 'dart:io'; // Add this import
 
 class AddPropertyScreen extends StatefulWidget {
   const AddPropertyScreen({super.key});
@@ -17,6 +17,7 @@ class AddPropertyScreen extends StatefulWidget {
 class _AddPropertyScreenState extends State<AddPropertyScreen> {
   final _formKey = GlobalKey<FormState>();
   final supabase = Supabase.instance.client;
+  final ImagePicker _picker = ImagePicker(); // Add this line
 
   final TextEditingController _typeController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
@@ -32,22 +33,51 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
   int? _userId = singletonSession().userId;
 
   List<Asset> _selectedImages = [];
+  List<XFile> _cameraImages = []; // Add this line
   final List<String> _uploadedImageUrls = [];
   final Uuid uuid = const Uuid();
 
-  File? _capturedImage;
-  final ImagePicker _imagePicker = ImagePicker();
+  Future<void> _takePicture() async {
+    try {
+      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
+      
+      if (photo != null) {
+        setState(() {
+          _cameraImages.add(photo);
+        });
+        debugPrint("Photo taken successfully");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Photo captured successfully")),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error taking picture: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error taking picture: $e")),
+      );
+    }
+  }
 
   Future<void> _pickImages() async {
     try {
+      setState(() {
+        _selectedImages.clear();
+      });
+
       final List<Asset> resultList = await MultiImagePicker.pickImages(
         androidOptions: const AndroidOptions(maxImages: 10),
       );
 
       if (resultList.isNotEmpty) {
+        debugPrint("Images selected: ${resultList.length}");
         setState(() {
           _selectedImages = resultList;
         });
+      } else {
+        debugPrint("No images selected.");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No images selected.")),
+        );
       }
     } catch (e) {
       debugPrint("Error picking images: $e");
@@ -57,91 +87,83 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
     }
   }
 
-  Future<void> _captureImage() async {
-    try {
-      final XFile? photo = await _imagePicker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 1024,
-        maxHeight: 1024,
-      );
-
-      if (photo != null) {
-        setState(() {
-          _capturedImage = File(photo.path);
-        });
-      }
-    } catch (e) {
-      debugPrint("Error capturing image: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
-    }
-  }
-
-  Future<void> _uploadCapturedImage() async {
-    if (_capturedImage == null) return;
-
-    try {
-      final fileBytes = await _capturedImage!.readAsBytes();
-      final uniqueFileName = "${uuid.v4()}_${_capturedImage!.path.split('/').last}";
-
-      final filePath = await supabase.storage
-          .from('properties-images')
-          .uploadBinary(uniqueFileName, fileBytes);
-
-      final publicUrl = supabase.storage
-          .from('properties-images')
-          .getPublicUrl(filePath.replaceFirst('properties-images/', ''));
-
-      setState(() {
-        _uploadedImageUrls.add(publicUrl);
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Image captured and uploaded successfully.")),
-      );
-    } catch (e) {
-      debugPrint("Error uploading captured image: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
-    }
-  }
-
   Future<void> _uploadImages() async {
-    if (_selectedImages.isEmpty) return;
+    try {
+      if (_selectedImages.isEmpty && _cameraImages.isEmpty) {
+        throw Exception("No images to upload");
+      }
 
-    for (var asset in _selectedImages) {
-      try {
+      // Upload gallery images
+      for (var asset in _selectedImages) {
         final byteData = await asset.getByteData();
         final fileBytes = byteData.buffer.asUint8List();
         final uniqueFileName = "${uuid.v4()}_${asset.name.replaceAll(' ', '_')}";
 
-        final filePath = await supabase.storage
-            .from('properties-images')
-            .uploadBinary(uniqueFileName, fileBytes);
-
-        final publicUrl = supabase.storage
-            .from('properties-images')
-            .getPublicUrl(filePath.replaceFirst('properties-images/', ''));
-
-        setState(() {
-          _uploadedImageUrls.add(publicUrl);
-        });
-      } catch (e) {
-        debugPrint("Error uploading image: $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error uploading image: $e")),
-        );
+        await _uploadImageBytes(fileBytes, uniqueFileName);
       }
+
+      // Upload camera images
+      for (var image in _cameraImages) {
+        final File imageFile = File(image.path);
+        final bytes = await imageFile.readAsBytes();
+        final uniqueFileName = "${uuid.v4()}_${image.name.replaceAll(' ', '_')}";
+
+        await _uploadImageBytes(bytes, uniqueFileName);
+      }
+
+      debugPrint("All images processed successfully.");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Images uploaded successfully.")),
+      );
+    } catch (e) {
+      debugPrint("Error during image upload: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
+  }
+
+  Future<void> _uploadImageBytes(Uint8List bytes, String fileName) async {
+    try {
+      debugPrint("Preparing to upload image: $fileName...");
+      debugPrint("File size: ${bytes.length} bytes");
+
+      final filePath = await supabase.storage
+          .from('properties-images')
+          .uploadBinary(fileName, bytes);
+
+      if (filePath.isEmpty) {
+        throw Exception("Upload failed for $fileName");
+      }
+
+      debugPrint("Image uploaded successfully: $filePath");
+
+      final relativePath = filePath.replaceFirst('properties-images/', '');
+
+      final publicUrl = supabase.storage
+          .from('properties-images')
+          .getPublicUrl(relativePath);
+
+      if (publicUrl.isEmpty) {
+        throw Exception("Failed to generate public URL for $fileName");
+      }
+
+      debugPrint("Public URL generated: $publicUrl");
+
+      setState(() {
+        _uploadedImageUrls.add(publicUrl);
+      });
+    } catch (e) {
+      debugPrint("Error uploading image: $fileName, Error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error uploading $fileName: $e")),
+      );
     }
   }
 
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       try {
-        await _uploadImages();
-
         final property = {
           "type": _typeController.text,
           "price": int.parse(_priceController.text),
@@ -158,8 +180,10 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
           "payment_option": _paymentOption,
           "city": _cityController.text,
           "img_url": _uploadedImageUrls,
-          "user_id": _userId,
+          "user_id": _userId
         };
+
+        await _uploadImages();
 
         await supabase.from('properties').insert(property);
 
@@ -170,11 +194,16 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
           ),
         );
 
-        Navigator.pushNamed(context, "/property-listings");
+        await Future.delayed(const Duration(seconds: 4), () {
+          Navigator.pushNamed(context, "/property-listings");
+        });
       } catch (e) {
-        debugPrint("Error: $e");
+        debugPrint('Error: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
+          SnackBar(
+            content: Text("Error: $e"),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -220,36 +249,149 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
               ),
               const SizedBox(height: 16),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _bedroomsController,
+                      decoration: const InputDecoration(
+                        labelText: "Bedrooms",
+                        prefixIcon: Icon(Icons.bed),
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) => value == null || value.isEmpty
+                          ? "Bedrooms are required"
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _bathroomsController,
+                      decoration: const InputDecoration(
+                        labelText: "Bathrooms",
+                        prefixIcon: Icon(Icons.bathroom),
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) => value == null || value.isEmpty
+                          ? "Bathrooms are required"
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _areaController,
+                decoration: const InputDecoration(
+                  labelText: "Area (sq ft)",
+                  prefixIcon: Icon(Icons.square_foot),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) =>
+                    value == null || value.isEmpty ? "Area is required" : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _levelController,
+                decoration: const InputDecoration(
+                  labelText: "Level (optional)",
+                  prefixIcon: Icon(Icons.layers),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _compoundController,
+                decoration: const InputDecoration(
+                  labelText: "Compound (optional)",
+                  prefixIcon: Icon(Icons.location_city),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _cityController,
+                decoration: const InputDecoration(
+                  labelText: "City",
+                  prefixIcon: Icon(Icons.location_on),
+                ),
+                validator: (value) =>
+                    value == null || value.isEmpty ? "City is required" : null,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _furnished,
+                decoration: const InputDecoration(
+                  labelText: "Furnished",
+                  prefixIcon: Icon(Icons.check),
+                ),
+                items: ["Yes", "No"]
+                    .map((furnished) => DropdownMenuItem(
+                          value: furnished,
+                          child: Text(furnished),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _furnished = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _paymentOption,
+                decoration: const InputDecoration(
+                  labelText: "Payment Option",
+                  prefixIcon: Icon(Icons.payment),
+                ),
+                items: ["Cash", "Installments"]
+                    .map((option) => DropdownMenuItem(
+                          value: option,
+                          child: Text(option),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _paymentOption = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton.icon(
                     onPressed: _pickImages,
                     icon: const Icon(Icons.image),
                     label: const Text("Pick Images"),
                   ),
+                  const SizedBox(width: 8),
                   ElevatedButton.icon(
-                    onPressed: () async {
-                      await _captureImage();
-                      await _uploadCapturedImage();
-                    },
+                    onPressed: _takePicture,
                     icon: const Icon(Icons.camera_alt),
-                    label: const Text("Capture Image"),
+                    label: const Text("Take Photo"),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Selected: ${_selectedImages.length + _cameraImages.length}",
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        fontStyle: FontStyle.italic),
                   ),
                 ],
               ),
-              if (_capturedImage != null) ...[
-                const SizedBox(height: 16),
-                Image.file(
-                  _capturedImage!,
-                  height: 150,
-                  fit: BoxFit.cover,
-                ),
-              ],
               const SizedBox(height: 24),
               Center(
                 child: ElevatedButton(
                   onPressed: _submitForm,
-                  child: const Text("Add Property"),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 12),
+                  ),
+                  child: const Text(
+                    "Add Property",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],
