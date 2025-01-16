@@ -398,6 +398,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                                 Text(
                                   feedback.feedback,
                                   style: theme.textTheme.bodyLarge?.copyWith(
+                                     color: theme.colorScheme.secondary,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
