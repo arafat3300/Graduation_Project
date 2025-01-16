@@ -168,27 +168,29 @@ Future<void> _fetchAdmins() async {
   }
 
   Future<void> _deleteAdmin(int id) async {
-    Map<String, dynamic>? deletedAdmin;
-    try {
-      setState(() => _isLoading = true);
+  Map<String, dynamic>? deletedAdmin;
+  bool isUndoTriggered = false;
 
-      final supabase = Supabase.instance.client;
-      final adminToDelete = _admins.firstWhere((admin) => admin.id == id);
-      deletedAdmin = {
+  try {
+    setState(() => _isLoading = true);
+
+    final supabase = Supabase.instance.client;
+    final adminToDelete = _admins.firstWhere((admin) => admin.id == id);
+    deletedAdmin = {
       'email': adminToDelete.email,
       'first_name': adminToDelete.firstName,
       'last_name': adminToDelete.lastName,
       'password': adminToDelete.password,
       'token': adminToDelete.token,
       'idd': adminToDelete.id,
-      };
+    };
 
-      await supabase.from('admins').delete().eq('id', id);
-      setState(() {
-        _admins.removeWhere((admin) => admin.id == id);
-      });
+    await supabase.from('admins').delete().eq('id', id);
+    setState(() {
+      _admins.removeWhere((admin) => admin.id == id);
+    });
 
-      ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('Admin deleted successfully!'),
         duration: const Duration(seconds: 5),
@@ -196,25 +198,42 @@ Future<void> _fetchAdmins() async {
           label: 'Undo',
           onPressed: () async {
             if (deletedAdmin != null) {
-              await supabase.from('admins').insert(deletedAdmin);
-              await _fetchAdmins();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Admin restored successfully!')),
-              );
+              try {
+                await supabase.from('admins').insert(deletedAdmin);
+                await _fetchAdmins();
+                isUndoTriggered = true;
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Admin restored successfully!')),
+                );
+              } catch (e) {
+                debugPrint('Error restoring admin: $e');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error restoring admin: $e')),
+                );
+              }
             }
           },
         ),
       ),
     );
-    } catch (e) {
-      debugPrint('Exception in _deleteAdmin(): $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Exception: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
+
+    // Wait to determine if the undo action was triggered
+    await Future.delayed(const Duration(seconds: 5));
+
+    if (!isUndoTriggered) {
+      debugPrint('Undo was not triggered. Admin deletion finalized.');
     }
+  } catch (e) {
+    debugPrint('Exception in _deleteAdmin(): $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Exception: $e')),
+    );
+  } finally {
+    setState(() => _isLoading = false);
   }
+}
+
 
   void _showAddAdminDialog() {
     final emailController = TextEditingController();
