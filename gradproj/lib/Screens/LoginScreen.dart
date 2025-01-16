@@ -425,29 +425,7 @@ class _LoginScreenState extends State<LoginScreen>
   ),
                     const SizedBox(height: 15),
                     // Forgot password section
-                    GestureDetector(
-                      onTap: () {
-                
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          shape: BoxShape.rectangle,
-                          color: Colors.white,
-                        ),
-                        child: const Padding(
-                          padding: EdgeInsets.all(10),
-                          child: Text(
-                            'Forgot Password?',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                   
                     GestureDetector(
                       onTap: () {
                         Navigator.pushNamed(context, '/signup');
