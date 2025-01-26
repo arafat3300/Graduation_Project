@@ -11,7 +11,6 @@ import '../Models/Feedback.dart';
 import '../Models/Message.dart';
 import '../Controllers/feedback_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 class PropertyDetails extends ConsumerStatefulWidget {
   final Property property;
@@ -81,62 +80,56 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
       );
 
       if (response.statusCode != 200) {
-        throw Exception(
-            'Failed to send feedback to AI pipeline: ${response.body}');
+        throw Exception('Failed to send feedback to AI pipeline: ${response.body}');
       }
     } catch (e) {
       throw Exception('Error sending feedback to AI pipeline: $e');
     }
   }
-Future<void> _submitFeedback() async {
-  if (!_formKey.currentState!.validate()) return;
 
-  setState(() => _isLoading = true);
+  Future<void> _submitFeedback() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  try {
-    final supabase = Supabase.instance.client;
-    final userId = singletonSession().userId;
+    setState(() => _isLoading = true);
 
-    // Save to Supabase
-    await _feedbackService.addFeedback(
-      widget.property.id!,
-      _feedbackController.text,
-      userId,
-    );
+    try {
+      final userId = singletonSession().userId;
 
-    // Send to FastAPI
-    await _sendFeedbackToFastAPI(
-      feedbackText: _feedbackController.text,
-      propertyId: widget.property.id!,
-      userId: userId.toString(),
-    );
-
-    // Send email
-    final emailSender = ref.read(emailSenderProvider);
-    await emailSender.sendEmail(
-      propertyId: widget.property.id!,
-      userId: userId!,
-      feedbackText: _feedbackController.text, // Pass the feedback text here
-    );
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Feedback submitted successfully!')),
+      // Save to Supabase
+      await _feedbackService.addFeedback(
+        widget.property.id!,
+        _feedbackController.text,
+        userId,
       );
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error submitting feedback: $e')),
+
+      // Send to FastAPI
+      await _sendFeedbackToFastAPI(
+        feedbackText: _feedbackController.text,
+        propertyId: widget.property.id!,
+        userId: userId?.toString(),
       );
+
+      // Reload feedbacks
+      await _loadFeedbacks();
+      _feedbackController.clear();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Feedback submitted successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error submitting feedback: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
-    _feedbackController.clear(); // Clear the feedback text AFTER sending the email
   }
-}
 
   Future<void> _sendAllFeedbacksToFastAPI() async {
     setState(() => _isBulkLoading = true);
@@ -147,14 +140,13 @@ Future<void> _submitFeedback() async {
         await _sendFeedbackToFastAPI(
           feedbackText: feedback.feedback,
           propertyId: feedback.property_id,
-          userId: feedback.user_id.toString() ?? 'anonymous',
+          userId: feedback.user_id?.toString() ?? 'anonymous',
         );
       }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('All feedbacks sent to FastAPI successfully!')),
+          const SnackBar(content: Text('All feedbacks sent to FastAPI successfully!')),
         );
       }
     } catch (e) {
@@ -177,7 +169,7 @@ Future<void> _submitFeedback() async {
       final response = await supabase
           .from('messages')
           .select('*')
-          .eq('property_id', propertyId)
+          .eq('property_id', propertyId!)
           .order('created_at', ascending: false);
 
       if (response != null && response is List<dynamic>) {
@@ -211,10 +203,9 @@ Future<void> _submitFeedback() async {
     setState(() => _isSending = true);
 
     try {
-      final supabase = Supabase.instance.client;
       final messageContent = _messageController.text.trim();
 
-      await supabase.from('messages').insert({
+      await Supabase.instance.client.from('messages').insert({
         'sender_id': singletonSession().userId,
         'rec_id': widget.property.userId,
         'property_id': widget.property.id,
@@ -301,6 +292,7 @@ Future<void> _submitFeedback() async {
                   ),
                 ),
               ),
+
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -318,6 +310,16 @@ Future<void> _submitFeedback() async {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  _buildPropertyDetail("City", property.city, theme),
+                  _buildPropertyDetail("Bedrooms", property.bedrooms.toString(), theme),
+                  _buildPropertyDetail("Bathrooms", property.bathrooms.toString(), theme),
+                  _buildPropertyDetail("Area", "${property.area} sqft", theme),
+                  _buildPropertyDetail("Furnished", property.furnished.toString(), theme),
+                  _buildPropertyDetail("Level", property.level?.toString() ?? 'N/A', theme),
+                  _buildPropertyDetail("Compound", property.compound ?? 'N/A', theme),
+                  _buildPropertyDetail("Payment Option", property.paymentOption, theme),
+                  const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: () {
                       if (isFavorite) {
@@ -332,14 +334,11 @@ Future<void> _submitFeedback() async {
                         );
                       }
                     },
-                    icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border),
-                    label: Text(isFavorite
-                        ? "Remove from Favorites"
-                        : "Add to Favorites"),
+                    icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
+                    label: Text(isFavorite ? "Remove from Favorites" : "Add to Favorites"),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor:  const Color.fromARGB(255, 255, 255, 255),
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
                     ),
                   ),
                 ],
@@ -364,6 +363,12 @@ Future<void> _submitFeedback() async {
                         border: OutlineInputBorder(
                           borderSide: BorderSide(color: theme.colorScheme.primary),
                         ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: theme.colorScheme.primary,
+                            width: 2,
+                          ),
+                        ),
                       ),
                       maxLines: 3,
                       validator: (value) {
@@ -376,146 +381,180 @@ Future<void> _submitFeedback() async {
                     const SizedBox(height: 8),
                     ElevatedButton(
                       onPressed: _isLoading ? null : _submitFeedback,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                      ),
                       child: Text(_isLoading ? "Submitting..." : "Submit Feedback"),
                     ),
                   ],
                 ),
               ),
             ),
-            if (_feedbacks.isNotEmpty)
+            if (_feedbacks.isNotEmpty) ...[
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: _feedbacks.map((feedback) {
-                    return Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(feedback.user_id.toString() ?? "Anonymous"),
-                            Text(feedback.feedback),
-                          ],
-                        ),
-                      ),
+                    return FutureBuilder<String>(
+                      future: feedback.user_id == null
+                          ? Future.value("Anonymous")
+                          : _feedbackService.getMailOfFeedbacker(feedback.user_id!),
+                      builder: (context, snapshot) {
+                        final userName = feedback.user_id == null
+                            ? "Anonymous"
+                            : (snapshot.hasData
+                                ? snapshot.data!.replaceAll(RegExp(r'[\{\}\[\]"]'), '').replaceFirst("email:", "")
+                                : "Loading...");
+
+                        return Card(
+                          shape: RoundedRectangleBorder(
+                            side: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          margin: const EdgeInsets.only(bottom: 8.0),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  userName,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: theme.colorScheme.secondary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  feedback.feedback,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    color: Colors.blueAccent,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     );
                   }).toList(),
                 ),
-              )
-            else
+              ),
+            ] else
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Text("No feedback available for this property."),
+                child: Text(
+                  "No feedback available for this property.",
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Chat:',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  StreamBuilder<List<Map<String, dynamic>>>(
-                    stream: Supabase.instance.client
-                        .from('messages')
-                        .stream(primaryKey: ['id'])
-                        .eq('property_id', widget.property.id)
-                        .order('created_at'),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Text(
-                            'Error: ${snapshot.error}',
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                        );
-                      }
-                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            'No messages yet. Start a conversation!',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        );
-                      }
-
-                      final messages = snapshot.data!;
-                      return Container(
-                        height: 300,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: ListView.builder(
-                          reverse: true,
-                          itemCount: messages.length,
-                          itemBuilder: (context, index) {
-                            final message = messages[index];
-                            final isMe =
-                                message['sender_id'] == singletonSession().userId;
-
-                            return Align(
-                              alignment: isMe
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(
-                                    vertical: 5, horizontal: 10),
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: isMe ? Colors.blue : Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  message['content'],
-                                  style: TextStyle(
-                                      color:
-                                          isMe ? Colors.white : Colors.black),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _messageController,
-                          decoration: const InputDecoration(
-                            hintText: 'Type your message...',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _isSending
-                          ? const CircularProgressIndicator()
-                          : IconButton(
-                              icon: const Icon(Icons.send, color: Colors.blue),
-                              onPressed: _sendMessage,
-                            ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
     );
   }
+
+Widget _buildPropertyDetail(String label, String value, ThemeData theme) {
+  return Container(
+    margin: const EdgeInsets.symmetric(vertical: 8.0),
+    decoration: BoxDecoration(
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: theme.colorScheme.shadow.withOpacity(0.08),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+      border: Border.all(
+        color: theme.colorScheme.outline.withOpacity(0.2),
+      ),
+    ),
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {}, // Optional: Add interaction if needed
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  _getIconForDetail(label),
+                  color: theme.colorScheme.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+IconData _getIconForDetail(String label) {
+  switch (label.toLowerCase()) {
+    case 'city':
+      return Icons.location_city;
+    case 'bedrooms':
+      return Icons.bed;
+    case 'bathrooms':
+      return Icons.bathroom;
+    case 'area':
+      return Icons.square_foot;
+    case 'furnished':
+      return Icons.chair;
+    case 'level':
+      return Icons.stairs;
+    case 'compound':
+      return Icons.home_work;
+    case 'payment option':
+      return Icons.payments;
+    case 'price':
+      return Icons.attach_money;
+    default:
+      return Icons.info_outline;
+  }
+}
 }

@@ -4,8 +4,6 @@ import 'package:gradproj/Models/singletonSession.dart';
 import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:image_picker/image_picker.dart'; // Add this import
-import 'dart:io'; // Add this import
 
 class AddPropertyScreen extends StatefulWidget {
   const AddPropertyScreen({super.key});
@@ -17,7 +15,6 @@ class AddPropertyScreen extends StatefulWidget {
 class _AddPropertyScreenState extends State<AddPropertyScreen> {
   final _formKey = GlobalKey<FormState>();
   final supabase = Supabase.instance.client;
-  final ImagePicker _picker = ImagePicker(); // Add this line
 
   final TextEditingController _typeController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
@@ -33,16 +30,11 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
   int? _userId = singletonSession().userId;
 
   List<Asset> _selectedImages = [];
-  List<XFile> _cameraImages = []; // Add this line
   final List<String> _uploadedImageUrls = [];
   final Uuid uuid = const Uuid();
 
   Future<void> _pickImages() async {
     try {
-      setState(() {
-        _selectedImages.clear();
-      });
-
       setState(() {
         _selectedImages.clear();
       });
@@ -53,15 +45,9 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
 
       if (resultList.isNotEmpty) {
         debugPrint("Images selected: ${resultList.length}");
-        debugPrint("Images selected: ${resultList.length}");
         setState(() {
           _selectedImages = resultList;
         });
-      } else {
-        debugPrint("No images selected.");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No images selected.")),
-        );
       } else {
         debugPrint("No images selected.");
         ScaffoldMessenger.of(context).showSnackBar(
@@ -76,7 +62,6 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
     }
   }
 
-  Future<void> _uploadImages() async {
   Future<void> _uploadImages() async {
     try {
       if (_selectedImages.isEmpty) {
@@ -163,8 +148,6 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
 
         await _uploadImages();
 
-        await _uploadImages();
-
         await supabase.from('properties').insert(property);
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -177,17 +160,9 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
         await Future.delayed(const Duration(seconds: 4), () {
           Navigator.pushNamed(context, "/property-listings");
         });
-        await Future.delayed(const Duration(seconds: 4), () {
-          Navigator.pushNamed(context, "/property-listings");
-        });
       } catch (e) {
         debugPrint('Error: $e');
-        debugPrint('Error: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: $e"),
-            backgroundColor: Colors.red,
-          ),
           SnackBar(
             content: Text("Error: $e"),
             backgroundColor: Colors.red,
@@ -347,115 +322,6 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _bedroomsController,
-                      decoration: const InputDecoration(
-                        labelText: "Bedrooms",
-                        prefixIcon: Icon(Icons.bed),
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) => value == null || value.isEmpty
-                          ? "Bedrooms are required"
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _bathroomsController,
-                      decoration: const InputDecoration(
-                        labelText: "Bathrooms",
-                        prefixIcon: Icon(Icons.bathroom),
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) => value == null || value.isEmpty
-                          ? "Bathrooms are required"
-                          : null,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _areaController,
-                decoration: const InputDecoration(
-                  labelText: "Area (sq ft)",
-                  prefixIcon: Icon(Icons.square_foot),
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) =>
-                    value == null || value.isEmpty ? "Area is required" : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _levelController,
-                decoration: const InputDecoration(
-                  labelText: "Level (optional)",
-                  prefixIcon: Icon(Icons.layers),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _compoundController,
-                decoration: const InputDecoration(
-                  labelText: "Compound (optional)",
-                  prefixIcon: Icon(Icons.location_city),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _cityController,
-                decoration: const InputDecoration(
-                  labelText: "City",
-                  prefixIcon: Icon(Icons.location_on),
-                ),
-                validator: (value) =>
-                    value == null || value.isEmpty ? "City is required" : null,
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _furnished,
-                decoration: const InputDecoration(
-                  labelText: "Furnished",
-                  prefixIcon: Icon(Icons.check),
-                ),
-                items: ["Yes", "No"]
-                    .map((furnished) => DropdownMenuItem(
-                          value: furnished,
-                          child: Text(furnished),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _furnished = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _paymentOption,
-                decoration: const InputDecoration(
-                  labelText: "Payment Option",
-                  prefixIcon: Icon(Icons.payment),
-                ),
-                items: ["Cash", "Installments"]
-                    .map((option) => DropdownMenuItem(
-                          value: option,
-                          child: Text(option),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _paymentOption = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
                   ElevatedButton.icon(
                     onPressed: _pickImages,
                     icon: const Icon(Icons.image),
@@ -481,14 +347,6 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
               Center(
                 child: ElevatedButton(
                   onPressed: _submitForm,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 12),
-                  ),
-                  child: const Text(
-                    "Add Property",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 32, vertical: 12),

@@ -48,16 +48,21 @@ Future<List<propertyFeedbacks>> getAllFeedbacks() async {
   }
 }
 
-  Future<String> getMailOfFeedbacker(int user_id) async {
-    try {
-      final response =
-          await supabase.from('users').select('email').eq('id', user_id);
+Future<String> getMailOfFeedbacker(int? userId) async {
+  if (userId == null) return "Anonymous";
+  try {
+    final response = await supabase
+        .from('users')
+        .select('email')
+        .eq('id', userId)
+        .single(); // Ensure you fetch a single row
 
-      return response.toString();
-    } catch (e) {
-      rethrow;
-    }
+    return response['email'] ?? "Anonymous";
+  } catch (e) {
+    return "Anonymous"; // Fallback for any errors
   }
+}
+
 Future<void> addFeedback(
     int propertyId, String feedbackText, int? userId) async {
   try {

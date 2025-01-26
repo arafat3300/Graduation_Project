@@ -14,10 +14,9 @@ class PropertyCard extends StatelessWidget {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-    
+
     return Card(
-      elevation: 5,
-      // Use surfaceVariant color for card background
+      elevation: 4,
       color: theme.colorScheme.surfaceVariant,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -32,7 +31,7 @@ class PropertyCard extends StatelessWidget {
               top: Radius.circular(12),
             ),
             child: AspectRatio(
-              aspectRatio: isPortrait ? 16/9 : 16/10,
+              aspectRatio: 16 / 9,
               child: Image.network(
                 property.imgUrl?.isNotEmpty == true
                     ? property.imgUrl!.first
@@ -43,7 +42,6 @@ class PropertyCard extends StatelessWidget {
                     child: Icon(
                       Icons.broken_image,
                       size: 40,
-                      // Use theme's disabled color for error icon
                       color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
                     ),
                   );
@@ -51,99 +49,104 @@ class PropertyCard extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Property details
-          Flexible(
-            child: Padding(
-              padding: EdgeInsets.all(isPortrait ? 8.0 : 6.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title and Price Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          property.type,
-                          style: textTheme.titleLarge?.copyWith(
-                            fontSize: isPortrait ? 24 : 12,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        "\$${property.price.toStringAsFixed(0)}",
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title and Price Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        property.type,
                         style: textTheme.titleLarge?.copyWith(
-                          fontSize: isPortrait ? 24 : 11,
-                          color: theme.colorScheme.primary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
-                  
-                  SizedBox(height: isPortrait ? 4 : 2),
-                  
-                  // Payment Option
-                  Text(
-                    property.paymentOption,
-                    style: textTheme.bodyMedium?.copyWith(
-                      fontSize: isPortrait ? 13 : 10,
-                      color: theme.colorScheme.onSurfaceVariant,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    Text(
+                      "\$${property.price.toStringAsFixed(0)}",
+                      style: textTheme.titleLarge?.copyWith(
+                        fontSize: 18,
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 4),
+
+                // Payment Option
+                Text(
+                  property.paymentOption,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontSize: 14,
+                    color: theme.colorScheme.secondary,
                   ),
-                  
-                  SizedBox(height: isPortrait ? 4 : 2),
-                  
-                  // Location and Area Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          "${property.city}",
-                          style: textTheme.bodySmall?.copyWith(
-                            fontSize: isPortrait ? 12 : 10,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        "${property.area}sqft",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+
+                const SizedBox(height: 4),
+
+                // Location and Area Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        property.city,
                         style: textTheme.bodySmall?.copyWith(
-                          fontSize: isPortrait ? 12 : 10,
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
-                  
-                  SizedBox(height: isPortrait ? 4 : 2),
-                  
-                  // Beds, Baths and Furnished Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "${property.bedrooms}B ${property.bathrooms}B",
-                        style: textTheme.bodySmall?.copyWith(
-                          fontSize: isPortrait ? 12 : 10,
-                        ),
+                    ),
+                    Text(
+                      "${property.area} sqft",
+                      style: textTheme.bodySmall?.copyWith(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurface,
                       ),
-                      Text(
-                        property.furnished,
-                        style: textTheme.bodySmall?.copyWith(
-                          fontSize: isPortrait ? 12 : 10,
-                        ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 4),
+
+                // Beds, Baths and Furnished Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "${property.bedrooms}B ${property.bathrooms}B",
+                      style: textTheme.bodySmall?.copyWith(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                    Text(
+                      property.furnished,
+                      style: textTheme.bodySmall?.copyWith(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
