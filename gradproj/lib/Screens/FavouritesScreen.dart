@@ -18,7 +18,12 @@ class FavoritesScreen extends ConsumerStatefulWidget {
 
 class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   int _currentIndex = 1;
-
+@override
+void initState() {
+  super.initState();
+  final favouritesNotifier = ref.read(favouritesProvider.notifier);
+  favouritesNotifier.fetchFavorites(); // Fetch favorites on screen load
+}
   @override
   Widget build(BuildContext context) {
     final favourites = ref.watch(favouritesProvider);

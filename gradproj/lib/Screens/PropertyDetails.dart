@@ -319,19 +319,20 @@ Future<void> _submitFeedback() async {
                     ),
                   ),
                   ElevatedButton.icon(
-                    onPressed: () {
-                      if (isFavorite) {
-                        favouritesNotifier.removeProperty(property);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${property.type} removed from favorites")),
-                        );
-                      } else {
-                        favouritesNotifier.addProperty(property);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${property.type} added to favorites")),
-                        );
-                      }
-                    },
+               onPressed: () async {
+  if (isFavorite) {
+    await favouritesNotifier.removeProperty(property);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("${property.type} removed from favorites")),
+    );
+  } else {
+    await favouritesNotifier.addProperty(property);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("${property.type} added to favorites")),
+    );
+  }
+},
+
                     icon: Icon(
                         isFavorite ? Icons.favorite : Icons.favorite_border),
                     label: Text(isFavorite
