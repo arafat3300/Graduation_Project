@@ -90,11 +90,24 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   Future<void> _submitFeedback() async {
     if (!_formKey.currentState!.validate()) return;
 
+  Future<void> _submitFeedback() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
     setState(() => _isLoading = true);
 
     try {
+      final supabase = Supabase.instance.client;
+      final userId = singletonSession().userId;
+    try {
       final userId = singletonSession().userId;
 
+      // Save to Supabase
+      await _feedbackService.addFeedback(
+        widget.property.id!,
+        _feedbackController.text,
+        userId,
+      );
       // Save to Supabase
       await _feedbackService.addFeedback(
         widget.property.id!,
@@ -106,13 +119,45 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
       await _sendFeedbackToFastAPI(
         feedbackText: _feedbackController.text,
         propertyId: widget.property.id!,
+        userId: userId.toString(),
+      );
+      // Send to FastAPI
+      await _sendFeedbackToFastAPI(
+        feedbackText: _feedbackController.text,
+        propertyId: widget.property.id!,
         userId: userId?.toString(),
       );
 
+      // Send email
+      final emailSender = ref.read(emailSenderProvider);
+      await emailSender.sendEmail(
+        propertyId: widget.property.id!,
+        userId: userId!,
+        feedbackText: _feedbackController.text, // Pass the feedback text here
+      );
       // Reload feedbacks
       await _loadFeedbacks();
       _feedbackController.clear();
 
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Feedback submitted successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error submitting feedback: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+      _feedbackController
+          .clear(); // Clear the feedback text AFTER sending the email
+    }
+  }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Feedback submitted successfully!')),
@@ -235,7 +280,8 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   Widget build(BuildContext context) {
     final property = widget.property;
     final favouritesNotifier = ref.watch(favouritesProvider.notifier);
-    final isFavorite = ref.watch(favouritesProvider).any((p) => p.id == property.id);
+    final isFavorite =
+        ref.watch(favouritesProvider).any((p) => p.id == property.id);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -325,12 +371,24 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                       if (isFavorite) {
                         favouritesNotifier.removeProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${property.type} removed from favorites")),
+                          SnackBar(
+                              content: Text(
+                                  "${property.type} removed from favorites")),
                         );
                       } else {
                         favouritesNotifier.addProperty(property);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${property.type} added to favorites")),
+                          SnackBar(
+                            content:
+                                Text("${property.type} added to favorites"),
+                            duration: const Duration(seconds: 5),
+                            action: SnackBarAction(
+                              label: "Manage your favorites",
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/favourites');
+                              },
+                            ),
+                          ),
                         );
                       }
                     },
@@ -385,7 +443,8 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                         backgroundColor: theme.colorScheme.primary,
                         foregroundColor: theme.colorScheme.onPrimary,
                       ),
-                      child: Text(_isLoading ? "Submitting..." : "Submit Feedback"),
+                      child: Text(
+                          _isLoading ? "Submitting..." : "Submit Feedback"),
                     ),
                   ],
                 ),

@@ -46,7 +46,6 @@ class SignInResult {
 }
 
 class GoogleController {
-  // Configuration constants
   static const String _jwtSecret = 'samirencryption';
   static const Duration _jwtDuration = Duration(minutes: 5);
   
@@ -58,7 +57,6 @@ class GoogleController {
   final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
   final Uuid _uuid = const Uuid();
 
-  // Generate JWT token with standard claims
   String _generateJwtToken(String userId, String email, int role) {
     final jwt = JWT(
       {
@@ -76,7 +74,6 @@ class GoogleController {
     return jwt.sign(SecretKey(_jwtSecret));
   }
 
-  // Verify JWT token and return payload if valid
   Map<String, dynamic>? _verifyJwtToken(String token) {
     try {
       final jwt = JWT.verify(token, SecretKey(_jwtSecret));
@@ -113,7 +110,6 @@ class GoogleController {
     }
   }
 
-  // Enhanced session saving with both JWT and OAuth tokens
   Future<void> _saveSession(
     String userId,
     String email,
@@ -122,19 +118,17 @@ class GoogleController {
     String idToken,
   ) async {
     try {
-      // Generate JWT token
       final jwtToken = _generateJwtToken(userId, email, role);
       
-      // Calculate JWT expiration
       final jwtExpiration = DateTime.now().add(_jwtDuration);
       
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_id', userId);
       await prefs.setString('email', email);
       await prefs.setInt('role', role);
-      await prefs.setString('access_token', accessToken);    // Google access token
-      await prefs.setString('id_token', idToken);           // Google ID token
-      await prefs.setString('token', jwtToken);         // Our JWT token
+      await prefs.setString('access_token', accessToken);    
+      await prefs.setString('id_token', idToken);           
+      await prefs.setString('token', jwtToken);        
       await prefs.setString('jwt_expiry', jwtExpiration.toIso8601String());
       await prefs.setBool('is_logged_in', true);
     } catch (e) {
@@ -163,7 +157,6 @@ class GoogleController {
         final idToken = authentication.idToken ?? '';
 
         if (existingUser != null) {
-          // Handle existing user
           await _saveSession(
             existingUser.id,
             existingUser.email,
@@ -179,13 +172,11 @@ class GoogleController {
             role: existingUser.role,
           );
         } else {
-          // Create new user
           final String userId = _uuid.v4();
           final List<String> nameParts = (account.displayName ?? '').split(' ');
           final String firstName = nameParts.isNotEmpty ? nameParts.first.trim() : 'Unknown';
           final String lastName = nameParts.length > 1 ? nameParts.last.trim() : 'Unknown';
 
-          // Generate JWT token for the new user
           final jwtToken = _generateJwtToken(userId, account.email, 2);
 
           final user = local.User(
@@ -198,7 +189,7 @@ class GoogleController {
             country: 'Unknown',
             job: 'Unknown',
             password: '',
-            token: jwtToken,  // Store JWT token instead of Google token
+            token: jwtToken,  
             createdAt: DateTime.now(),
             role: 2,
           );
@@ -238,7 +229,6 @@ class GoogleController {
     }
   }
 
-  // Get stored JWT token
   Future<String?> getJwtToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -249,7 +239,6 @@ class GoogleController {
     }
   }
 
-  // Get Google access token
   Future<String?> getAccessToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -260,7 +249,6 @@ class GoogleController {
     }
   }
 
-  // Get Google ID token
   Future<String?> getIdToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -271,7 +259,6 @@ class GoogleController {
     }
   }
 
-  // Get user role from stored data
   Future<int?> getUserRole() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -282,7 +269,6 @@ class GoogleController {
     }
   }
 
-  // Check if JWT token is valid
   Future<bool> isJwtValid() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -296,7 +282,6 @@ class GoogleController {
     }
   }
 
-  // Refresh JWT token if needed
   Future<bool> refreshJwtIfNeeded() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -334,7 +319,6 @@ class GoogleController {
     }
   }
 
-  // Sign out user
   Future<void> signOut() async {
     try {
       await _googleSignIn.signOut();

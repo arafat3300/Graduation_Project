@@ -5,14 +5,11 @@ import 'package:gradproj/Models/User.dart' as local;
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 
 class UserController {
-  // Initialize Supabase client
   final _supabase = Supabase.instance.client;
   
-  // Constants for token storage and JWT encryption
   static const String tokenKey = 'token';
   static const String _jwtSecret = 'samirencryption';
 
-  /// Check if the token is a UUID
   bool _isUUID(String token) {
     final uuidPattern = RegExp(
       r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
@@ -21,7 +18,6 @@ class UserController {
     return uuidPattern.hasMatch(token);
   }
 
-  /// Save session token in SharedPreferences
   Future<void> saveSessionToken(String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -33,7 +29,6 @@ class UserController {
     }
   }
 
-  /// Retrieve session token from SharedPreferences
   Future<String?> getSessionToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -48,7 +43,6 @@ class UserController {
     }
   }
 
-  /// Get user by their unique identifier
   Future<local.User?> getUserById(String userId) async {
     try {
       debugPrint("Attempting to get user with ID: $userId");
@@ -132,7 +126,6 @@ class UserController {
     }
   }
 
-  /// Extract user ID from JWT token
   String? _getUserIdFromJwt(String token) {
     try {
       if (_isUUID(token)) return null;
@@ -144,10 +137,9 @@ class UserController {
     }
   }
 
-  /// Verify if token is valid
   bool isTokenValid(String token) {
     if (_isUUID(token)) {
-      return true; // UUID tokens don't expire
+      return true; 
     }
     
     try {
@@ -163,7 +155,6 @@ class UserController {
     }
   }
 
-  /// Get logged-in user
   Future<local.User?> getLoggedInUser() async {
     try {
       final token = await getSessionToken();
@@ -189,20 +180,17 @@ class UserController {
     }
   }
 
-  /// Get logged-in user's email
   Future<String?> getLoggedInUserEmail() async {
     final user = await getLoggedInUser();
     return user?.email;
   }
 
-  /// Get logged-in user's full name
   Future<String?> getLoggedInUserName() async {
     final user = await getLoggedInUser();
     if (user == null) return null;
     return '${user.firstName} ${user.lastName}'.trim();
   }
 
-  /// Get logged-in user's phone number
   Future<String?> getLoggedInUserNumber() async {
     final user = await getLoggedInUser();
     return user?.phone;
@@ -212,7 +200,6 @@ class UserController {
     return user?.id;
   }
 
-  /// Clear session token
   Future<void> clearSessionToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -224,7 +211,6 @@ class UserController {
     }
   }
 
-  /// Check if user is currently logged in
   Future<bool> isUserLoggedIn() async {
     try {
       final token = await getSessionToken();

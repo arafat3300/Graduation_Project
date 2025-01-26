@@ -46,18 +46,14 @@ class EmailSenderState {
   }
 }
 
-// Controller class to handle all business logic
 class EmailSenderController extends ChangeNotifier {
-  // Dependencies
   final GoogleSignIn _googleSignIn;
   final supabase.SupabaseClient _supabase;
   final void Function(String) onError;
   final void Function(String) onSuccess;
 
-  // Internal state
   EmailSenderState _state = EmailSenderState();
 
-  // Constructor with dependency injection
  EmailSenderController({
     required GoogleSignIn googleSignIn,
     required supabase.SupabaseClient supabase,
@@ -68,11 +64,9 @@ class EmailSenderController extends ChangeNotifier {
     _loadUserSession();
   }
 
-  // Getters for state
   EmailSenderState get state => _state;
   bool get isAuthenticated => _state.accessToken != null;
 
-  // Load saved session data
   Future<void> _loadUserSession() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -89,7 +83,6 @@ class EmailSenderController extends ChangeNotifier {
     }
   }
 
-  // Authentication methods
   Future<Map<String, String>?> _authenticateAndGetTokens() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -137,7 +130,6 @@ class EmailSenderController extends ChangeNotifier {
     }    
   }
 
-  // Session management
   Future<void> _saveSessionData(
     GoogleSignInAccount user, 
     GoogleSignInAuthentication auth
@@ -157,7 +149,6 @@ class EmailSenderController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Email sending functionality
    Future<void> sendEmail({
   required int propertyId,
   required int userId,
@@ -255,14 +246,14 @@ class EmailSenderController extends ChangeNotifier {
     final emailBody = """
    Subject: Exclusive Property Alert: $propertyCompound in $propertyCity
 
-Hi $userName,
+   Hi $userName,
 
-I thought of you when I saw this exceptional property at $propertyCompound in $propertyCity. Priced at \$$propertyPrice, it offers outstanding value in one of our most desirable neighborhoods.
+   I thought of you when I saw this exceptional property at $propertyCompound in $propertyCity. Priced at \$$propertyPrice, it offers outstanding value in one of our most desirable neighborhoods.
 
-Would you like to schedule a viewing this week? I'd be happy to show you around personally.
+   Would you like to schedule a viewing this week? I'd be happy to show you around personally.
 
-Best regards,
-Samirzzz
+   Best regards,
+   Samirzzz
 
 
     """;
@@ -303,42 +294,14 @@ Samirzzz
     onError(error.toString());
   }
 
-  Future<Map<String, String>?> printSessionData() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      
-      final sessionData = {
-        'email': prefs.getString('email') ?? 'Not set',
-        'accessToken': prefs.getString('access_token') ?? 'Not set',
-        'idToken': prefs.getString('id_token') ?? 'Not set',
-        'role': prefs.getInt('role')?.toString() ?? 'Not set',
-        'phone': prefs.getString('phone') ?? 'Not set',
-        'expiresAt': _formatExpirationTime(prefs.getInt('expires_at')),
-      };
-
-      debugPrint('\n=== Session Data ===');
-      sessionData.forEach((key, value) {
-        debugPrint('$key: ${_truncateToken(value)}');
-      });
-      debugPrint('==================\n');
-
-      return sessionData;
-    } catch (e) {
-      _handleError('Session Data Print Error', e);
-      return null;
-    }
-  }
+ 
 
   String _formatExpirationTime(int? timestamp) {
     if (timestamp == null) return 'Not set';
     return DateTime.fromMillisecondsSinceEpoch(timestamp).toLocal().toString();
   }
 
-  String _truncateToken(String token) {
-    if (token == 'Not set') return token;
-    if (token.length <= 20) return token;
-    return '${token.substring(0, 10)}...${token.substring(token.length - 10)}';
-  }
+
 
   @override
   void dispose() {
