@@ -63,4 +63,7 @@ Future<bool> deleteProperty(int propertyId, SupabaseClient supabase) async {
   }
 }
 
+
+
+
 }

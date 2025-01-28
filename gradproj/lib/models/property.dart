@@ -13,7 +13,7 @@ class Property {
   late int? userId;
   late List<String>? imgUrl;
   late String ?status ;
-
+late double ?similarityScore;
   Property({
    required this.id,
     required this.type,
@@ -28,7 +28,8 @@ class Property {
     required this.city,
     this.userId,
     this.imgUrl,
-     this.status,
+     this.status, 
+     this.similarityScore
   });
 
 factory Property.fromJson(Map<String, dynamic> json) {
@@ -49,6 +50,8 @@ factory Property.fromJson(Map<String, dynamic> json) {
     imgUrl: json['img_url'] != null
         ? (json['img_url'] as List<dynamic>).map((e) => e.toString()).toList()
         : [], 
+       similarityScore: (json['similarity_score'] as num?)?.toDouble() ?? 0.0,
+        
   );
 }
 
