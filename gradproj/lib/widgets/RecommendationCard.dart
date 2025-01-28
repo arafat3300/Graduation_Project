@@ -1,7 +1,7 @@
 import '../models/Property.dart';
 import 'package:flutter/material.dart';
 import '../Screens/PropertyDetails.dart';
-
+String test = 't';
 class RecommendationCard extends StatelessWidget {
   final Property property;
 

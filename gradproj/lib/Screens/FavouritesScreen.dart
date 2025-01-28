@@ -45,6 +45,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
 Future<void> fetchPropertiesFromSupabase(List<Map<String, dynamic>> recommendedData) async {
   final supabase = Supabase.instance.client;
+  String test = 't';
 
   try {
     // ✅ Extract property IDs and map similarity scores

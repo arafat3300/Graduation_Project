@@ -35,6 +35,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
       FeedbackController(supabase: Supabase.instance.client);
 
   final String fastApiUrl = 'http://192.168.1.36:8009/feedback';
+  String test = 't';
 
   @override
   void initState() {
