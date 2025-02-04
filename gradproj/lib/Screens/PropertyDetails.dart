@@ -155,14 +155,15 @@ Future<void> _createLead() async {
     // Fetch user details from Supabase
     final response = await supabase
         .from('users')
-        .select('firstname, lastname, email, phone')  // Corrected here
+        .select('firstname, lastname, email, phone, job')
         .eq('id', userId)
         .single();
 
     final userName = "${response['firstname'] ?? "Unknown"} ${response['lastname'] ?? "User"}";
     final userEmail = response['email'] ?? "No Email";
     final userPhone = response['phone'] ?? "No Phone";
-
+    final job = response['job'] ?? "No Job";
+  final propertyPrice = widget.property.price ?? 0;
     log(userName);
     log(userEmail);
     log(userPhone);
@@ -195,7 +196,7 @@ Future<void> _createLead() async {
       throw Exception("Failed to authenticate with Odoo");
     }
 
-    // Create a lead in Odoo
+    // Create a lead in Odoo with property price in the name
     final leadResponse = await http.post(
       Uri.parse(odooUrl),
       headers: {'Content-Type': 'application/json'},
@@ -213,11 +214,13 @@ Future<void> _createLead() async {
             "create",
             [
               {
-                "name": "Property Inquiry: ${widget.property.id}",
+                "name": "Property Inquiry: ${widget.property.id} ",
                 "contact_name": userName,
                 "email_from": userEmail,
                 "phone": userPhone,
-                "description": "User is interested in property ID: ${widget.property.id}",
+                "expected_revenue": propertyPrice,
+                "function": job,  //  field for Job Position
+                "description": "User $userName is interested in property with the ID of : ${widget.property.id}, priced at \$${widget.property.price} and his job is $job ",
               }
             ]
           ],
@@ -226,20 +229,23 @@ Future<void> _createLead() async {
     );
 
     final leadData = jsonDecode(leadResponse.body);
+    log("Lead Creation Response: $leadData");  // Log the full response for debugging
 
     if (leadData['result'] != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Lead created successfully in Odoo!")),
       );
     } else {
-      throw Exception("Failed to create lead in Odoo");
+      throw Exception("Failed to create lead in Odoo: ${leadData['error'] ?? 'Unknown error'}");
     }
   } catch (e) {
+    log("Error during lead creation: $e");  // Log error for debugging
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Error: $e")),
     );
   }
 }
+
 
 
   Future<void> _sendAllFeedbacksToFastAPI() async {
