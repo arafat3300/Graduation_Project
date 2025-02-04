@@ -25,9 +25,9 @@ class CRMInputScreen extends StatefulWidget {
 class _CRMInputScreenState extends State<CRMInputScreen> {
   final TextEditingController _controller = TextEditingController();
   final String baseUrl = "http://10.0.2.2:8069"; // Change if needed
-  final String dbName = "Test_data"; // Odoo database name
-  final String username = "aliarafat534@gmail.com"; // Odoo username
-  final String password = "12345678"; // Odoo password
+  final String dbName = "PropertyFinder"; // Odoo database name
+  final String username =  "aly2108454@miuegypt.edu.eg"; // Odoo username
+  final String password ="lilO_khaled20"; // Odoo password
 
   String message = "";
   final http.Client _client = http.Client();

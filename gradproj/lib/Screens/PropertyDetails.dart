@@ -170,9 +170,9 @@ Future<void> _createLead() async {
 
     // Odoo API Details
     const String odooUrl = "http://10.0.2.2:8069/jsonrpc";
-    const String odooDb = "Test_data";
+    const String odooDb = "PropertyFinder";
     const String odooUsername = "aliarafat534@gmail.com";
-    const String odooPassword = "12345678";
+    const String odooPassword = "lilO_khaled20";
 
     // Authenticate with Odoo
     final authResponse = await http.post(
