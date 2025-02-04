@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/PropertyListings.dart';
 import 'screens/SignupScreen.dart';
 import 'screens/LoginScreen.dart';
+import 'Screens/OdooConnection.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 Future<void> ensurePropertiesStatus() async {
   try {
@@ -101,6 +102,7 @@ darkTheme: ThemeData.dark().copyWith(
       themeMode: _themeMode,
       initialRoute: '/signup',
       routes: {
+        '/Odoo': (context)=>OdooConnection(),
         '/property-listings': (context) => PropertyListScreen(toggleTheme: toggleTheme),
         '/signup': (context) =>  SignUpScreen(toggleTheme: toggleTheme),
         '/login': (context) =>  LoginScreen(toggleTheme: toggleTheme),

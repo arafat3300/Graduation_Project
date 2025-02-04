@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class OdooConnection extends StatelessWidget {
+  const OdooConnection({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -24,14 +24,14 @@ class CRMInputScreen extends StatefulWidget {
 
 class _CRMInputScreenState extends State<CRMInputScreen> {
   final TextEditingController _controller = TextEditingController();
-  final String baseUrl = "http://10.0.2.2:8069"; // Use appropriate URL
+  final String baseUrl = "http://10.0.2.2:8069"; // Change if needed
   final String dbName = "Test_data"; // Odoo database name
   final String username = "aliarafat534@gmail.com"; // Odoo username
   final String password = "12345678"; // Odoo password
+
   String message = "";
-
-
-  final http.Client _client = http.Client(); // HTTP client to manage cookies
+  final http.Client _client = http.Client();
+  String? sessionId; // Stores Odoo session ID
 
   @override
   void initState() {
@@ -39,18 +39,21 @@ class _CRMInputScreenState extends State<CRMInputScreen> {
     _authenticate();
   }
 
-  // Authenticate with Odoo and store cookies automatically
+  // Authenticate and store session
   Future<void> _authenticate() async {
     final url = Uri.parse("$baseUrl/web/session/authenticate");
     final response = await _client.post(
       url,
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
+        "jsonrpc": "2.0",
+        "method": "call",
         "params": {
           "db": dbName,
           "login": username,
           "password": password,
-        }
+        },
+        "id": 1,
       }),
     );
 
@@ -58,6 +61,7 @@ class _CRMInputScreenState extends State<CRMInputScreen> {
       final data = jsonDecode(response.body);
       if (data['result'] != null) {
         setState(() {
+          sessionId = response.headers['set-cookie']; // Save session
           message = "Connected to Odoo CRM";
         });
       } else {
@@ -72,41 +76,64 @@ class _CRMInputScreenState extends State<CRMInputScreen> {
     }
   }
 
-  // Send text input to Odoo CRM as a new lead
+  // Send lead data to Odoo
   Future<void> _sendToCRM(String inputText) async {
-    final url = Uri.parse("$baseUrl/jsonrpc");
-    final response = await _client.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "jsonrpc": "2.0",
-        "method": "call",
-        "params": {
-          "model": "crm.lead",
-          "method": "create",
-          "args": [],
-          "kwargs": {
-            "values": {
-              "name": inputText,
-                'contact_name': 'samir samkara',
-                'email_from': 'wooohoooooo@example.com' // Lead name from user input
-            }
-          },
-        },
-        "id": 1,
-      }),
-    );
+  if (sessionId == null) {
+    setState(() {
+      message = "Not authenticated. Please log in.";
+    });
+    return;
+  }
 
-    if (response.statusCode == 200) {
+  final url = Uri.parse("$baseUrl/jsonrpc");
+  final response = await _client.post(
+    url,
+    headers: {
+      "Content-Type": "application/json",
+      "Cookie": sessionId!, // Attach session
+    },
+    body: jsonEncode({
+      "jsonrpc": "2.0",
+      "method": "call",
+      "params": {
+        "service": "object", // REQUIRED for Odoo
+        "method": "execute_kw",
+        "args": [
+          dbName, // Database Name
+          2,      // User ID (will replace with authenticated user ID)
+          password, // User Password
+          "crm.lead", // Model
+          "create", // Method
+          [
+            {
+              "name": inputText,
+              "contact_name": "Samir Samkara",
+              "email_from": "wooohoooooo@example.com"
+            }
+          ]
+        ]
+      },
+      "id": 2,
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    if (data['result'] != null) {
       setState(() {
-        message = "Successfully created lead in Odoo CRM";
+        message = "Lead Created Successfully!";
       });
     } else {
       setState(() {
-        message = "Failed to create lead in Odoo";
+        message = "Failed: ${data['error']['data']['message']}";
       });
     }
+  } else {
+    setState(() {
+      message = "Error: ${response.statusCode} ${response.reasonPhrase}";
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,5 @@
 import 'dart:convert';
+// import 'dart:nativewrappers/_internal/vm/lib/internal_patch.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,7 @@ import '../Models/Message.dart';
 import '../Controllers/feedback_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'dart:developer';
 
 class PropertyDetails extends ConsumerStatefulWidget {
   final Property property;
@@ -138,6 +140,107 @@ Future<void> _submitFeedback() async {
     _feedbackController.clear(); // Clear the feedback text AFTER sending the email
   }
 }
+Future<void> _createLead() async {
+  final supabase = Supabase.instance.client;
+  final userId = singletonSession().userId;
+
+  if (userId == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Please log in to contact the sales person.")),
+    );
+    return;
+  }
+
+  try {
+    // Fetch user details from Supabase
+    final response = await supabase
+        .from('users')
+        .select('firstname, lastname, email, phone')  // Corrected here
+        .eq('id', userId)
+        .single();
+
+    final userName = "${response['firstname'] ?? "Unknown"} ${response['lastname'] ?? "User"}";
+    final userEmail = response['email'] ?? "No Email";
+    final userPhone = response['phone'] ?? "No Phone";
+
+    log(userName);
+    log(userEmail);
+    log(userPhone);
+
+    // Odoo API Details
+    const String odooUrl = "http://10.0.2.2:8069/jsonrpc";
+    const String odooDb = "Test_data";
+    const String odooUsername = "aliarafat534@gmail.com";
+    const String odooPassword = "12345678";
+
+    // Authenticate with Odoo
+    final authResponse = await http.post(
+      Uri.parse(odooUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        "jsonrpc": "2.0",
+        "method": "call",
+        "params": {
+          "service": "common",
+          "method": "authenticate",
+          "args": [odooDb, odooUsername, odooPassword, {}]
+        }
+      }),
+    );
+
+    final authData = jsonDecode(authResponse.body);
+    final userIdOdoo = authData['result'];
+
+    if (userIdOdoo == null) {
+      throw Exception("Failed to authenticate with Odoo");
+    }
+
+    // Create a lead in Odoo
+    final leadResponse = await http.post(
+      Uri.parse(odooUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        "jsonrpc": "2.0",
+        "method": "call",
+        "params": {
+          "service": "object",
+          "method": "execute_kw",
+          "args": [
+            odooDb,
+            userIdOdoo,
+            odooPassword,
+            "crm.lead",
+            "create",
+            [
+              {
+                "name": "Property Inquiry: ${widget.property.id}",
+                "contact_name": userName,
+                "email_from": userEmail,
+                "phone": userPhone,
+                "description": "User is interested in property ID: ${widget.property.id}",
+              }
+            ]
+          ],
+        },
+      }),
+    );
+
+    final leadData = jsonDecode(leadResponse.body);
+
+    if (leadData['result'] != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Lead created successfully in Odoo!")),
+      );
+    } else {
+      throw Exception("Failed to create lead in Odoo");
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: $e")),
+    );
+  }
+}
+
 
   Future<void> _sendAllFeedbacksToFastAPI() async {
     setState(() => _isBulkLoading = true);
@@ -344,6 +447,19 @@ Future<void> _submitFeedback() async {
                       foregroundColor:  const Color.fromARGB(255, 255, 255, 255),
                     ),
                   ),
+                  
+                 ElevatedButton.icon(
+  onPressed: _createLead,
+  icon: Icon(Icons.phone),
+  label: Text("Contact Sales Person"),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.green, 
+    foregroundColor: Colors.white, 
+    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    textStyle: TextStyle(fontSize: 16),
+  ),
+),
+
                 ],
               ),
             ),
