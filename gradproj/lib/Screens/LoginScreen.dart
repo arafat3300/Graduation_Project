@@ -18,12 +18,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  // Controller and input management
   final LoginController _controller = LoginController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Animation controllers for login screen entrance
   late AnimationController _animationController;
   late Animation<Offset> _offsetAnimation;
 
@@ -31,12 +29,11 @@ class _LoginScreenState extends State<LoginScreen>
   void initState() {
     super.initState();
 
-    // Setup sliding animation for login screen
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-  
+
     _offsetAnimation = Tween<Offset>(
       begin: const Offset(0, 1),
       end: Offset.zero,
@@ -50,20 +47,16 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   void dispose() {
-    // Cleanup controllers
     _animationController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  /// Comprehensive login handler with role-based navigation
   Future<void> _handleLogin() async {
-    // Trim and validate input
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    // Input validation
     if (!_controller.isValidEmail(email)) {
       _showErrorDialog("Please enter a valid email address!");
       return;
@@ -73,24 +66,17 @@ class _LoginScreenState extends State<LoginScreen>
       return;
     }
 
-    // Attempt login
     final message = await _controller.loginUser(email, password);
 
     if (message.contains("successful")) {
-      // Print session token for debugging
       await _controller.printSessionToken();
-      
-      // Show success dialog and navigate
       _showSuccessDialog();
     } else {
-      // Show error if login fails
       _showErrorDialog(message);
     }
   }
 
-  /// Shows a success dialog and navigates based on user role
   void _showSuccessDialog() async {
-    // Show initial success dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -108,59 +94,35 @@ class _LoginScreenState extends State<LoginScreen>
             children: [
               Text("Login successful! Redirecting..."),
               SizedBox(height: 10),
-              SpinKitCircle(
-                color: Colors.green,
-                size: 50.0,
-              ),
+              SpinKitCircle(color: Colors.green, size: 50.0),
             ],
           ),
         );
       },
     );
 
-    // Navigate based on role after a short delay
     Future.delayed(const Duration(seconds: 3), () async {
-      try {
-        // Retrieve user role from SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        final role = prefs.getInt('role');
+      final prefs = await SharedPreferences.getInstance();
+      final role = prefs.getInt('role');
 
-        // Determine target screen based on role
-        Widget targetScreen;
-        switch (role) {
-          case 1: // Admin role
-            targetScreen = AdminDashboardScreen();
-            break;
-          case 2: // Regular user role
-            targetScreen = PropertyListScreen(toggleTheme: widget.toggleTheme);
-            break;
-          default:
-            // Fallback to property list for unknown roles
-            targetScreen = PropertyListScreen(toggleTheme: widget.toggleTheme);
-            _showErrorDialog("Undefined user role. Redirecting to default screen.");
-        }
-
-        // Close success dialog and navigate
-        Navigator.of(context).pop(); // Close success dialog
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => targetScreen),
-        );
-      } catch (e) {
-        // Handle navigation errors
-        print('Navigation error: $e');
-        Navigator.of(context).pop(); // Close success dialog
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PropertyListScreen(toggleTheme: widget.toggleTheme),
-          ),
-        );
+      Widget targetScreen;
+      switch (role) {
+        case 1:
+          targetScreen = AdminDashboardScreen();
+          break;
+        case 2:
+          targetScreen = PropertyListScreen(toggleTheme: widget.toggleTheme);
+          break;
+        default:
+          targetScreen = PropertyListScreen(toggleTheme: widget.toggleTheme);
+          _showErrorDialog("Undefined user role. Redirecting to default screen.");
       }
+
+      Navigator.of(context).pop();
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => targetScreen));
     });
   }
 
-  /// Error dialog for showing login and validation issues
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
@@ -185,115 +147,107 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  /// Builds styled input fields for email and password
   Widget _buildInputField({
     required TextEditingController controller,
     required String hintText,
     bool obscureText = false,
     TextInputType keyboardType = TextInputType.text,
   }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.white70, fontSize: 16),
-        filled: true,
-        fillColor: Colors.grey[800],
-        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        style: const TextStyle(color: Colors.black, fontSize: 16),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
         ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-   final GoogleController _googleController = GoogleController();
-
-  // Add this method to handle Google Sign In
   Future<void> _handleGoogleSignIn() async {
-  final result = await _googleController.signInWithGoogle();
-  
-  if (result.success) {
-    // Show success dialog and handle navigation
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.green),
-              SizedBox(width: 10),
-              Text("Success"),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(result.message),
-              const SizedBox(height: 10),
-              const SpinKitCircle(
-                color: Colors.green,
-                size: 50.0,
+    final GoogleController _googleController = GoogleController();
+    final result = await _googleController.signInWithGoogle();
+    
+    if (result.success) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 10),
+                Text("Success"),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(result.message),
+                const SizedBox(height: 10),
+                const SpinKitCircle(color: Colors.green, size: 50.0),
+              ],
+            ),
+          );
+        },
+      );
+
+      Future.delayed(const Duration(seconds: 2), () {
+        Navigator.of(context).pop();
+        
+        Widget targetScreen;
+        switch (result.role) {
+          case 1:
+            targetScreen = AdminDashboardScreen();
+            break;
+          case 2:
+            targetScreen = PropertyListScreen(toggleTheme: widget.toggleTheme);
+            break;
+          default:
+            targetScreen = PropertyListScreen(toggleTheme: widget.toggleTheme);
+        }
+
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => targetScreen));
+      });
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.error, color: Colors.red),
+                SizedBox(width: 10),
+                Text("Error"),
+              ],
+            ),
+            content: Text(result.message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text("OK"),
               ),
             ],
-          ),
-        );
-      },
-    );
-
-    // Navigate after a short delay
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.of(context).pop(); // Close the dialog
-      
-      // Navigate based on role
-      Widget targetScreen;
-      switch (result.role) {
-        case 1: // Admin role
-          targetScreen = AdminDashboardScreen();
-          break;
-        case 2: // Regular user role
-          targetScreen = PropertyListScreen(toggleTheme: widget.toggleTheme);
-          break;
-        default:
-          targetScreen = PropertyListScreen(toggleTheme: widget.toggleTheme);
-      }
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => targetScreen),
+          );
+        },
       );
-    });
-  } else {
-    // Show error dialog
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.error, color: Colors.red),
-              SizedBox(width: 10),
-              Text("Error"),
-            ],
-          ),
-          content: Text(result.message),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
+    }
   }
-} // Detailed login screen UI with blurred background and sliding animation
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
@@ -308,7 +262,7 @@ class _LoginScreenState extends State<LoginScreen>
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
               child: Container(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withOpacity(0.5),
               ),
             ),
           ),
@@ -333,10 +287,10 @@ class _LoginScreenState extends State<LoginScreen>
                     const SizedBox(height: 30),
                     // Login form container
                     Container(
-                      padding: const EdgeInsets.all(15),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8),
-                        borderRadius: BorderRadius.circular(15),
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       child: Column(
                         children: [
@@ -345,7 +299,6 @@ class _LoginScreenState extends State<LoginScreen>
                             hintText: 'Email',
                             keyboardType: TextInputType.emailAddress,
                           ),
-                          const SizedBox(height: 15),
                           _buildInputField(
                             controller: _passwordController,
                             hintText: 'Password',
@@ -378,77 +331,72 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                     ),
                     const SizedBox(height: 15),
-  // Or divider with text
-  Row(
-    children: [
-      const Expanded(child: Divider(color: Colors.grey)),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: Text(
-          'OR',
-          style: TextStyle(
-            color: Colors.grey[700],
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      const Expanded(child: Divider(color: Colors.grey)),
-    ],
-  ),
-  const SizedBox(height: 15),
-  // Google Sign In button
-  ElevatedButton.icon(
-    onPressed: _handleGoogleSignIn,
-    icon: Image.asset(
-      'images/google-logo.png',
-      height: 24,
-      width: 24,
-    ),
-    label: const Text(
-      'Sign in with Google',
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-    style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black87,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 12,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
-      ),
-    ),
-  ),
+                    // Or divider with text
+                    const Row(
+                      children: [
+                        Expanded(child: Divider(color: Colors.grey)),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            'OR',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: Colors.grey)),
+                      ],
+                    ),
                     const SizedBox(height: 15),
-                    // Forgot password section
-                   
+                    // Google Sign In button
+                    ElevatedButton.icon(
+                      onPressed: _handleGoogleSignIn,
+                      icon: Image.asset(
+                        'images/google-logo.png',
+                        height: 24,
+                        width: 24,
+                      ),
+                      label: const Text(
+                        'Sign in with Google',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black87,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    // Create account section
                     GestureDetector(
                       onTap: () {
                         Navigator.pushNamed(context, '/signup');
                       },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          shape: BoxShape.rectangle,
-                          color: Colors.white
-                          
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10.0),
+                        child: RichText(
+                          text: const TextSpan(
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.blue,
+                            ),
+                            children: <TextSpan>[
+                              TextSpan(text: 'Create an Account? Sign Up'),
+                            ],
+                          ),
                         ),
-                        child: const Padding(
-                          padding: EdgeInsets.all(10),
-                          child: Text(
-                        'Create an Account? Sign up',
-                        style: TextStyle(
-                           fontWeight: FontWeight.bold,
-                         
-                          color: Colors.grey,
-                          fontSize: 16,        
-                        ),
-                      ),)     
-                      )
+                      ),
                     ),
                   ],
                 ),
