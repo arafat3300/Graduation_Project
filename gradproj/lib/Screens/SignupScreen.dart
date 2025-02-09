@@ -1,18 +1,16 @@
 import 'dart:convert';
 import 'dart:ui';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:gradproj/Controllers/signup_controller.dart';
 import 'package:gradproj/Screens/LoginScreen.dart';
-import '../models/user.dart';
-import 'PropertyListings.dart';
 import 'package:uuid/uuid.dart';
 
 class SignUpScreen extends StatefulWidget {
-   final VoidCallback toggleTheme;
+  final VoidCallback toggleTheme;
 
   const SignUpScreen({super.key, required this.toggleTheme});
+  
   @override
   _SignUpScreenState createState() => _SignUpScreenState();
 }
@@ -27,27 +25,18 @@ class _SignUpScreenState extends State<SignUpScreen>
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _otherJobController = TextEditingController();
 
   String? _selectedCountry;
   String? _selectedJob;
-final Uuid _uuid = const Uuid();
+  final Uuid _uuid = const Uuid();
 
   // Dropdown options
   final List<String> _countries = [
-    'United States',
-    'Canada',
-    'United Kingdom',
-    'India',
-    'Germany',
-    'Australia',
-    'Japan',
-    'China',
-    'France',
-    'Brazil',
-    'Other',
+    'United States', 'Canada', 'United Kingdom', 'India', 
+    'Germany', 'Australia', 'Japan', 'China', 'France', 
+    'Brazil', 'Other',
   ];
   final List<String> _jobs = ['Engineer', 'Lawyer', 'Doctor', 'Other'];
 
@@ -106,32 +95,28 @@ final Uuid _uuid = const Uuid();
       _dobController.text =
           "${pickedDate?.year}-${pickedDate?.month.toString().padLeft(2, '0')}-${pickedDate?.day.toString().padLeft(2, '0')}";
     });
-    }
-
+  }
 
   Future<void> _handleSignUp() async {
-  final message = await _controller.handleSignUp(
-   
-    firstName: _firstNameController.text,
-    lastName: _lastNameController.text,
-    dob: _dobController.text,
-    phone: _phoneController.text,
-    country: _selectedCountry ?? 'Unknown',
-    job: _selectedJob ?? 'Unknown',
-    email: _emailController.text,
-    password: _passwordController.text,
-    confirmPassword: _confirmPasswordController.text,
-    otherJob: _selectedJob == 'Other' ? _otherJobController.text : null,
-  );
+    final message = await _controller.handleSignUp(
+      firstName: _firstNameController.text,
+      lastName: _lastNameController.text,
+      dob: _dobController.text,
+      phone: _phoneController.text,
+      country: _selectedCountry ?? 'Unknown',
+      job: _selectedJob ?? 'Unknown',
+      email: _emailController.text,
+      password: _passwordController.text,
+      confirmPassword: _confirmPasswordController.text,
+      otherJob: _selectedJob == 'Other' ? _otherJobController.text : null,
+    );
 
-  if (message.contains("successfully")) {
-    _showSuccessDialog();
-
-  } else {
-    _showErrorDialog(message);
+    if (message.contains("successfully")) {
+      _showSuccessDialog();
+    } else {
+      _showErrorDialog(message);
+    }
   }
-}
-
 
   void _showErrorDialog(String message) {
     showDialog(
@@ -177,17 +162,13 @@ final Uuid _uuid = const Uuid();
             children: [
               Text("You have successfully signed up!"),
               SizedBox(height: 10),
-              SpinKitCircle(
-                color: Colors.green,
-                size: 50.0,
-              ),
+              SpinKitCircle(color: Colors.green, size: 50.0),
             ],
           ),
         );
       },
     );
 
-   
     Future.delayed(const Duration(seconds: 3), () {
       Navigator.of(context).pop(); // Close the success dialog
       Navigator.pushReplacement(
@@ -205,26 +186,29 @@ final Uuid _uuid = const Uuid();
     bool readOnly = false,
     VoidCallback? onTap,
   }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      readOnly: readOnly,
-      onTap: onTap,
-      style: const TextStyle(
-        color: Colors.white,
-        fontFamily: 'OpenSans',
-        fontSize: 14,
-      ),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.white, fontSize: 16),
-        floatingLabelBehavior: FloatingLabelBehavior.never,
-        filled: true,
-        fillColor: Colors.grey[800],
-        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        readOnly: readOnly,
+        onTap: onTap,
+        style: const TextStyle(
+          color: Colors.black,
+          fontFamily: 'Roboto',
+          fontSize: 16,
+        ),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
         ),
       ),
     );
@@ -236,28 +220,31 @@ final Uuid _uuid = const Uuid();
     required T? value,
     required void Function(T?) onChanged,
   }) {
-    return DropdownButtonFormField<T>(
-      value: value,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white, fontSize: 16),
-        filled: true,
-        fillColor: Colors.grey[800],
-        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: DropdownButtonFormField<T>(
+        value: value,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        dropdownColor: Colors.white,
+        iconEnabledColor: Colors.black,
+        items: items.map((item) => DropdownMenuItem<T>(
+          value: item,
+          child: Text(
+            item.toString(),
+            style: const TextStyle(color: Colors.black, fontSize: 14),
+          ),
+        )).toList(),
+        onChanged: onChanged,
       ),
-      dropdownColor: Colors.grey[900],
-      iconEnabledColor: Colors.white,
-      items: items
-          .map((item) => DropdownMenuItem<T>(
-                value: item,
-                child: Text(
-                  item.toString(),
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                ),
-              ))
-          .toList(),
-      onChanged: onChanged,
     );
   }
 
@@ -277,7 +264,7 @@ final Uuid _uuid = const Uuid();
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
               child: Container(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withOpacity(0.5),
               ),
             ),
           ),
@@ -297,19 +284,19 @@ final Uuid _uuid = const Uuid();
                         Text(
                           'Sign Up',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 20),
                     Container(
-                      padding: const EdgeInsets.all(15),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8),
-                        borderRadius: BorderRadius.circular(15),
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       child: Column(
                         children: [
@@ -330,20 +317,17 @@ final Uuid _uuid = const Uuid();
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
                           _buildInputField(
                             controller: _dobController,
                             hintText: 'Date of Birth',
                             readOnly: true,
                             onTap: _selectDate,
                           ),
-                          const SizedBox(height: 10),
                           _buildInputField(
                             controller: _phoneController,
                             hintText: 'Phone Number',
                             keyboardType: TextInputType.phone,
                           ),
-                          const SizedBox(height: 10),
                           _buildDropdown<String>(
                             hint: 'Select Country',
                             items: _countries,
@@ -354,7 +338,6 @@ final Uuid _uuid = const Uuid();
                               });
                             },
                           ),
-                          const SizedBox(height: 10),
                           _buildDropdown<String>(
                             hint: 'Select Job',
                             items: _jobs,
@@ -366,25 +349,21 @@ final Uuid _uuid = const Uuid();
                             },
                           ),
                           if (_selectedJob == 'Other') ...[
-                            const SizedBox(height: 10),
                             _buildInputField(
                               controller: _otherJobController,
                               hintText: 'Specify Your Job',
                             ),
                           ],
-                          const SizedBox(height: 10),
                           _buildInputField(
                             controller: _emailController,
                             hintText: 'Email',
                             keyboardType: TextInputType.emailAddress,
                           ),
-                          const SizedBox(height: 10),
                           _buildInputField(
                             controller: _passwordController,
                             hintText: 'Password',
                             obscureText: true,
                           ),
-                          const SizedBox(height: 10),
                           _buildInputField(
                             controller: _confirmPasswordController,
                             hintText: 'Confirm Password',
@@ -395,8 +374,7 @@ final Uuid _uuid = const Uuid();
                             onPressed: _handleSignUp,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue[700],
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 40, vertical: 10),
+                              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -405,7 +383,7 @@ final Uuid _uuid = const Uuid();
                               'SIGN UP',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 14,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -418,28 +396,22 @@ final Uuid _uuid = const Uuid();
                       onTap: () {
                         Navigator.pushNamed(context, '/login');
                       },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          shape: BoxShape.rectangle,
-                          color: Colors.white
-                          
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10.0),
+                        child: RichText(
+                          text: const TextSpan(
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.blue,
+                              fontFamily: 'Arial', // Change to your desired font
+                            ),
+                            children: <TextSpan>[
+                              TextSpan(text: 'Already have an Account? Sign In'),
+                            ],
+                          ),
                         ),
-                        child: const Padding(
-                          padding: EdgeInsets.all(10),
-                          child: Text(
-                        'Already have an Account? Sign In',
-                        style: TextStyle(
-                           fontWeight: FontWeight.bold,
-                         
-                          color: Colors.grey,
-                          fontSize: 16,
-                          
-                        ),
-                      ),)
-                          
-                          
-                      )
+                      ),
                     ),
                   ],
                 ),

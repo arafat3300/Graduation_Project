@@ -350,7 +350,7 @@ Future<void> _createLead() async {
     super.dispose();
   }
 
-  @override
+   @override
   Widget build(BuildContext context) {
     final property = widget.property;
     final favouritesNotifier = ref.watch(favouritesProvider.notifier);
@@ -362,282 +362,307 @@ Future<void> _createLead() async {
         title: const Text("Property Details"),
         backgroundColor: theme.colorScheme.primary,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (property.imgUrl != null && property.imgUrl!.isNotEmpty)
-              CarouselSlider(
-                options: CarouselOptions(
-                  height: 600,
-                  autoPlay: true,
-                  autoPlayInterval: const Duration(seconds: 3),
-                  enlargeCenterPage: true,
-                  viewportFraction: 1.0,
+      body: Container(
+        color: Colors.blueGrey[50], // Darker background for consistency
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (property.imgUrl != null && property.imgUrl!.isNotEmpty)
+                CarouselSlider(
+                  options: CarouselOptions(
+                    height: 400,
+                    autoPlay: true,
+                    autoPlayInterval: const Duration(seconds: 3),
+                    enlargeCenterPage: true,
+                    viewportFraction: 1.0,
                   aspectRatio: 2.0,
-                ),
-                items: property.imgUrl!.map((imageUrl) {
-                  return Builder(
-                    builder: (BuildContext context) {
-                      return Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                          Icons.broken_image,
-                          size: 70,
-                          color: theme.colorScheme.error,
-                        ),
-                      );
-                    },
-                  );
-                }).toList(),
-              )
-            else
-              Container(
-                height: 600,
-                width: double.infinity,
-                color: theme.colorScheme.surface,
-                child: Center(
-                  child: Image.network(
-                    'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    errorBuilder: (context, error, stackTrace) => Icon(
-                      Icons.broken_image,
-                      size: 70,
-                      color: theme.colorScheme.error,
+                  ),
+                  items: property.imgUrl!.map((imageUrl) {
+                    return Builder(
+                      builder: (BuildContext context) {
+                        return Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.broken_image,
+                            size: 70,
+                            color: theme.colorScheme.error,
+                          ),
+                        );
+                      },
+                    );
+                  }).toList(),
+                )
+              else
+                Container(
+                  height: 400,
+                  width: double.infinity,
+                  color: theme.colorScheme.surface,
+                  child: Center(
+                    child: Image.network(
+                      'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) => Icon(
+                        Icons.broken_image,
+                        size: 70,
+                        color: theme.colorScheme.error,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    property.type,
-                    style: theme.textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Price: \$${property.price}",
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  ElevatedButton.icon(
-               onPressed: () async {
-  if (isFavorite) {
-    await favouritesNotifier.removeProperty(property);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("${property.type} removed from favorites")),
-    );
-  } else {
-    await favouritesNotifier.addProperty(property);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("${property.type} added to favorites")),
-    );
-  }
-},
-
-                    icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border),
-                    label: Text(isFavorite
-                        ? "Remove from Favorites"
-                        : "Add to Favorites"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor:  const Color.fromARGB(255, 255, 255, 255),
-                    ),
-                  ),
-                  
-                 ElevatedButton.icon(
-  onPressed: _createLead,
-  icon: Icon(Icons.phone),
-  label: Text("Contact Sales Person"),
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.green, 
-    foregroundColor: Colors.white, 
-    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-    textStyle: TextStyle(fontSize: 16),
-  ),
-),
-
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
+              Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Add Feedback",
-                      style: theme.textTheme.titleLarge,
+                      property.type,
+                    style: theme.textTheme.headlineMedium,
                     ),
                     const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _feedbackController,
-                      decoration: InputDecoration(
-                        hintText: "Enter your feedback",
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide(color: theme.colorScheme.primary),
-                        ),
+                    Text(
+                      "Price: \$${property.price}",
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: Colors.blueGrey[800],
+                        fontWeight: FontWeight.bold,
                       ),
-                      maxLines: 3,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your feedback';
-                        }
-                        return null;
-                      },
                     ),
-                    const SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _submitFeedback,
-                      child: Text(_isLoading ? "Submitting..." : "Submit Feedback"),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            if (isFavorite) {
+                              await favouritesNotifier.removeProperty(property);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("${property.type} removed from favorites"),
+                                  action: SnackBarAction(
+                                    label: 'Manage Favorites',
+                                    onPressed: () {
+                                      Navigator.pushNamed(context, '/favourites'); // Navigate to favorites page
+                                    },
+                                  ),
+                                ),
+                              );
+                            } else {
+                              await favouritesNotifier.addProperty(property);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("${property.type} added to favorites"),
+                                  action: SnackBarAction(
+                                    label: 'Manage Favorites',
+                                    onPressed: () {
+                                      Navigator.pushNamed(context, '/favourites'); // Navigate to favorites page
+                                    },
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: Colors.white),
+                          label: Text(isFavorite ? "Remove from Favorites" : "Add to Favorites"),
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.white, backgroundColor: Colors.blueAccent,
+                            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            _createLead(); // Ensure this method is defined in your class
+                          },
+                          icon: const Icon(Icons.phone, color: Colors.white),
+                          label: const Text("Contact Seller"),
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.white, backgroundColor: Colors.blueAccent,
+                            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ),
-            if (_feedbacks.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Add Feedback",
+                        style: theme.textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _feedbackController,
+                        decoration: InputDecoration(
+                          hintText: "Enter your feedback",
+                          border: OutlineInputBorder(
+                            borderSide: BorderSide(color: theme.colorScheme.primary),
+                          ),
+                        ),
+                        maxLines: 3,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your feedback';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: _isLoading ? null : _submitFeedback,
+                        child: Text(_isLoading ? "Submitting..." : "Submit Feedback"),
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white, backgroundColor: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (_feedbacks.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: _feedbacks.map((feedback) {
+                      return Container(
+                        margin: const EdgeInsets.symmetric(vertical: 5),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              feedback.user_id.toString() ?? "Anonymous",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(feedback.feedback),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text("No feedback available for this property."),
+                ),
+              const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: _feedbacks.map((feedback) {
-                    return Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(feedback.user_id.toString() ?? "Anonymous"),
-                            Text(feedback.feedback),
-                          ],
-                        ),
+                  children: [
+                    const Text(
+                      'Chat:',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
-                    );
-                  }).toList(),
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text("No feedback available for this property."),
-              ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Chat:',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  StreamBuilder<List<Map<String, dynamic>>>(
-                    stream: Supabase.instance.client
-                        .from('messages')
-                        .stream(primaryKey: ['id'])
-                        .eq('property_id', widget.property.id)
-                        .order('created_at'),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Text(
-                            'Error: ${snapshot.error}',
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                        );
-                      }
-                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            'No messages yet. Start a conversation!',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        );
-                      }
-
-                      final messages = snapshot.data!;
-                      return Container(
-                        height: 300,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: ListView.builder(
-                          reverse: true,
-                          itemCount: messages.length,
-                          itemBuilder: (context, index) {
-                            final message = messages[index];
-                            final isMe =
-                                message['sender_id'] == singletonSession().userId;
-
-                            return Align(
-                              alignment: isMe
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(
-                                    vertical: 5, horizontal: 10),
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: isMe ? Colors.blue : Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  message['content'],
-                                  style: TextStyle(
-                                      color:
-                                          isMe ? Colors.white : Colors.black),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _messageController,
-                          decoration: const InputDecoration(
-                            hintText: 'Type your message...',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _isSending
-                          ? const CircularProgressIndicator()
-                          : IconButton(
-                              icon: const Icon(Icons.send, color: Colors.blue),
-                              onPressed: _sendMessage,
+                    const SizedBox(height: 8),
+                    StreamBuilder<List<Map<String, dynamic>>>(
+                      stream: Supabase.instance.client
+                          .from('messages')
+                          .stream(primaryKey: ['id'])
+                          .eq('property_id', widget.property.id)
+                          .order('created_at'),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        if (snapshot.hasError) {
+                          return Center(
+                            child: Text(
+                              'Error: ${snapshot.error}',
+                              style: const TextStyle(color: Colors.red),
                             ),
-                    ],
-                  ),
-                ],
+                          );
+                        }
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return const Center(
+                            child: Text(
+                              'No messages yet. Start a conversation!',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          );
+                        }
+
+                        final messages = snapshot.data!;
+                        return Container(
+                          height: 300,
+                          child: ListView.builder(
+                            reverse: true,
+                            itemCount: messages.length,
+                            itemBuilder: (context, index) {
+                              final message = messages[index];
+                              final isMe =
+                                  message['sender_id'] == singletonSession().userId;
+
+                              return Align(
+                                alignment: isMe
+                                    ? Alignment.centerRight
+                                    : Alignment.centerLeft,
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(
+                                      vertical: 5, horizontal: 10),
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: isMe ? theme.colorScheme.primary : Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    message['content'],
+                                    style: TextStyle(
+                                        color:
+                                            isMe ? Colors.white : Colors.black),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _messageController,
+                            decoration: const InputDecoration(
+                              hintText: 'Type your message...',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _isSending
+                            ? const CircularProgressIndicator()
+                            : IconButton(
+                                icon: const Icon(Icons.send, color: Colors.blue),
+                                onPressed: _sendMessage,
+                              ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
