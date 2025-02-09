@@ -119,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen>
     );
 
     // Navigate based on role after a short delay
-    Future.delayed(const Duration(seconds: 3), () async {
+    Future.delayed(const Duration(seconds: 2), () async {
       try {
         // Retrieve user role from SharedPreferences
         final prefs = await SharedPreferences.getInstance();

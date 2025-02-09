@@ -103,7 +103,7 @@ class _CRMInputScreenState extends State<CRMInputScreen> {
           2,      // User ID (will replace with authenticated user ID)
           password, // User Password
           "crm.lead", // Model
-          "create", // Method
+          "create", 
           [
             {
               "name": inputText,
