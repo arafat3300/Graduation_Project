@@ -88,7 +88,7 @@ Future<void> fetchPropertiesFromSupabase(List<Map<String, dynamic>> recommendedD
 
 
 Future<void> fetchRecommendations(int userId) async {
-  const String apiUrl = 'http://192.168.1.9:8080/recommendations/';
+  const String apiUrl = 'http://172.20.10.5:8080/recommendations/';
   final Uri url = Uri.parse(apiUrl);
 
   debugPrint(" Sending request to: $url with user_id: $userId");
