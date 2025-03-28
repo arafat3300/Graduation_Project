@@ -9,7 +9,12 @@ final String odooUrl = "http://192.168.1.9:8069";
   final String dbName = "oodo18v3"; // Odoo database name
   final String username = "admin";  // Odoo username
   final String password = "1234";   // Odoo password
-
+// odoo database bet3et aly 
+    // Odoo API Details
+    // const String odooUrl = "http://10.0.2.2:8069/jsonrpc";
+    // const String odooDb = "PropertyFinder";
+    // const String odooUsername = "aliarafat534@gmail.com";
+    // const String odooPassword = "lilO_khaled20";
   late int uid;
 
   OdooRPCController();
