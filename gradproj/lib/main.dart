@@ -7,6 +7,7 @@ import 'package:gradproj/Screens/ManagePropertiesScreen.dart';
 import 'package:gradproj/Screens/ManageUsersScreen.dart';
 import 'package:gradproj/Screens/MyListings.dart';
 import 'package:gradproj/Screens/Profile.dart';
+import 'package:gradproj/Screens/feedbackTest.dart';
 import 'package:gradproj/Screens/search.dart';
 import 'package:gradproj/Screens/ManageAdmins.dart';
 import 'package:gradproj/Screens/AdminDashboardScreen.dart';
@@ -100,7 +101,7 @@ darkTheme: ThemeData.dark().copyWith(
   colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.blueGrey),
 ),
       themeMode: _themeMode,
-      initialRoute: '/signup',
+      initialRoute: '/feedbacktest',
       routes: {
         '/Odoo': (context)=>OdooConnection(),
         '/property-listings': (context) => PropertyListScreen(toggleTheme: toggleTheme),
@@ -114,6 +115,8 @@ darkTheme: ThemeData.dark().copyWith(
         '/manageAdmins': (context) => const ManageAdminsScreen(),
         '/manageUsers': (context) => const ManageUsersScreen(),
         '/manageProps': (context) => const ManagePropertiesScreen(),
+        '/feedbacktest': (context) => const Feedbacktest(),
+
        
         
 
