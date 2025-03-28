@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:gradproj/Controllers/property_controller.dart';
 import 'package:gradproj/Models/singletonSession.dart';
 import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -25,8 +26,11 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
   final TextEditingController _compoundController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
 
+final PropertyController _propertyController = PropertyController(Supabase.instance.client);
+
   String? _furnished = "Yes";
   String? _paymentOption = "Cash";
+  String? _transactionType;
   int? _userId = singletonSession().userId;
 
   List<Asset> _selectedImages = [];
@@ -62,94 +66,117 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
     }
   }
 
-  Future<void> _uploadImages() async {
-    try {
-      if (_selectedImages.isEmpty) {
-        throw Exception("No images to upload");
-      }
 
-      for (var asset in _selectedImages) {
-        final byteData = await asset.getByteData();
-        final fileBytes = byteData.buffer.asUint8List();
-        final uniqueFileName =
-            "${uuid.v4()}_${asset.name.replaceAll(' ', '_')}";
+  // Future<void> _uploadImages() async {
+  //   try {
+  //     if (_selectedImages.isEmpty) {
+  //       throw Exception("No images to upload");
+  //     }
 
-        debugPrint("Preparing to upload image: $uniqueFileName...");
-        debugPrint("File size: ${fileBytes.length} bytes");
+  //     for (var asset in _selectedImages) {
+  //       final byteData = await asset.getByteData();
+  //       final fileBytes = byteData.buffer.asUint8List();
+  //       final uniqueFileName =
+  //           "${uuid.v4()}_${asset.name.replaceAll(' ', '_')}";
 
-        try {
-          final filePath = await supabase.storage
-              .from('properties-images')
-              .uploadBinary(uniqueFileName, fileBytes);
+  //       debugPrint("Preparing to upload image: $uniqueFileName...");
+  //       debugPrint("File size: ${fileBytes.length} bytes");
 
-          if (filePath.isEmpty) {
-            throw Exception("Upload failed for $uniqueFileName");
-          }
+  //       try {
+  //         final filePath = await supabase.storage
+  //             .from('properties-images')
+  //             .uploadBinary(uniqueFileName, fileBytes);
 
-          debugPrint("Image uploaded successfully: $filePath");
+  //         if (filePath.isEmpty) {
+  //           throw Exception("Upload failed for $uniqueFileName");
+  //         }
 
-          final relativePath = filePath.replaceFirst('properties-images/', '');
+  //         debugPrint("Image uploaded successfully: $filePath");
 
-          final publicUrl = supabase.storage
-              .from('properties-images')
-              .getPublicUrl(relativePath);
+  //         final relativePath = filePath.replaceFirst('properties-images/', '');
 
-          if (publicUrl.isEmpty) {
-            throw Exception(
-                "Failed to generate public URL for $uniqueFileName");
-          }
+  //         final publicUrl = supabase.storage
+  //             .from('properties-images')
+  //             .getPublicUrl(relativePath);
 
-          debugPrint("Public URL generated: $publicUrl");
+  //         if (publicUrl.isEmpty) {
+  //           throw Exception(
+  //               "Failed to generate public URL for $uniqueFileName");
+  //         }
 
-          setState(() {
-            _uploadedImageUrls.add(publicUrl);
-          });
-        } catch (e) {
-          debugPrint("Error uploading image: $uniqueFileName, Error: $e");
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error uploading $uniqueFileName: $e")),
-          );
-        }
-      }
+  //         debugPrint("Public URL generated: $publicUrl");
 
-      debugPrint("All images processed successfully.");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Images uploaded successfully.")),
-      );
-    } catch (e) {
-      debugPrint("Error during image upload: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
-    }
+  //         setState(() {
+  //           _uploadedImageUrls.add(publicUrl);
+  //         });
+  //       } catch (e) {
+  //         debugPrint("Error uploading image: $uniqueFileName, Error: $e");
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           SnackBar(content: Text("Error uploading $uniqueFileName: $e")),
+  //         );
+  //       }
+  //     }
+
+  //     debugPrint("All images processed successfully.");
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text("Images uploaded successfully.")),
+  //     );
+  //   } catch (e) {
+  //     debugPrint("Error during image upload: $e");
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text("Error: $e")),
+  //     );
+  //   }
+  // }
+
+Future<void> _uploadImages() async {
+  try {
+    List<String> uploadedUrls = await _propertyController.uploadImages(_selectedImages);
+
+    setState(() {
+      _uploadedImageUrls.addAll(uploadedUrls); 
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Images uploaded successfully.")),
+    );
+  } catch (e) {
+    debugPrint("Error during image upload: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: $e")),
+    );
   }
+}
 
-  Future<void> _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        final property = {
-          "type": _typeController.text,
-          "price": int.parse(_priceController.text),
-          "bedrooms": int.parse(_bedroomsController.text),
-          "bathrooms": int.parse(_bathroomsController.text),
-          "area": int.parse(_areaController.text),
-          "furnished": _furnished,
-          "level": _levelController.text.isNotEmpty
-              ? int.parse(_levelController.text)
-              : null,
-          "compound": _compoundController.text.isNotEmpty
-              ? _compoundController.text
-              : "Unavailable",
-          "payment_option": _paymentOption,
-          "city": _cityController.text,
-          "img_url": _uploadedImageUrls,
-          "user_id" :_userId
-        };
+Future<void> _submitForm() async {
+  if (_formKey.currentState!.validate()) {
+    try {
+      final property = _propertyController.buildPropertyData(
+        typeController: _typeController,
+        priceController: _priceController,
+        bedroomsController: _bedroomsController,
+        bathroomsController: _bathroomsController,
+        areaController: _areaController,
+        levelController: _levelController,
+        compoundController: _compoundController,
+        cityController: _cityController,
+        furnished: _furnished,
+        paymentOption: _paymentOption,
+        transactionType: _transactionType,
+        userId: _userId,
+      );
 
-        await _uploadImages();
+      bool success = await _propertyController.submitPropertyForm(
+        property: property,
+        selectedImages: _selectedImages,
+        onImagesUploaded: (uploadedUrls) {
+          setState(() {
+            _uploadedImageUrls.addAll(uploadedUrls);
+          });
+        },
+      );
 
-        await supabase.from('properties').insert(property);
-
+      if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Property added successfully!"),
@@ -157,20 +184,77 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
           ),
         );
 
-        await Future.delayed(const Duration(seconds: 4), () {
+        Future.delayed(const Duration(seconds: 4), () {
           Navigator.pushNamed(context, "/property-listings");
         });
-      } catch (e) {
-        debugPrint('Error: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: $e"),
-            backgroundColor: Colors.red,
-          ),
-        );
+      } else {
+        throw Exception("Failed to add property.");
       }
+    } catch (e) {
+      debugPrint('Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
+}
+
+
+
+
+
+
+  // Future<void> _submitForm() async {
+  //   if (_formKey.currentState!.validate()) {
+  //     try {
+  //       final property = {
+  //         "type": _typeController.text,
+  //         "price": int.parse(_priceController.text),
+  //         "bedrooms": int.parse(_bedroomsController.text),
+  //         "bathrooms": int.parse(_bathroomsController.text),
+  //         "area": int.parse(_areaController.text),
+  //         "furnished": _furnished,
+  //         "level": _levelController.text.isNotEmpty
+  //             ? int.parse(_levelController.text)
+  //             : null,
+  //         "compound": _compoundController.text.isNotEmpty
+  //             ? _compoundController.text
+  //             : "Unavailable",
+  //         "payment_option": _paymentOption,
+  //         "city": _cityController.text,
+  //         "img_url": _uploadedImageUrls,
+  //         "user_id" :_userId,
+  //         "sale_rent" : _transactionType
+  //       };
+
+  //       await _uploadImages();
+
+  //       await supabase.from('properties').insert(property);
+
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(
+  //           content: Text("Property added successfully!"),
+  //           backgroundColor: Colors.green,
+  //         ),
+  //       );
+
+  //       await Future.delayed(const Duration(seconds: 4), () {
+  //         Navigator.pushNamed(context, "/property-listings");
+  //       });
+  //     } catch (e) {
+  //       debugPrint('Error: $e');
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text("Error: $e"),
+  //           backgroundColor: Colors.red,
+  //         ),
+  //       );
+  //     }
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -317,6 +401,27 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
                     _paymentOption = value;
                   });
                 },
+              ),
+              DropdownButtonFormField<String>(
+                value: _transactionType,
+                decoration: const InputDecoration(
+                  labelText: "Transaction Type",
+                  prefixIcon: Icon(Icons.business),
+                ),
+                items: ["sale", "rent"]
+                    .map((option) => DropdownMenuItem(
+                          value: option,
+                          child: Text(option),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _transactionType = value;
+                  });
+                },
+                validator: (value) => value == null || value.isEmpty
+                    ? "Transaction type is required"
+                    : null,
               ),
               const SizedBox(height: 16),
               Row(

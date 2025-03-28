@@ -13,7 +13,8 @@ class MyListings extends StatefulWidget {
 }
 
 class _MyListingsState extends State<MyListings> {
-  final PropertyController propertyController = PropertyController();
+
+  final PropertyController propertyController = PropertyController(Supabase.instance.client);
   List<Property> properties = [];
   bool _isLoading = true;
 
@@ -23,7 +24,6 @@ class _MyListingsState extends State<MyListings> {
     fetchUserProperties();
   }
 
-  /// Fetch user-specific properties
   Future<void> fetchUserProperties() async {
     setState(() => _isLoading = true);
     final supabase = Supabase.instance.client;
@@ -36,7 +36,7 @@ class _MyListingsState extends State<MyListings> {
     });
   }
 
-  /// Delete a property and refresh the list
+
   Future<void> deleteProperty(int propertyId) async {
     final supabase = Supabase.instance.client;
 

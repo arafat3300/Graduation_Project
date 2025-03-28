@@ -9,11 +9,13 @@ class Property {
   late int? level;
   late String? compound;
   late String paymentOption;
+  late String sale_rent;
   late String city;
   late int? userId;
   late List<String>? imgUrl;
   late String ?status ;
 late double ?similarityScore;
+
   Property({
    required this.id,
     required this.type,
@@ -26,6 +28,7 @@ late double ?similarityScore;
     this.compound,
     required this.paymentOption,
     required this.city,
+    required this.sale_rent,
     this.userId,
     this.imgUrl,
      this.status, 
@@ -42,6 +45,7 @@ factory Property.fromJson(Map<String, dynamic> json) {
     bathrooms: (json['bathrooms'] as num).toInt(),
     area: (json['area'] as num).toInt(),
     furnished: json['furnished'] as String,
+    sale_rent: json['sale_rent'] !=null ? json['sale_rent'] as String : "",
     level: json['level'] != null ? (json['level'] as num).toInt() : null,
     compound: json['compound'] as String?,
     paymentOption: json['payment_option'] as String,
@@ -71,7 +75,8 @@ Map<String, dynamic> toJson() {
     'city': city,
     'img_url': imgUrl,
     'user_id':userId,
-    'id':id
+    'id':id,
+    'sale_rent' :sale_rent
   };
 }
 String test = 't';

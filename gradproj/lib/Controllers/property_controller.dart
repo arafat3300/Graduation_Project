@@ -1,8 +1,17 @@
+import 'dart:typed_data';
+
 import 'package:flutter/cupertino.dart';
+import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
+import 'package:uuid/uuid.dart';
 import '../models/Property.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PropertyController {
+    final SupabaseClient supabase;
+  final Uuid uuid = const Uuid();
+
+  PropertyController(this.supabase);
+  
 Future<List<Property>> getUserPropertiesWithDetails(int userId, SupabaseClient supabase) async {
     try {
       final response = await supabase
@@ -63,7 +72,111 @@ Future<bool> deleteProperty(int propertyId, SupabaseClient supabase) async {
   }
 }
 
+   Future<bool> submitPropertyForm({
+    required Map<String, dynamic> property,
+    required List<Asset> selectedImages,
+    required Function(List<String>) onImagesUploaded, 
+  }) async {
+    try {
+      // Upload images and get URLs
+      List<String> uploadedImageUrls = await uploadImages(selectedImages);
 
+      // Update UI state via callback
+      onImagesUploaded(uploadedImageUrls);
 
+      // Add image URLs to property data
+      property["img_url"] = uploadedImageUrls;
+
+      // Insert property into Supabase
+      await supabase.from('properties').insert(property);
+
+      return true; // Success
+    } catch (e) {
+      debugPrint("Error submitting form: $e");
+      return false; // Failure
+    }
+  }
+ 
+
+  Future<List<String>> uploadImages(List<Asset> selectedImages) async {
+    List<String> uploadedImageUrls = [];
+
+    if (selectedImages.isEmpty) {
+      throw Exception("No images to upload");
+    }
+
+    for (var asset in selectedImages) {
+      try {
+        final byteData = await asset.getByteData();
+        final fileBytes = byteData.buffer.asUint8List();
+        final uniqueFileName = "${uuid.v4()}_${asset.name.replaceAll(' ', '_')}";
+
+        debugPrint("Preparing to upload image: $uniqueFileName...");
+        debugPrint("File size: ${fileBytes.length} bytes");
+
+        final filePath = await supabase.storage
+            .from('properties-images')
+            .uploadBinary(uniqueFileName, fileBytes);
+
+        if (filePath.isEmpty) {
+          throw Exception("Upload failed for $uniqueFileName");
+        }
+
+        debugPrint("Image uploaded successfully: $filePath");
+
+        final relativePath = filePath.replaceFirst('properties-images/', '');
+
+        final publicUrl = supabase.storage
+            .from('properties-images')
+            .getPublicUrl(relativePath);
+
+        if (publicUrl.isEmpty) {
+          throw Exception("Failed to generate public URL for $uniqueFileName");
+        }
+
+        debugPrint("Public URL generated: $publicUrl");
+
+        uploadedImageUrls.add(publicUrl);
+      } catch (e) {
+        debugPrint("Error uploading image: $e");
+      }
+    }
+
+    debugPrint("All images processed successfully.");
+    return uploadedImageUrls;
+  }
+   Map<String, dynamic> buildPropertyData({
+    required TextEditingController typeController,
+    required TextEditingController priceController,
+    required TextEditingController bedroomsController,
+    required TextEditingController bathroomsController,
+    required TextEditingController areaController,
+    required TextEditingController levelController,
+    required TextEditingController compoundController,
+    required TextEditingController cityController,
+    required String? furnished,
+    required String? paymentOption,
+    required String? transactionType,
+    required int? userId,
+  }) {
+    return {
+      "type": typeController.text,
+      "price": int.parse(priceController.text),
+      "bedrooms": int.parse(bedroomsController.text),
+      "bathrooms": int.parse(bathroomsController.text),
+      "area": int.parse(areaController.text),
+      "furnished": furnished,
+      "level": levelController.text.isNotEmpty
+          ? int.parse(levelController.text)
+          : null,
+      "compound": compoundController.text.isNotEmpty
+          ? compoundController.text
+          : "Unavailable",
+      "payment_option": paymentOption,
+      "city": cityController.text,
+      "user_id": userId,
+      "sale_rent": transactionType
+    };
+  }
 
 }

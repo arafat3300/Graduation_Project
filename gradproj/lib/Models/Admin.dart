@@ -7,7 +7,7 @@ import 'Baseuser.dart';
 class AdminRecord extends BaseUser {
   final String password;
   final int id;
-  final String first_name;  // Add this property
+  final String first_name;  
   final String last_name; 
   final String token;
 
