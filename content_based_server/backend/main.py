@@ -54,7 +54,7 @@ async def get_recommendations(payload: UserIdPayload):
         encoded_df = pd.DataFrame(encoded_features, columns=encoder.get_feature_names_out(categorical_columns))
 
         # Prepare item profiles
-        properties_df["furnished_numeric"] = properties_df["furnished"].str.lower().map({"Yes": 1, "No": 0}).fillna(0.5)
+        properties_df["furnished_numeric"] = properties_df["furnished"].map({"Yes": 1, "No": 0}).fillna(0.5)
         item_profiles = pd.concat([normalized_df, encoded_df, properties_df[["id", "furnished_numeric"]]], axis=1)
 
         # User profile computation
