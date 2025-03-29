@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:gradproj/Models/singletonSession.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gradproj/Models/User.dart' as local;
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+import '../Models/propertyClass.dart';
+
 
 class UserController {
   final _supabase = Supabase.instance.client;
@@ -228,4 +231,29 @@ class UserController {
       return false;
     }
   }
+
+  Future<List<Property>> fetchUserPropertiesBySession() async {
+  try {
+    final userId = singletonSession().userId;
+    if (userId == null) {
+      debugPrint("User ID is null");
+      return [];
+    }
+
+    final response = await _supabase
+        .from('properties')
+        .select('*')
+        .eq('user_id', userId);
+
+    if (response is List) {
+      return response.map((item) => Property.fromJson(item)).toList();
+    } else {
+      debugPrint("Unexpected response format: $response");
+      return [];
+    }
+  } catch (e) {
+    debugPrint("Exception fetching user listings: $e");
+    return [];
+  }
+}
 }

@@ -3,8 +3,8 @@ import 'package:gradproj/Controllers/user_controller.dart';
 import 'package:gradproj/Models/singletonSession.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import './ChatsScreen.dart';
-import '../models/Property.dart';
 import '../Screens/PropertyDetails.dart';
+import '../Models/propertyClass.dart';
 
 class ViewProfilePage extends StatefulWidget {
   const ViewProfilePage({super.key});
@@ -39,37 +39,52 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
     }
   }
 
-  /// Fetch user-specific properties
   Future<void> fetchUserProperties() async {
-    setState(() => _isLoading = true);
-    try {
-      final supabase = Supabase.instance.client;
-      final userId = singletonSession().userId;
-
-      if (userId == null) {
-        debugPrint("User ID is null");
-        return;
-      }
-
-      final response = await supabase
-          .from('properties')
-          .select('*')
-          .eq('user_id', userId);
-
-      if (response is List) {
-        setState(() {
-          userProperties =
-              response.map((item) => Property.fromJson(item)).toList();
-        });
-      } else {
-        debugPrint("Unexpected response format: $response");
-      }
-    } catch (error) {
-      debugPrint("Exception fetching user listings: $error");
-    } finally {
-      setState(() => _isLoading = false);
-    }
+  setState(() => _isLoading = true);
+  try {
+    final properties = await _userController.fetchUserPropertiesBySession();
+    setState(() {
+      userProperties = properties;
+    });
+  } catch (e) {
+    debugPrint("Error fetching properties: $e");
+  } finally {
+    setState(() => _isLoading = false);
   }
+}
+
+
+  // /// Fetch user-specific properties
+  // Future<void> fetchUserProperties() async {
+  //   setState(() => _isLoading = true);
+  //   try {
+  //     final supabase = Supabase.instance.client;
+  //     final userId = singletonSession().userId;
+
+  //     if (userId == null) {
+  //       debugPrint("User ID is null");
+  //       return;
+  //     }
+
+  //     final response = await supabase
+  //         .from('properties')
+  //         .select('*')
+  //         .eq('user_id', userId);
+
+  //     if (response is List) {
+  //       setState(() {
+  //         userProperties =
+  //             response.map((item) => Property.fromJson(item)).toList();
+  //       });
+  //     } else {
+  //       debugPrint("Unexpected response format: $response");
+  //     }
+  //   } catch (error) {
+  //     debugPrint("Exception fetching user listings: $error");
+  //   } finally {
+  //     setState(() => _isLoading = false);
+  //   }
+  // }
 
   Future<void> _logout(BuildContext context) async {
     await _userController.saveSessionToken("");

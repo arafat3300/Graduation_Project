@@ -10,7 +10,7 @@ import 'package:gradproj/Screens/emailtest.dart';
 import 'package:gradproj/Screens/search.dart';
 import 'package:gradproj/screens/PropertyDetails.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/Property.dart';
+import '../Models/propertyClass.dart';
 import '../widgets/PropertyCard.dart';
 
 class PropertyListScreen extends StatefulWidget {

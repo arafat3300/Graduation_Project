@@ -1,6 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../Models/property.dart';
+import '../Models/propertyClass.dart';
 
 class AdminController {
   final SupabaseClient supabase;

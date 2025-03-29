@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gradproj/models/Property.dart';
+
+
+import '../Models/propertyClass.dart';
 
 class PropertyCard extends StatelessWidget {
   final Property property;

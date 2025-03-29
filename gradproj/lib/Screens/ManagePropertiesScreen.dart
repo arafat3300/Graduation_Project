@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../models/Property.dart'; // Import your Property class
+import '../Models/propertyClass.dart'; // Import your Property class
 
 class ManagePropertiesScreen extends StatefulWidget {
   const ManagePropertiesScreen({Key? key}) : super(key: key);

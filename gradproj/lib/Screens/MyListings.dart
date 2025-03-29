@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../Screens/PropertyDetails.dart';
 import '../Controllers/property_controller.dart';
-import '../models/Property.dart';
+import '../Models/propertyClass.dart';
 
 class MyListings extends StatefulWidget {
   final int userId;

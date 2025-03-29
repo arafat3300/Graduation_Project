@@ -3,8 +3,10 @@ import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
 import 'package:uuid/uuid.dart';
-import '../models/Property.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../Models/propertyClass.dart';
 
 class PropertyController {
     final SupabaseClient supabase;

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/Property.dart';
+import '../Models/propertyClass.dart';
 import '../Models/singletonSession.dart';
 
 final favouritesProvider =

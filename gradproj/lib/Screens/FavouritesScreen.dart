@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/Property.dart';
+import '../Models/propertyClass.dart';
 import 'package:gradproj/Screens/CustomBottomNavBar.dart';
 import 'package:gradproj/Screens/Profile.dart';
 import 'package:gradproj/Screens/PropertyDetails.dart';
