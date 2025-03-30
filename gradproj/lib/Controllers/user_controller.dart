@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:gradproj/Models/singletonSession.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gradproj/Models/User.dart' as local;
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import '../Models/propertyClass.dart';
+import 'package:http/http.dart' as http;
 
 
 class UserController {
@@ -256,4 +259,36 @@ class UserController {
     return [];
   }
 }
+
+Future<List<Map<String, dynamic>>> fetchRecommendationsRaw(int userId) async {
+  const String apiUrl = 'http://192.168.1.12:8080/recommendations/';
+  final Uri url = Uri.parse(apiUrl);
+
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'user_id': userId}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      if (data.containsKey('recommendations') && data['recommendations'] is List) {
+        return (data['recommendations'] as List)
+            .map<Map<String, dynamic>>((item) => {
+                  "id": item['id'],
+                  "similarity_score": item['similarity_score'],
+                })
+            .toList();
+      }
+    }
+  } catch (e) {
+    debugPrint("Error fetching recommendations: $e");
+  }
+  return [];
+}
+
+
+
 }

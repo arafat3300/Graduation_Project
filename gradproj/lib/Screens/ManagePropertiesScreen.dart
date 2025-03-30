@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gradproj/Controllers/admin_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../Models/propertyClass.dart'; // Import your Property class
@@ -15,45 +16,33 @@ class _ManagePropertiesScreenState extends State<ManagePropertiesScreen> {
   List<Property> _properties = []; 
   List<Property> _filteredProperties = []; 
   final TextEditingController _searchController = TextEditingController(); 
+  final AdminController _adminController = AdminController(Supabase.instance.client);
+
   @override
   void initState() {
     super.initState();
     _fetchProperties();
   }
 
-  Future<void> _fetchProperties() async {
-    setState(() => _isLoading = true);
+Future<void> _fetchProperties() async {
+  setState(() => _isLoading = true);
 
-    try {
-      final supabase = Supabase.instance.client;
-      final List response = await supabase
-          .from('properties')
-          .select('*')
-          .eq('status', 'approved') 
-          .then((result) {
-        return result is List ? List<Map<String, dynamic>>.from(result) : [];
-      }).catchError((error) {
-        debugPrint('Supabase query error: $error');
-        return <Map<String, dynamic>>[];
-      });
-
-      if (response.isNotEmpty) {
-        final properties =
-            response.map((data) => Property.fromJson(data)).toList();
-        setState(() {
-          _properties = properties;
-          _filteredProperties = properties; 
-        });
-      }
-    } catch (e) {
-      debugPrint('Error fetching properties: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
+  try {
+    final properties = await _adminController.fetchApprovedProperties();
+    setState(() {
+      _properties = properties;
+      _filteredProperties = properties;
+    });
+  } catch (e) {
+    debugPrint('Error fetching properties: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e')),
+    );
+  } finally {
+    setState(() => _isLoading = false);
   }
+}
+
 
   void _searchProperties(String query) {
     if (query.isEmpty) {
@@ -74,30 +63,30 @@ class _ManagePropertiesScreenState extends State<ManagePropertiesScreen> {
     });
   }
 
-  Future<void> _deleteProperty(int id) async {
-    try {
-      setState(() => _isLoading = true);
+Future<void> _deleteProperty(int id) async {
+  try {
+    setState(() => _isLoading = true);
 
-      final supabase = Supabase.instance.client;
-      await supabase.from('properties').delete().eq('id', id);
+    await _adminController.deletePropertyById(id);
 
-      setState(() {
-        _properties.removeWhere((property) => property.id == id);
-        _filteredProperties.removeWhere((property) => property.id == id);
-      });
+    setState(() {
+      _properties.removeWhere((property) => property.id == id);
+      _filteredProperties.removeWhere((property) => property.id == id);
+    });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Property deleted successfully!')),
-      );
-    } catch (e) {
-      debugPrint('Error deleting property: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Property deleted successfully!')),
+    );
+  } catch (e) {
+    debugPrint('Error deleting property: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e')),
+    );
+  } finally {
+    setState(() => _isLoading = false);
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

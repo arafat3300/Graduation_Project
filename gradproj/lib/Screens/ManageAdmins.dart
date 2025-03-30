@@ -2,10 +2,12 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:gradproj/Controllers/admin_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import '../models/Admin.dart';
+import '../Models/Admin.dart';
+import '../Models/propertyClass.dart';
 
 class ManageAdminsScreen extends StatefulWidget {
   const ManageAdminsScreen({super.key});
@@ -17,6 +19,8 @@ class ManageAdminsScreen extends StatefulWidget {
 class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
   bool _isLoading = false;
   List<AdminRecord> _admins = [];
+  final AdminController _adminController = AdminController(Supabase.instance.client);
+
 
   @override
   void initState() {
@@ -33,196 +37,104 @@ Future<void> _fetchAdmins() async {
   setState(() => _isLoading = true);
 
   try {
-    final supabase = Supabase.instance.client;
+    final fetched = await _adminController.fetchAdmins();
+    setState(() => _admins = fetched);
 
-    final List response = await supabase
-        .from('admins')
-        .select('id, email, first_name, last_name, password')
-        .then((result) {
-      return result is List ? List<Map<String, dynamic>>.from(result) : [];
-    }).catchError((error) {
-      debugPrint('Supabase query error: $error');
-      return <Map<String, dynamic>>[];
-    });
-
-    if (response.isEmpty) {
-      debugPrint('No admin records found');
-      setState(() {
-        _admins = []; 
-      });
-      
+    if (fetched.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No admin records available')),
       );
-      return;
     }
-
-    final List<AdminRecord> processedAdmins = response.map((adminData) {
-      try {
-        return AdminRecord.fromMap({
-          'id': adminData['id'] ?? 0,
-          'email': adminData['email'] ?? '',
-          'first_name': adminData['first_name'] ?? '',
-          'last_name': adminData['last_name'] ?? '',
-          'password': adminData['password'] ?? '',
-          'token': adminData['token'] ?? '', 
-        });
-      } catch (mappingError) {
-        debugPrint('Error mapping admin record: $mappingError');
-        return null;
-      }
-    }).whereType<AdminRecord>().toList(); 
-
-    setState(() {
-      _admins = processedAdmins;
-    });
-
-    debugPrint('Successfully fetched ${processedAdmins.length} admin records');
-
-  } catch (generalError) {
-    debugPrint('Unexpected error in admin fetching: $generalError');
-    
+  } catch (e) {
+    debugPrint('Error fetching admins: $e');
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to load admin records: $generalError')),
+      SnackBar(content: Text('Failed to load admins: $e')),
     );
-
-    setState(() {
-      _admins = [];
-    });
+    setState(() => _admins = []);
   } finally {
     setState(() => _isLoading = false);
   }
 }
 
+
  String generateSessionToken(String id) {
     return id;
   }
-  Future<void> _addAdmin(
-    String email, String firstName, String lastName, String password) async {
+Future<void> _addAdmin(String email, String firstName, String lastName, String password) async {
   try {
-    if (email.isEmpty || !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+\$').hasMatch(email)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid email address')),
-      );
+    if (email.isEmpty || !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid email address')));
       return;
     }
     if (firstName.isEmpty || lastName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('First and last names cannot be empty')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name fields cannot be empty')));
       return;
     }
     if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password too short')));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    await _adminController.addAdmin(email, firstName, lastName, password);
+    await _fetchAdmins();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Admin added successfully!')),
+    );
+  } catch (e) {
+    debugPrint('Error adding admin: $e');
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+  } finally {
+    setState(() => _isLoading = false);
+  }
+}
+
+
+ Future<void> _updateAdmin(
+    int id, String email, String firstName, String lastName, String password) async {
+  try {
+    if (firstName.isEmpty || lastName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 6 characters long')),
+        const SnackBar(content: Text('Name fields cannot be empty')),
+      );
+      return;
+    }
+    if (password.isNotEmpty && password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 6 characters')),
       );
       return;
     }
 
     setState(() => _isLoading = true);
-    final Uuid _uuid = const Uuid();
 
-    String hashPassword(String password) {
-      final bytes = utf8.encode(password.trim());
-      final digest = sha256.convert(bytes);
-      return digest.toString();
-    }
-
-    final hashedPassword = hashPassword(password);
-
-    final supabase = Supabase.instance.client;
-    final id = _uuid.v4();
-    final sessionToken = generateSessionToken(id); 
-
-    await supabase.from('admins').insert({
-      'email': email,
-      'first_name': firstName,
-      'last_name': lastName,
-      'password': hashedPassword, 
-      'role': 1, 
-      'token': sessionToken,
-      'idd': id,
-    });
-
+    await _adminController.updateAdmin(id, email, firstName, lastName, password);
     await _fetchAdmins();
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Admin added successfully!')),
+      const SnackBar(content: Text('Admin updated successfully!')),
     );
   } catch (e) {
-    debugPrint('Exception in _addAdmin(): $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Exception: $e')),
-    );
+    debugPrint('Error updating admin: $e');
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
   } finally {
     setState(() => _isLoading = false);
   }
 }
 
-  Future<void> _updateAdmin(
-      int id, String newEmail, String newFirstName, String newLastName, String newPassword) async {
-    try {
-      // if (newEmail.isEmpty || !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+\$').hasMatch(newEmail)) {
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     const SnackBar(content: Text('Invalid email address')),
-      //   );
-      //   return;
-      // }
-      if (newFirstName.isEmpty || newLastName.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('First and last names cannot be empty')),
-        );
-        return;
-      }
-      if (newPassword.isNotEmpty && newPassword.length < 6) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password must be at least 6 characters long')),
-        );
-        return;
-      }
 
-      setState(() => _isLoading = true);
-
-      final supabase = Supabase.instance.client;
-      await supabase.from('admins').update({
-        'email': newEmail,
-        'first_name': newFirstName,
-        'last_name': newLastName,
-        'password': newPassword,
-      }).eq('id', id);
-
-      await _fetchAdmins();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Admin updated successfully!')),
-      );
-    } catch (e) {
-      debugPrint('Exception in _updateAdmin(): $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Exception: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _deleteAdmin(int id) async {
+Future<void> _deleteAdmin(int id) async {
   Map<String, dynamic>? deletedAdmin;
   bool isUndoTriggered = false;
 
   try {
     setState(() => _isLoading = true);
 
-    final supabase = Supabase.instance.client;
     final adminToDelete = _admins.firstWhere((admin) => admin.id == id);
-    deletedAdmin = {
-      'email': adminToDelete.email,
-      'first_name': adminToDelete.firstName,
-      'last_name': adminToDelete.lastName,
-      'password': adminToDelete.password,
-      'token': adminToDelete.token,
-      'idd': adminToDelete.id,
-    };
+    deletedAdmin = await _adminController.deleteAdmin(adminToDelete);
 
-    await supabase.from('admins').delete().eq('id', id);
     setState(() {
       _admins.removeWhere((admin) => admin.id == id);
     });
@@ -236,10 +148,10 @@ Future<void> _fetchAdmins() async {
           onPressed: () async {
             if (deletedAdmin != null) {
               try {
-                await supabase.from('admins').insert(deletedAdmin);
+                await _adminController.restoreAdmin(deletedAdmin!);
                 await _fetchAdmins();
-                isUndoTriggered = true;
 
+                isUndoTriggered = true;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Admin restored successfully!')),
                 );
@@ -255,21 +167,21 @@ Future<void> _fetchAdmins() async {
       ),
     );
 
-    // Wait to determine if the undo action was triggered
     await Future.delayed(const Duration(seconds: 5));
 
     if (!isUndoTriggered) {
-      debugPrint('Undo was not triggered. Admin deletion finalized.');
+      debugPrint('Undo was not triggered. Deletion finalized.');
     }
   } catch (e) {
-    debugPrint('Exception in _deleteAdmin(): $e');
+    debugPrint('Error deleting admin: $e');
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Exception: $e')),
+      SnackBar(content: Text('Error: $e')),
     );
   } finally {
     setState(() => _isLoading = false);
   }
 }
+
 
 
   void _showAddAdminDialog() {

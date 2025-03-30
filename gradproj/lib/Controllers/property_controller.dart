@@ -181,4 +181,36 @@ Future<bool> deleteProperty(int propertyId, SupabaseClient supabase) async {
     };
   }
 
+
+  Future<List<Property>> fetchPropertiesFromIdsWithScores(
+  List<Map<String, dynamic>> recommendedData
+) async {
+  try {
+    final ids = recommendedData.map<int>((e) => e['id'] as int).toList();
+    Map<int, double> scoreMap = {
+      for (var e in recommendedData) e['id'] as int: (e['similarity_score'] as num).toDouble()
+    };
+
+    final response = await supabase
+        .from('properties')
+        .select('*')
+        .filter('id', 'in', ids);
+
+    if (response.isEmpty) return [];
+
+    final List<Property> result = (response as List).map((json) {
+      final property = Property.fromJson(json);
+      property.similarityScore = scoreMap[property.id];
+      return property;
+    }).toList();
+
+    result.sort((a, b) => b.similarityScore!.compareTo(a.similarityScore!));
+    return result;
+  } catch (e) {
+    debugPrint("Error in fetchPropertiesFromIdsWithScores: $e");
+    return [];
+  }
+}
+
+
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gradproj/Controllers/admin_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/User.dart' as local; // Alias your custom User class
@@ -16,94 +17,46 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   List<local.User> _filteredUsers = []; // For displaying filtered results
   Map<int, int> _activeListings = {}; // Map to store user ID and active listings count
   final TextEditingController _searchController = TextEditingController(); // Controller for search input
+final AdminController _adminController = AdminController(Supabase.instance.client);
 
   @override
   void initState() {
     super.initState();
     _fetchUsers();
   }
+Future<void> _fetchUsers() async {
+  setState(() => _isLoading = true);
 
-  Future<void> _fetchUsers() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final supabase = Supabase.instance.client;
-      final List response = await supabase
-          .from('users')
-          .select('*')
-          .then((result) {
-        return result is List ? List<Map<String, dynamic>>.from(result) : [];
-      }).catchError((error) {
-        debugPrint('Supabase query error: $error');
-        return <Map<String, dynamic>>[];
-      });
-
-      if (response.isNotEmpty) {
-        final users = response.map((data) => local.User.fromJson(data)).toList();
-        setState(() {
-          _users = users;
-          _filteredUsers = users; // Initialize filtered list
-        });
-        await _fetchActiveListings(users);
-      }
-    } catch (e) {
-      debugPrint('Error fetching users: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
+  try {
+    final users = await _adminController.fetchUsers();
+    setState(() {
+      _users = users;
+      _filteredUsers = users;
+    });
+    final listings = await _adminController.fetchActiveListings(users);
+    setState(() {
+      _activeListings = listings;
+    });
+  } catch (e) {
+    debugPrint('Error fetching users or listings: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e')),
+    );
+  } finally {
+    setState(() => _isLoading = false);
   }
+}
 
-  Future<void> _fetchActiveListings(List<local.User> users) async {
-    try {
-      final supabase = Supabase.instance.client;
 
-      for (var user in users) {
-        final response = await supabase
-            .from('properties')
-            .select('*')
-            .eq('user_id', user.id as int)
-            .eq('status', 'approved')
-            .count(CountOption.exact);
 
-        setState(() {
-          _activeListings[user.id!] = response.count ?? 0;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error fetching active listings: $e');
-    }
-  }
-
-  Future<void> _deleteUser(int id) async {
+Future<void> _deleteUser(int id) async {
   Map<String, dynamic>? deletedUser;
   bool isUndoTriggered = false;
 
   try {
     setState(() => _isLoading = true);
 
-    final supabase = Supabase.instance.client;
-
-    final userToDelete = _users.firstWhere((user) => user.id == id);
-    deletedUser = {
-      'id': userToDelete.id,
-      'idd': userToDelete.idd,
-      'firstname': userToDelete.firstName,
-      'lastname': userToDelete.lastName,
-      'dob': userToDelete.dob,
-      'phone': userToDelete.phone,
-      'country': userToDelete.country,
-      'job': userToDelete.job,
-      'email': userToDelete.email,
-      'password': userToDelete.password, // Already hashed
-      'token': userToDelete.token,
-      'created_at': userToDelete.createdAt?.toIso8601String(),
-      'role': userToDelete.role,
-    };
-
-    await supabase.from('users').delete().eq('id', id);
+    deletedUser = await _adminController.deleteUserById(id, _users);
 
     setState(() {
       _users.removeWhere((user) => user.id == id);
@@ -120,11 +73,10 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
           onPressed: () async {
             if (deletedUser != null) {
               try {
-                await supabase.from('users').insert(deletedUser);
+                await _adminController.restoreUser(deletedUser!);
                 await _fetchUsers();
 
                 isUndoTriggered = true;
-                
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('User restored successfully!')),
                 );
@@ -143,7 +95,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     await Future.delayed(const Duration(seconds: 5));
 
     if (!isUndoTriggered) {
-      debugPrint('Undo was not triggered. User deletion finalized.');
+      debugPrint('Undo not triggered. User deletion finalized.');
     }
   } catch (e) {
     debugPrint('Error deleting user: $e');
@@ -154,6 +106,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     setState(() => _isLoading = false);
   }
 }
+
+
+
 
 
 
