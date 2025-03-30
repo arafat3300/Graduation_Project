@@ -213,4 +213,40 @@ Future<bool> deleteProperty(int propertyId, SupabaseClient supabase) async {
 }
 
 
+Future<List<Property>> fetchApprovedProperties() async {
+    try {
+      final response = await supabase
+          .from('properties')
+          .select("*")
+          .filter('status', 'eq', 'approved');
+
+      if (response is List && response.isNotEmpty) {
+        return response.map((entry) => Property.fromJson(entry)).toList();
+      } else {
+        return [];
+      }
+    } catch (e) {
+      print("Error in PropertyController.fetchApprovedProperties: $e");
+      rethrow;
+    }
+  }
+List<Property> applySorting(List<Property> properties, String? sortOption) {
+  if (sortOption == null) return properties;
+
+  final sorted = List<Property>.from(properties);
+  switch (sortOption) {
+    case 'PriceLowHigh':
+      sorted.sort((a, b) => a.price.compareTo(b.price));
+      break;
+    case 'PriceHighLow':
+      sorted.sort((a, b) => b.price.compareTo(a.price));
+      break;
+    case 'BestSellers':
+      // Add logic for best sellers if applicable
+      break;
+  }
+  return sorted;
+}
+
+
 }

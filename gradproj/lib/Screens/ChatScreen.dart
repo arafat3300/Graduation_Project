@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gradproj/Controllers/chat_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gradproj/Models/singletonSession.dart';
 
@@ -21,7 +22,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   bool _isSending = false;
-
+final ChatController _chatController = ChatController();
   Future<void> _loadMessages() async {
     try {
       final supabase = Supabase.instance.client;
@@ -40,30 +41,30 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty) return;
+  final text = _messageController.text.trim();
+  if (text.isEmpty) return;
 
-    setState(() => _isSending = true);
+  setState(() => _isSending = true);
 
-    try {
-      final supabase = Supabase.instance.client;
-      await supabase.from('messages').insert({
-        'sender_id': widget.senderId,
-        'rec_id': widget.receiverId,
-        'property_id': widget.propertyId,
-        'content': _messageController.text.trim(),
-        'created_at': DateTime.now().toIso8601String(),
-      });
+  try {
+    await _chatController.sendMessage(
+      senderId: widget.senderId,
+      receiverId: widget.receiverId,
+      propertyId: widget.propertyId,
+      content: text,
+    );
 
-      _messageController.clear();
-      await _loadMessages();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sending message: $e')),
-      );
-    } finally {
-      setState(() => _isSending = false);
-    }
+    _messageController.clear();
+    await _loadMessages();
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error sending message: $e')),
+    );
+  } finally {
+    setState(() => _isSending = false);
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

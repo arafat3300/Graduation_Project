@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:gradproj/Controllers/property_controller.dart';
 import 'package:gradproj/Models/singletonSession.dart';
 import 'package:gradproj/Screens/MyListings.dart';
 import '../Controllers/user_controller.dart';
@@ -39,6 +40,8 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
   String? _selectedSortOption;
   int? _userId;
   UserController userCtrl = UserController();
+  final PropertyController _propertyController = PropertyController(Supabase.instance.client);
+
   @override
   void initState() {
     super.initState();
@@ -54,60 +57,41 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
     super.dispose();
   }
 
-  Future<void> fetchProperties() async {
-    try {
-      // Fetch the logged-in user's ID
-      _userId = singletonSession().userId;
+Future<void> fetchProperties() async {
+  try {
+    _userId = singletonSession().userId;
 
-      debugPrint('LOGGED IN USER ID IS: $_userId');
-
-      if (_userId == null) {
-        debugPrint("No logged-in user found. Redirecting to login.");
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Session expired. Please log in."),
-        ));
-        return;
-      }
-
-      // Start loading state
-      setState(() => _isLoading = true);
-
-      // Fetch properties from the database
-      final supabase = Supabase.instance.client;
-      final response = await supabase
-          .from('properties')
-          .select("*")
-          .filter('status', 'eq', 'approved');
-
-      debugPrint("Response from Supabase: $response");
-
-      if (response.isNotEmpty) {
-        final List<dynamic> data = response;
-        final newProperties =
-            data.map((entry) => Property.fromJson(entry)).toList();
-        debugPrint("New properties: $newProperties");
-
-        // Update the UI with fetched properties
-        setState(() {
-          properties = newProperties;
-          filteredProperties = newProperties;
-        });
-      } else {
-        debugPrint("No data received from Supabase.");
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("No properties found. Please try again later."),
-        ));
-      }
-    } catch (exception) {
-      debugPrint("Exception fetching properties: $exception");
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("Failed to load properties. Please try again later."),
-      ));
-    } finally {
-      // End loading state
-      setState(() => _isLoading = false);
+    if (_userId == null) {
+      debugPrint("No logged-in user found.");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Session expired. Please log in.")),
+      );
+      return;
     }
+
+    setState(() => _isLoading = true);
+
+    final newProperties = await _propertyController.fetchApprovedProperties();
+
+    if (newProperties.isNotEmpty) {
+      setState(() {
+        properties = newProperties;
+        filteredProperties = newProperties;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No properties found.")),
+      );
+    }
+  } catch (e) {
+    debugPrint("Exception fetching properties: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Failed to load properties.")),
+    );
+  } finally {
+    setState(() => _isLoading = false);
   }
+}
 
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
@@ -145,23 +129,10 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
     });
   }
 
-  List<Property> _applySorting(List<Property> list) {
-    if (_selectedSortOption == null) return list;
+ List<Property> _applySorting(List<Property> list) {
+  return _propertyController.applySorting(list, _selectedSortOption);
+}
 
-    final sorted = List<Property>.from(list);
-    switch (_selectedSortOption) {
-      case 'PriceLowHigh':
-        sorted.sort((a, b) => a.price.compareTo(b.price));
-        break;
-      case 'PriceHighLow':
-        sorted.sort((a, b) => b.price.compareTo(a.price));
-        break;
-      case 'BestSellers':
-        // sorted.sort((a, b) => b.feedback.length.compareTo(a.feedback.length));
-        break;
-    }
-    return sorted;
-  }
 
   @override
   Widget build(BuildContext context) {
