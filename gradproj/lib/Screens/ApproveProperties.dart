@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gradproj/Controllers/admin_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../Controllers/property_controller.dart';
-import '../models/Property.dart';
+import '../Models/propertyClass.dart';
 import '../Screens/PropertyDetails.dart';
 
 class ApproveProperty extends StatefulWidget {
@@ -13,7 +13,8 @@ class ApproveProperty extends StatefulWidget {
 }
 
 class _ApprovePropertyState extends State<ApproveProperty> {
-  final PropertyController propertyController = PropertyController(Supabase.instance.client);
+  
+  final PropertyController propertyController = PropertyController( Supabase.instance.client);
   final AdminController adminController = AdminController(Supabase.instance.client);
 
   List<Property> properties = [];

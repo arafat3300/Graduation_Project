@@ -1,4 +1,4 @@
-import '../models/Property.dart';
+import '../Models/propertyClass.dart';
 import 'package:flutter/material.dart';
 import '../Screens/PropertyDetails.dart';
 String test = 't';

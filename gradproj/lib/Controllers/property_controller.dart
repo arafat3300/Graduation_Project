@@ -3,8 +3,10 @@ import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:multi_image_picker_plus/multi_image_picker_plus.dart';
 import 'package:uuid/uuid.dart';
-import '../models/Property.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../Models/propertyClass.dart';
 
 class PropertyController {
     final SupabaseClient supabase;
@@ -178,5 +180,73 @@ Future<bool> deleteProperty(int propertyId, SupabaseClient supabase) async {
       "sale_rent": transactionType
     };
   }
+
+
+  Future<List<Property>> fetchPropertiesFromIdsWithScores(
+  List<Map<String, dynamic>> recommendedData
+) async {
+  try {
+    final ids = recommendedData.map<int>((e) => e['id'] as int).toList();
+    Map<int, double> scoreMap = {
+      for (var e in recommendedData) e['id'] as int: (e['similarity_score'] as num).toDouble()
+    };
+
+    final response = await supabase
+        .from('properties')
+        .select('*')
+        .filter('id', 'in', ids);
+
+    if (response.isEmpty) return [];
+
+    final List<Property> result = (response as List).map((json) {
+      final property = Property.fromJson(json);
+      property.similarityScore = scoreMap[property.id];
+      return property;
+    }).toList();
+
+    result.sort((a, b) => b.similarityScore!.compareTo(a.similarityScore!));
+    return result;
+  } catch (e) {
+    debugPrint("Error in fetchPropertiesFromIdsWithScores: $e");
+    return [];
+  }
+}
+
+
+Future<List<Property>> fetchApprovedProperties() async {
+    try {
+      final response = await supabase
+          .from('properties')
+          .select("*")
+          .filter('status', 'eq', 'approved');
+
+      if (response is List && response.isNotEmpty) {
+        return response.map((entry) => Property.fromJson(entry)).toList();
+      } else {
+        return [];
+      }
+    } catch (e) {
+      print("Error in PropertyController.fetchApprovedProperties: $e");
+      rethrow;
+    }
+  }
+List<Property> applySorting(List<Property> properties, String? sortOption) {
+  if (sortOption == null) return properties;
+
+  final sorted = List<Property>.from(properties);
+  switch (sortOption) {
+    case 'PriceLowHigh':
+      sorted.sort((a, b) => a.price.compareTo(b.price));
+      break;
+    case 'PriceHighLow':
+      sorted.sort((a, b) => b.price.compareTo(a.price));
+      break;
+    case 'BestSellers':
+      // Add logic for best sellers if applicable
+      break;
+  }
+  return sorted;
+}
+
 
 }

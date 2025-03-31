@@ -101,7 +101,7 @@ darkTheme: ThemeData.dark().copyWith(
   colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.blueGrey),
 ),
       themeMode: _themeMode,
-      initialRoute: '/login',
+      initialRoute: '/signup',
       routes: {
         '/Odoo': (context)=>OdooConnection(),
         '/property-listings': (context) => PropertyListScreen(toggleTheme: toggleTheme),

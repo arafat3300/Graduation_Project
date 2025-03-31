@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gradproj/Controllers/admin_controller.dart';
 import 'package:gradproj/Screens/ApproveProperties.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gradproj/Controllers/user_controller.dart';
@@ -21,6 +22,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int _adminCount = 0;         
   int _activeProperties = 0;   
     final UserController _userController = UserController();
+    final AdminController _adminController = AdminController(Supabase.instance.client);
+
 
 
   @override
@@ -28,76 +31,90 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     super.initState();
     _fetchAllDashboardData();
   }
+Future<void> _fetchAllDashboardData() async {
+  setState(() => _isLoading = true);
 
-  Future<void> _fetchAllDashboardData() async {
-    try {
-      setState(() => _isLoading = true);
+  final counts = await _adminController.fetchDashboardCounts();
 
-      final supabase = Supabase.instance.client;
+  setState(() {
+    _userCount = counts['users'] ?? 0;
+    _propertyCount = counts['properties'] ?? 0;
+    _adminCount = counts['admins'] ?? 0;
+    _activeProperties = counts['activeProps'] ?? 0;
+    _isLoading = false;
+  });
+}
+
+
+  // Future<void> _fetchAllDashboardData() async {
+  //   try {
+  //     setState(() => _isLoading = true);
+
+  //     final supabase = Supabase.instance.client;
 
      
 
-      final UserResponse= await supabase
-          .from('users')
-          .select()
-          .count(CountOption.exact);
+  //     final UserResponse= await supabase
+  //         .from('users')
+  //         .select()
+  //         .count(CountOption.exact);
 
-      debugPrint('--- propertyResponse ---');
-      debugPrint('data: ${UserResponse.data}');
-      debugPrint('count: ${UserResponse.count}');
+  //     debugPrint('--- propertyResponse ---');
+  //     // debugPrint('data: ${UserResponse.data}');
+  //     debugPrint('count: ${UserResponse.count}');
 
-      final userCount = UserResponse.count ?? 0;
-      final propertyResponse = await supabase
-          .from('properties')
-          .select()
-          .count(CountOption.exact);
+  //     final userCount = UserResponse.count ?? 0;
+  //     final propertyResponse = await supabase
+  //         .from('properties')
+  //         .select()
+  //         .count(CountOption.exact);
 
-      debugPrint('--- propertyResponse ---');
-      debugPrint('data: ${propertyResponse.data}');
-      debugPrint('count: ${propertyResponse.count}');
+  //     debugPrint('--- propertyResponse ---');
+  //     // debugPrint('data: ${propertyResponse.data}');
+  //     debugPrint('count: ${propertyResponse.count}');
 
-      final propertyCount = propertyResponse.count ?? 0;
+  //     final propertyCount = propertyResponse.count ?? 0;
 
       
-      final adminResponse = await supabase
-          .from('admins') 
-          .select()
-          .count(CountOption.exact);
+  //     final adminResponse = await supabase
+  //         .from('admins') 
+  //         .select()
+  //         .count(CountOption.exact);
 
-      debugPrint('--- adminResponse ---');
-      debugPrint('data: ${adminResponse.data}');
-      debugPrint('count: ${adminResponse.count}');
+  //     debugPrint('--- adminResponse ---');
+  //     // debugPrint('data: ${adminResponse.data}');
+  //     debugPrint('count: ${adminResponse.count}');
 
-      final adminCount = adminResponse.count ?? 0;
+  //     final adminCount = adminResponse.count ?? 0;
 
  
-      final activeResponse = await supabase
-          .from('properties')
-          .select()
-          .eq('status', "approved")
-          .count(CountOption.exact);
+  //     final activeResponse = await supabase
+  //         .from('properties')
+  //         .select()
+  //         .eq('status', "approved")
+  //         .count(CountOption.exact);
 
-      debugPrint('--- activeResponse ---');
-      debugPrint('data: ${activeResponse.data}');
-      debugPrint('count: ${activeResponse.count}');
+  //     debugPrint('--- activeResponse ---');
+  //     debugPrint('data: ${activeResponse.data}');
+  //     debugPrint('count: ${activeResponse.count}');
 
-      final activeCount = activeResponse.count ?? 0;
+  //     final activeCount = activeResponse.count ?? 0;
 
 
       
 
-      setState(() {
-        _userCount = userCount;
-        _propertyCount = propertyCount;
-        _adminCount = adminCount;
-        _activeProperties = activeCount;
-      });
-    } catch (e) {
-      debugPrint('Error fetching dashboard data: $e');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
+  //     setState(() {
+  //       _userCount = userCount;
+  //       _propertyCount = propertyCount;
+  //       _adminCount = adminCount;
+  //       _activeProperties = activeCount;
+  //     });
+  //   } catch (e) {
+  //     debugPrint('Error fetching dashboard data: $e');
+  //   } finally {
+  //     setState(() => _isLoading = false);
+  //   }
+  // }
 
   Future<void> _onRefresh() => _fetchAllDashboardData();
 

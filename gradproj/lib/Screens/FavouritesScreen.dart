@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gradproj/Controllers/property_controller.dart';
+import 'package:gradproj/Controllers/user_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/Property.dart';
+import '../Models/propertyClass.dart';
 import 'package:gradproj/Screens/CustomBottomNavBar.dart';
 import 'package:gradproj/Screens/Profile.dart';
 import 'package:gradproj/Screens/PropertyDetails.dart';
@@ -22,104 +24,124 @@ class FavoritesScreen extends ConsumerStatefulWidget {
 }
 
 class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
+  final _userController = UserController();
+  final _propertyController = PropertyController(Supabase.instance.client);
+
   int _currentIndex = 1;
   List<Property> recommendations = [];
 
   @override
   void initState() {
     super.initState();
-    final favouritesNotifier = ref.read(favouritesProvider.notifier);
-    favouritesNotifier.fetchFavorites();
+    ref.read(favouritesProvider.notifier).fetchFavorites();
 
-    int? userId = singletonSession().userId;
-    debugPrint("User ID in Singleton: $userId");
-
+    final userId = singletonSession().userId;
     if (userId != null) {
-      fetchRecommendations(userId);
+      fetchRecommendationsAndSetState(userId);
     } else {
       debugPrint("User ID is NULL! Recommendations not fetched.");
     }
   }
 
-  Future<void> fetchPropertiesFromSupabase(List<Map<String, dynamic>> recommendedData) async {
-    final supabase = Supabase.instance.client;
-
-    try {
-      List<int> propertyIds = recommendedData.map<int>((item) => item['id'] as int).toList();
-      Map<int, double> similarityScores = {
-        for (var item in recommendedData) item['id'] as int: (item['similarity_score'] as num).toDouble()
-      };
-
-      final List<Map<String, dynamic>> response = await supabase
-          .from('properties')
-          .select('*')
-          .filter('id', 'in', propertyIds);
-
-      if (response.isEmpty) {
-        debugPrint("Supabase Error: No properties found for IDs: $propertyIds");
-        return;
-      }
-
-      setState(() {
-        recommendations = response.map<Property>((json) {
-          Property property = Property.fromJson(json);
-
-          if (similarityScores.containsKey(property.id)) {
-            property.similarityScore = similarityScores[property.id];
-          }
-
-          return property;
-        }).toList();
-
-        recommendations.sort((a, b) => b.similarityScore!.compareTo(a.similarityScore!));
-      });
-
-      debugPrint("Sorted Property Data from Supabase with Similarity Scores: $recommendations");
-    } catch (e) {
-      debugPrint("Exception fetching from Supabase: $e");
+  Future<void> fetchRecommendationsAndSetState(int userId) async {
+    final rawRecommendations = await _userController.fetchRecommendationsRaw(userId);
+    if (rawRecommendations.isEmpty) {
+      debugPrint("No raw recommendations received.");
+      return;
     }
+
+    final fetchedProperties =
+        await _propertyController.fetchPropertiesFromIdsWithScores(rawRecommendations);
+
+    setState(() {
+      recommendations = fetchedProperties;
+    });
   }
 
-  Future<void> fetchRecommendations(int userId) async {
-    const String apiUrl = 'http://192.168.1.10:8080/recommendations/';
-    final Uri url = Uri.parse(apiUrl);
 
-    debugPrint("Sending request to: $url with user_id: $userId");
 
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'user_id': userId}),
-      );
 
-      debugPrint("Response Status Code: ${response.statusCode}");
-      debugPrint("Response Body: ${response.body}");
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
 
-        if (data.containsKey('recommendations') && data['recommendations'] is List) {
-          List<Map<String, dynamic>> recommendedData = (data['recommendations'] as List)
-              .map((item) => {
-                    "id": item['id'],
-                    "similarity_score": item['similarity_score'],
-                  })
-              .toList();
+  // Future<void> fetchPropertiesFromSupabase(List<Map<String, dynamic>> recommendedData) async {
+  //   final supabase = Supabase.instance.client;
 
-          debugPrint("Recommended Data: $recommendedData");
+  //   try {
+  //     List<int> propertyIds = recommendedData.map<int>((item) => item['id'] as int).toList();
+  //     Map<int, double> similarityScores = {
+  //       for (var item in recommendedData) item['id'] as int: (item['similarity_score'] as num).toDouble()
+  //     };
 
-          await fetchPropertiesFromSupabase(recommendedData);
-        } else {
-          debugPrint("Error: 'recommendations' key missing or not a list.");
-        }
-      } else {
-        debugPrint("Error: ${response.statusCode} ${response.reasonPhrase}");
-      }
-    } catch (e) {
-      debugPrint("Exception: $e");
-    }
-  }
+  //     final List<Map<String, dynamic>> response = await supabase
+  //         .from('properties')
+  //         .select('*')
+  //         .filter('id', 'in', propertyIds);
+
+  //     if (response.isEmpty) {
+  //       debugPrint("Supabase Error: No properties found for IDs: $propertyIds");
+  //       return;
+  //     }
+
+  //     setState(() {
+  //       recommendations = response.map<Property>((json) {
+  //         Property property = Property.fromJson(json);
+
+  //         if (similarityScores.containsKey(property.id)) {
+  //           property.similarityScore = similarityScores[property.id];
+  //         }
+
+  //         return property;
+  //       }).toList();
+
+  //       recommendations.sort((a, b) => b.similarityScore!.compareTo(a.similarityScore!));
+  //     });
+
+  //     debugPrint("Sorted Property Data from Supabase with Similarity Scores: $recommendations");
+  //   } catch (e) {
+  //     debugPrint("Exception fetching from Supabase: $e");
+  //   }
+  // }
+
+  // Future<void> fetchRecommendations(int userId) async {
+  //   const String apiUrl = 'http://192.168.1.12:8080/recommendations/';
+  //   final Uri url = Uri.parse(apiUrl);
+
+  //   debugPrint("Sending request to: $url with user_id: $userId");
+
+  //   try {
+  //     final response = await http.post(
+  //       url,
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: jsonEncode({'user_id': userId}),
+  //     );
+
+  //     debugPrint("Response Status Code: ${response.statusCode}");
+  //     debugPrint("Response Body: ${response.body}");
+
+  //     if (response.statusCode == 200) {
+  //       final data = jsonDecode(response.body);
+
+  //       if (data.containsKey('recommendations') && data['recommendations'] is List) {
+  //         List<Map<String, dynamic>> recommendedData = (data['recommendations'] as List)
+  //             .map((item) => {
+  //                   "id": item['id'],
+  //                   "similarity_score": item['similarity_score'],
+  //                 })
+  //             .toList();
+
+  //         debugPrint("Recommended Data: $recommendedData");
+
+  //         await fetchPropertiesFromSupabase(recommendedData);
+  //       } else {
+  //         debugPrint("Error: 'recommendations' key missing or not a list.");
+  //       }
+  //     } else {
+  //       debugPrint("Error: ${response.statusCode} ${response.reasonPhrase}");
+  //     }
+  //   } catch (e) {
+  //     debugPrint("Exception: $e");
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {

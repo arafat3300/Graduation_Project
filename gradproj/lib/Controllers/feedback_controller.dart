@@ -1,5 +1,5 @@
 import 'package:gradproj/Models/Feedback.dart';
-import 'package:gradproj/Models/property.dart';
+import 'package:gradproj/Models/propertyClass.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FeedbackController {

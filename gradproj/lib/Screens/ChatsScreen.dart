@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gradproj/Controllers/chat_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gradproj/Models/singletonSession.dart';
 import './ChatScreen.dart';
@@ -14,6 +15,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
   List<dynamic> _chats = []; // Use dynamic to handle varied response structures
   bool _isLoading = true;
   Map<int, String> userNames = {};
+  final ChatController _chatController = ChatController();
 
   @override
   void initState() {
@@ -21,66 +23,47 @@ class _ChatsScreenState extends State<ChatsScreen> {
     _loadChats();
   }
 
-  Future<void> _fetchUserName(int userId) async {
-    try {
-      final supabase = Supabase.instance.client;
-      final response = await supabase
-          .from('users')
-          .select('firstname, lastname')
-          .eq('id', userId)
-          .single();
-
-      if (response != null) {
-        final firstName = response['firstname'] ?? 'Unknown';
-        final lastName = response['lastname'] ?? 'User';
-        userNames[userId] = "$firstName $lastName";
-        setState(() {});
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching user name for ID $userId: $e')),
-      );
+Future<void> _fetchUserName(int userId) async {
+  try {
+    final result = await _chatController.fetchUserName(userId);
+    if (result != null) {
+      setState(() {
+        userNames[userId] = result['fullName']!;
+      });
     }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(e.toString())),
+    );
   }
+}
 
-  Future<void> _loadChats() async {
-    try {
-      final supabase = Supabase.instance.client;
-      final userId = singletonSession().userId;
 
-      // Fetch unique chats involving the current user
-      final response = await supabase
-          .from('messages')
-          .select(
-              'property_id, sender_id, rec_id, content, created_at') // Fetch specific fields
-          .or('sender_id.eq.$userId,rec_id.eq.$userId')
-          .order('created_at', ascending: false);
+Future<void> _loadChats() async {
+  try {
+    final userId = singletonSession().userId;
+    if (userId == null) return;
 
-      if (response is List) {
-        // Group chats by property_id and rec_id/sender_id
-        final uniqueChats = <String, Map<String, dynamic>>{};
-        for (var chat in response) {
-          final chatKey =
-              "${chat['property_id']}_${chat['sender_id']}_${chat['rec_id']}";
-          if (!uniqueChats.containsKey(chatKey)) {
-            uniqueChats[chatKey] = chat;
-            _fetchUserName(chat['sender_id']);
-            _fetchUserName(chat['rec_id']);
-          }
-        }
+    final loadedChats = await _chatController.loadChats(userId);
 
-        setState(() {
-          _chats = uniqueChats.values.toList();
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading chats: $e')),
-      );
-      setState(() => _isLoading = false);
+    // preload names
+    for (var chat in loadedChats) {
+      _fetchUserName(chat['sender_id']);
+      _fetchUserName(chat['rec_id']);
     }
+
+    setState(() {
+      _chats = loadedChats;
+      _isLoading = false;
+    });
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error loading chats: $e')),
+    );
+    setState(() => _isLoading = false);
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

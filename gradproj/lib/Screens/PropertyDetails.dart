@@ -7,7 +7,7 @@ import 'package:gradproj/Models/singletonSession.dart';
 import 'package:http/http.dart' as http;
 import '../Providers/EmailProvider.dart';
 import '../Providers/FavouritesProvider.dart';
-import '../models/Property.dart';
+import '../Models/propertyClass.dart';
 import '../Models/Feedback.dart';
 import '../Models/Message.dart';
 import '../Controllers/feedback_controller.dart';
