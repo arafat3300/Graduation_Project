@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:gradproj/Models/singletonSession.dart';
+import 'package:gradproj/Screens/MessagesScreen.dart';
 import 'package:gradproj/Screens/MyListings.dart';
 import '../Controllers/user_controller.dart';
 import 'package:gradproj/Screens/CustomBottomNavBar.dart';
@@ -217,6 +218,17 @@ class _PropertyListScreenState extends State<PropertyListScreen> {
                   //     Navigator.pushNamed(context, '/signup');
                   //   },
                   // ),
+                  ElevatedButton(
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MessagesScreen(leadId: 69),
+      ),
+    );
+  },
+  child: Text('View Messages'),
+),
                   IconButton(
                     icon: const Icon(Icons.add_home_work_outlined,
                         color: Colors.black),
