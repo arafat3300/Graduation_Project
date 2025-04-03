@@ -39,6 +39,7 @@ dependencies:
   jwt_decoder: ^2.0.1
   path: ^1.8.2
   webview_flutter: ^4.10.0
+  postgres: ^2.6.3
   
   
   

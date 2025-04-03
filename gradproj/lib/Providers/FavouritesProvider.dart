@@ -1,7 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../Models/propertyClass.dart';
 import '../Models/singletonSession.dart';
+import '../Controllers/favorites_controller.dart';
 
 final favouritesProvider =
     StateNotifierProvider<FavouritesPropertyNotifier, List<Property>>((ref) {
@@ -11,26 +12,17 @@ final favouritesProvider =
 class FavouritesPropertyNotifier extends StateNotifier<List<Property>> {
   FavouritesPropertyNotifier() : super([]);
 
-  final supabase = Supabase.instance.client;
+  final FavoritesController _favoritesController = FavoritesController();
 
   Future<void> fetchFavorites() async {
     final userId = singletonSession().userId;
     if (userId == null) return;
 
     try {
-      final response = await supabase
-          .from('user_favorites')
-          .select('property_id, properties(*)')
-          .eq('user_id', userId);
-
-      if (response != null && response is List) {
-        final favorites = response.map((item) {
-          return Property.fromJson(item['properties']);
-        }).toList();
-        state = favorites;
-      }
+      final favorites = await _favoritesController.getUserFavorites(userId);
+      state = favorites;
     } catch (e) {
-      print('Error fetching favorites: $e');
+      debugPrint('Error fetching favorites: $e');
     }
   }
 
@@ -39,14 +31,12 @@ class FavouritesPropertyNotifier extends StateNotifier<List<Property>> {
     if (userId == null) return;
 
     try {
-      await supabase.from('user_favorites').insert({
-        'user_id': userId,
-        'property_id': property.id,
-      });
-
-      state = [...state, property];
+      final success = await _favoritesController.addToFavorites(userId, property.id);
+      if (success) {
+        state = [...state, property];
+      }
     } catch (e) {
-      print('Error adding property to favorites: $e');
+      debugPrint('Error adding property to favorites: $e');
     }
   }
 
@@ -55,14 +45,12 @@ class FavouritesPropertyNotifier extends StateNotifier<List<Property>> {
     if (userId == null) return;
 
     try {
-      await supabase.from('user_favorites').delete().match({
-        'user_id': userId,
-        'property_id': property.id,
-      });
-
-      state = state.where((p) => p.id != property.id).toList();
+      final success = await _favoritesController.removeFromFavorites(userId, property.id);
+      if (success) {
+        state = state.where((p) => p.id != property.id).toList();
+      }
     } catch (e) {
-      print('Error removing property from favorites: $e');
+      debugPrint('Error removing property from favorites: $e');
     }
   }
 }

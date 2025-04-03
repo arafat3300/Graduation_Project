@@ -26,10 +26,9 @@ class _MyListingsState extends State<MyListings> {
 
   Future<void> fetchUserProperties() async {
     setState(() => _isLoading = true);
-    final supabase = Supabase.instance.client;
 
     final userProperties = await propertyController
-        .getUserPropertiesWithDetails(widget.userId, supabase);
+        .getUserPropertiesWithDetails(widget.userId);
     setState(() {
       properties = userProperties;
       _isLoading = false;
@@ -38,10 +37,7 @@ class _MyListingsState extends State<MyListings> {
 
 
   Future<void> deleteProperty(int propertyId) async {
-    final supabase = Supabase.instance.client;
-
-    final success =
-        await propertyController.deleteProperty(propertyId, supabase);
+    final success = await propertyController.deleteProperty(propertyId);
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Property deleted successfully!")),

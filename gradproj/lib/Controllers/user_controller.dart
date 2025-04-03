@@ -3,18 +3,38 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:gradproj/Models/singletonSession.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gradproj/Models/User.dart' as local;
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import '../Models/propertyClass.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:uuid/uuid.dart';
+import 'package:postgres/postgres.dart';
+import '../config/database_config.dart';
+import 'package:crypto/crypto.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class UserController {
-  final _supabase = Supabase.instance.client;
+  final Uuid _uuid = const Uuid();
+  PostgreSQLConnection? _connection;
+  bool _isConnected = false;
   
   static const String tokenKey = 'token';
   static const String _jwtSecret = 'samirencryption';
+
+  UserController() {
+    _initializeConnection();
+  }
+
+  Future<void> _initializeConnection() async {
+    try {
+      debugPrint('\nGetting shared database connection...');
+      _connection = await DatabaseConfig.getConnection();
+      _isConnected = true;
+      print('Successfully connected to PostgreSQL database');
+    } catch (e) {
+      print('Error connecting to PostgreSQL: $e');
+    }
+  }
 
   bool _isUUID(String token) {
     final uuidPattern = RegExp(
@@ -51,37 +71,36 @@ class UserController {
 
   Future<local.User?> getUserById(String userId) async {
     try {
-      debugPrint("Attempting to get user with ID: $userId");
+      if (!_isConnected) await _initializeConnection();
+      
+      final results = await _connection!.query(
+        '''
+        SELECT * FROM users_users 
+        WHERE idd = @userId
+        ''',
+        substitutionValues: {'userId': userId},
+      );
 
-      // Query the users table using the provided ID
-      final response = await _supabase
-          .from('users')
-          .select()
-          .eq('idd', userId)
-          .single();
-
-      debugPrint("Raw User Response: $response");
-
-      if (response == null) {
+      if (results.isEmpty) {
         debugPrint("No user found with ID: $userId");
         return null;
       }
 
-      // Convert the response into a User object
+      final userData = results.first.toColumnMap();
       return local.User(
-        idd: response['idd'] ?? response['id']?.toString(),
-        firstName: response['first_name'] ?? response['firstname'] ?? '',
-        lastName: response['last_name'] ?? response['lastname'] ?? '',
-        dob: response['dob'] ?? '',
-        phone: response['phone'] ?? '',
-        country: response['country'] ?? '',
-        job: response['job'] ?? '',
-        email: response['email'] ?? '',
+        idd: userData['idd']?.toString(),
+        firstName: userData['firstname'] ?? '',
+        lastName: userData['lastname'] ?? '',
+        dob: userData['dob'] ?? '',
+        phone: userData['phone'] ?? '',
+        country: userData['country'] ?? '',
+        job: userData['job'] ?? '',
+        email: userData['email'] ?? '',
         password: '', // Never retrieve password
         token: '', // No token needed for ID-based lookup
-        role: response['role'] ?? '2',
-        createdAt: response['created_at'] != null 
-            ? DateTime.parse(response['created_at'])
+        role: userData['role'] ?? '2',
+        createdAt: userData['created_at'] != null 
+            ? DateTime.parse(userData['created_at'].toString())
             : DateTime.now()
       );
     } catch (e) {
@@ -90,40 +109,41 @@ class UserController {
     }
   }
 
-  /// Get user by token (supports both UUID and JWT)
   Future<local.User?> getUserByToken(String token) async {
     try {
-      debugPrint("Attempting to get user with token: $token");
+      if (!_isConnected) await _initializeConnection();
+      
+      final results = await _connection!.query(
+        '''
+        SELECT * FROM users_users 
+        WHERE ${_isUUID(token) ? 'token' : 'idd'} = @value
+        ''',
+        substitutionValues: {
+          'value': _isUUID(token) ? token : _getUserIdFromJwt(token)
+        },
+      );
 
-      final response = await _supabase
-          .from('users')
-          .select()
-          .eq(_isUUID(token) ? 'token' : 'idd', 
-              (_isUUID(token) ? token : _getUserIdFromJwt(token)) as Object)
-          .single();
-
-      debugPrint("Raw User Response: $response");
-
-      if (response == null) {
+      if (results.isEmpty) {
         debugPrint("No user found with provided token");
         return null;
       }
 
+      final userData = results.first.toColumnMap();
       return local.User(
-        idd: response['idd'] ?? response['id']?.toString(),
-        id:response['id'] as int ,
-        firstName: response['first_name'] ?? response['firstname'] ?? '',
-        lastName: response['last_name'] ?? response['lastname'] ?? '',
-        dob: response['dob'] ?? '',
-        phone: response['phone'] ?? '',
-        country: response['country'] ?? '',
-        job: response['job'] ?? '',
-        email: response['email'] ?? '',
+        idd: userData['idd']?.toString(),
+        id: userData['id'] as int,
+        firstName: userData['firstname'] ?? '',
+        lastName: userData['lastname'] ?? '',
+        dob: userData['dob'] ?? '',
+        phone: userData['phone'] ?? '',
+        country: userData['country'] ?? '',
+        job: userData['job'] ?? '',
+        email: userData['email'] ?? '',
         password: '', // Never retrieve password
         token: token,
-        role: response['role'] ?? '2',
-        createdAt: response['created_at'] != null 
-            ? DateTime.parse(response['created_at'])
+        role: userData['role'] ?? '2',
+        createdAt: userData['created_at'] != null 
+            ? DateTime.parse(userData['created_at'].toString())
             : DateTime.now()
       );
     } catch (e) {
@@ -201,7 +221,8 @@ class UserController {
     final user = await getLoggedInUser();
     return user?.phone;
   }
-   Future<int?> getLoggedInUserIndexId() async {
+
+  Future<int?> getLoggedInUserIndexId() async {
     final user = await getLoggedInUser();
     return user?.id;
   }
@@ -236,59 +257,64 @@ class UserController {
   }
 
   Future<List<Property>> fetchUserPropertiesBySession() async {
-  try {
-    final userId = singletonSession().userId;
-    if (userId == null) {
-      debugPrint("User ID is null");
+    try {
+      final userId = singletonSession().userId;
+      if (userId == null) {
+        debugPrint("User ID is null");
+        return [];
+      }
+
+      if (!_isConnected) await _initializeConnection();
+      
+      final results = await _connection!.query(
+        '''
+        SELECT * FROM real_estate_property
+        WHERE user_id = @userId
+        ''',
+        substitutionValues: {'userId': userId},
+      );
+
+      return results.map((row) => Property.fromJson(row.toColumnMap())).toList();
+    } catch (e) {
+      debugPrint("Exception fetching user listings: $e");
       return [];
     }
+  }
 
-    final response = await _supabase
-        .from('properties')
-        .select('*')
-        .eq('user_id', userId);
-
-    if (response is List) {
-      return response.map((item) => Property.fromJson(item)).toList();
-    } else {
-      debugPrint("Unexpected response format: $response");
-      return [];
+  Future<void> dispose() async {
+    if (_isConnected && _connection != null) {
+      await _connection!.close();
+      _isConnected = false;
+      print('Disconnected from PostgreSQL database');
     }
-  } catch (e) {
-    debugPrint("Exception fetching user listings: $e");
+  }
+
+  Future<List<Map<String, dynamic>>> fetchRecommendationsRaw(int userId) async {
+    const String apiUrl = 'http://192.168.1.12:8080/recommendations/';
+    final Uri url = Uri.parse(apiUrl);
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'user_id': userId}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        if (data.containsKey('recommendations') && data['recommendations'] is List) {
+          return (data['recommendations'] as List)
+              .map<Map<String, dynamic>>((item) => {
+                    "id": item['id'],
+                    "similarity_score": item['similarity_score'],
+                  })
+              .toList();
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching recommendations: $e");
+    }
     return [];
   }
-}
-
-Future<List<Map<String, dynamic>>> fetchRecommendationsRaw(int userId) async {
-  const String apiUrl = 'http://192.168.1.12:8080/recommendations/';
-  final Uri url = Uri.parse(apiUrl);
-
-  try {
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'user_id': userId}),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-
-      if (data.containsKey('recommendations') && data['recommendations'] is List) {
-        return (data['recommendations'] as List)
-            .map<Map<String, dynamic>>((item) => {
-                  "id": item['id'],
-                  "similarity_score": item['similarity_score'],
-                })
-            .toList();
-      }
-    }
-  } catch (e) {
-    debugPrint("Error fetching recommendations: $e");
-  }
-  return [];
-}
-
-
-
 }

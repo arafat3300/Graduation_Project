@@ -30,7 +30,7 @@ class _ApprovePropertyState extends State<ApproveProperty> {
   Future<void> fetchPendingProperties() async {
     setState(() => _isLoading = true);
     
-    final pendingProperties = await propertyController.getPendingProperties(Supabase.instance.client); // ✅ Fixed call
+    final pendingProperties = await propertyController.getPendingProperties();
     setState(() {
       properties = pendingProperties;
       _isLoading = false;

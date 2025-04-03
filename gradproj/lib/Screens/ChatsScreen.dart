@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:gradproj/Controllers/chat_controller.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gradproj/Models/singletonSession.dart';
 import './ChatScreen.dart';
 
@@ -12,7 +11,7 @@ class ChatsScreen extends StatefulWidget {
 }
 
 class _ChatsScreenState extends State<ChatsScreen> {
-  List<dynamic> _chats = []; // Use dynamic to handle varied response structures
+  List<dynamic> _chats = [];
   bool _isLoading = true;
   Map<int, String> userNames = {};
   final ChatController _chatController = ChatController();
@@ -23,47 +22,37 @@ class _ChatsScreenState extends State<ChatsScreen> {
     _loadChats();
   }
 
-Future<void> _fetchUserName(int userId) async {
-  try {
-    final result = await _chatController.fetchUserName(userId);
-    if (result != null) {
+  Future<void> _loadChats() async {
+    try {
+      final userId = singletonSession().userId;
+      if (userId == null) return;
+
+      final loadedChats = await _chatController.loadChats(userId);
+
+      // Preload names for all users in chats
+      for (var chat in loadedChats) {
+        final senderName = await _chatController.fetchUserName(chat['sender_id']);
+        final receiverName = await _chatController.fetchUserName(chat['rec_id']);
+        
+        if (senderName != null) {
+          userNames[chat['sender_id']] = senderName['fullName'];
+        }
+        if (receiverName != null) {
+          userNames[chat['rec_id']] = receiverName['fullName'];
+        }
+      }
+
       setState(() {
-        userNames[userId] = result['fullName']!;
+        _chats = loadedChats;
+        _isLoading = false;
       });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading chats: $e')),
+      );
+      setState(() => _isLoading = false);
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(e.toString())),
-    );
   }
-}
-
-
-Future<void> _loadChats() async {
-  try {
-    final userId = singletonSession().userId;
-    if (userId == null) return;
-
-    final loadedChats = await _chatController.loadChats(userId);
-
-    // preload names
-    for (var chat in loadedChats) {
-      _fetchUserName(chat['sender_id']);
-      _fetchUserName(chat['rec_id']);
-    }
-
-    setState(() {
-      _chats = loadedChats;
-      _isLoading = false;
-    });
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error loading chats: $e')),
-    );
-    setState(() => _isLoading = false);
-  }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -85,8 +74,7 @@ Future<void> _loadChats() async {
                   itemCount: _chats.length,
                   itemBuilder: (context, index) {
                     final chat = _chats[index];
-                    final isMe =
-                        chat['sender_id'] == singletonSession().userId;
+                    final isMe = chat['sender_id'] == singletonSession().userId;
                     final chatWith = isMe ? chat['rec_id'] : chat['sender_id'];
                     final userName = userNames[chatWith] ?? 'Loading...';
 
@@ -95,7 +83,6 @@ Future<void> _loadChats() async {
                       title: Text('Chat with $userName'),
                       subtitle: Text(chat['content'] ?? 'No messages yet'),
                       onTap: () {
-                        // Navigate to ChatScreen
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -111,5 +98,11 @@ Future<void> _loadChats() async {
                   },
                 ),
     );
+  }
+
+  @override
+  void dispose() {
+    _chatController.dispose();
+    super.dispose();
   }
 }

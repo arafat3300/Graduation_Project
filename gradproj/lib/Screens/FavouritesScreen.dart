@@ -208,7 +208,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                               ),
                             ),
                             title: Text(
-                              property.type,
+                              '${property.type} (${property.id})',
                               style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
                             ),
                             subtitle: Column(

@@ -1,30 +1,151 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
-import 'package:uuid/uuid.dart';
-import 'package:gradproj/Models/User.dart' as local;
-import 'package:crypto/crypto.dart';
 import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:gradproj/Models/User.dart' as local;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:postgres/postgres.dart';
+import '../config/database_config.dart';
+import 'package:crypto/crypto.dart';
+import 'package:uuid/uuid.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 
-
 class SignUpController {
+  // final SupabaseClient supabase;
   final Uuid _uuid = const Uuid();
-  final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
+  PostgreSQLConnection? _connection;
+  bool _isConnected = false;
+
+  SignUpController() {
+    _initializeConnection();
+  }
+
+  Future<void> _initializeConnection() async {
+    try {
+      _connection = PostgreSQLConnection(
+        DatabaseConfig.host,
+        DatabaseConfig.port,
+        DatabaseConfig.databaseName,
+        username: DatabaseConfig.username,
+        password: DatabaseConfig.password,
+      );
+      await _connection!.open();
+      _isConnected = true;
+      print('Successfully connected to PostgreSQL database');
+    } catch (e) {
+      print('Error connecting to PostgreSQL: $e');
+    }
+  }
+
+  String hashPassword(String password) {
+    final bytes = utf8.encode(password.trim());
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+  Future<void> _saveSession(String token, int role, String? phone, {String? userId, DateTime? expiry}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', token);
+      await prefs.setInt("role", role);
+      await prefs.setString("phone", phone ?? '');
+      
+      if (userId != null) {
+        await prefs.setString('user_id', userId);
+      }
+      if (expiry != null) {
+        await prefs.setString('token_expiry', expiry.toIso8601String());
+      }
+      
+      debugPrint('Session saved successfully for role: $role');
+    } catch (e) {
+      debugPrint('Error saving session: $e');
+      throw Exception('Failed to save session data');
+    }
+  }
+
+  Future<String> signUpUser({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String password,
+    required String dob,
+    required String phone,
+    required String country,
+    required String job,
+  }) async {
+    try {
+      if (!_isConnected) await _initializeConnection();
+
+      // Check if email already exists
+      final existingUser = await _connection!.query(
+        'SELECT id FROM users_users WHERE email = @email',
+        substitutionValues: {'email': email},
+      );
+
+      if (existingUser.isNotEmpty) {
+        return "Email already exists";
+      }
+
+      // Generate UUID and hash password
+      final String userId = _uuid.v4();
+      final String hashedPassword = hashPassword(password);
+      final String token = _uuid.v4();
+
+      // Insert new user
+      await _connection!.execute(
+        '''
+        INSERT INTO users_users (
+          idd, firstname, lastname, email, password, dob, phone,
+          country, job, token, created_at, role
+        ) VALUES (
+          @idd, @firstName, @lastName, @email, @password, @dob, @phone,
+          @country, @job, @token, @createdAt, @role
+        )
+        ''',
+        substitutionValues: {
+          'idd': userId,
+          'firstName': firstName,
+          'lastName': lastName,
+          'email': email,
+          'password': hashedPassword,
+          'dob': dob,
+          'phone': phone,
+          'country': country,
+          'job': job,
+          'token': token,
+          'createdAt': DateTime.now().toIso8601String(),
+          'role': 2,
+        },
+      );
+
+      // Save session
+      await _saveSession(token, 2, phone, userId: userId);
+
+      return "Signup successful!";
+    } catch (e) {
+      debugPrint('Signup error: $e');
+      return "An error occurred during signup";
+    }
+  }
+
+  Future<void> dispose() async {
+    if (_isConnected && _connection != null) {
+      await _connection!.close();
+      _isConnected = false;
+      print('Disconnected from PostgreSQL database');
+    }
+  }
+
   //email controller
-   static const String _smtpHost = 'smtp.gmail.com';
+  static const String _smtpHost = 'smtp.gmail.com';
   static const int _smtpPort = 587;
-  static const String _smtpUser = 'propertyfinderegyy@gmail.com'; // Your email
-  static const String _smtpPassword = 'lilO_khaled20'; // Your email password or app password
-  // JWT Configuration
+  static const String _smtpUser = 'propertyfinderegyy@gmail.com';
+  static const String _smtpPassword = 'lilO_khaled20';
   static const String _jwtSecret = 'samirencryption';
-  // Set token duration to 5 minutes
   static const Duration _tokenDuration = Duration(minutes: 5);
-  // Warning threshold for token expiration (1 minute before expiry)
   static const Duration _refreshThreshold = Duration(minutes: 1);
   static const String _issuer = 'samirencryption';
 
@@ -32,14 +153,6 @@ class SignUpController {
   static const String _tokenKey = 'token';
   static const String _userIdKey = 'user_id';
   static const String _tokenExpiryKey = 'token_expiry';
-
-  /// Saves session data including expiration time
-  Future<void> _saveSession(String userId, String token, DateTime expiry) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_userIdKey, userId);
-    await prefs.setString(_tokenKey, token);
-    await prefs.setString(_tokenExpiryKey, expiry.toIso8601String());
-  }
 
   /// Clears all session data
   Future<void> _clearSession() async {
@@ -57,13 +170,11 @@ class SignUpController {
   }
 
   /// Generates a JWT token with 5-minute duration
-  String generateJwtToken(String userId ){
-   
-
+  String generateJwtToken(String userId) {
     return userId;
   }
 
-   Future<void> sendWelcomeEmail(String userEmail) async {
+  Future<void> sendWelcomeEmail(String userEmail) async {
     final smtpServer = gmail(_smtpUser, _smtpPassword);
 
     final message = Message()
@@ -109,7 +220,6 @@ class SignUpController {
 
   /// Handles the sign-up process
   Future<String> handleSignUp({
-   
     required String firstName,
     required String lastName,
     required String dob,
@@ -157,82 +267,97 @@ class SignUpController {
         role: 2
       );
 
-      await _supabase.from('users').upsert(user.toJson());
-      await _saveSession(userId, sessionToken, expiryTime);
+      final now = DateTime.now();
+      await _connection!.execute(
+        '''
+        INSERT INTO users_users (
+          idd, firstname, lastname, email, password, dob, phone,
+          country, job, token, created_at, role
+        ) VALUES (
+          @idd, @firstName, @lastName, @email, @password, @dob, @phone,
+          @country, @job, @token, @createdAt, @role
+        )
+        ''',
+        substitutionValues: {
+          'idd': userId,
+          'firstName': firstName,
+          'lastName': lastName,
+          'email': email,
+          'password': user.password,
+          'dob': dob,
+          'phone': phone,
+          'country': country,
+          'job': job,
+          'token': sessionToken,
+          'createdAt': now.toIso8601String(),
+          'role': user.role,
+        },
+      );
+
+      await _saveSession(sessionToken, 2, phone, userId: userId, expiry: expiryTime);
       await sendWelcomeEmail(email);
 
       return "User signed up successfully!";
-    } on supabase.AuthException catch (e) {
-      return "Authentication error: ${e.message}";
-    } catch (error) {
-      return "An error occurred: $error";
+    } catch (e) {
+      debugPrint('Signup error: $e');
+      return "An error occurred during signup";
     }
   }
 
-  /// Refreshes the token before it expires
-  
   /// Validates all required user input fields
-  /// Validates all required user input fields
-String? validateInputs({
-  required String firstName,
-  required String lastName,
-  required String dob,
-  required String phone,
-  required String email,
-  required String password,
-  required String confirmPassword,
-}) {
-  if (firstName.isEmpty ||
-      lastName.isEmpty ||
-      dob.isEmpty ||
-      phone.isEmpty ||
-      email.isEmpty ||
-      password.isEmpty ||
-      confirmPassword.isEmpty) {
-    return "Please fill in all required fields!";
-  }
-
-  // Age validation
-  try {
-    final birthDate = DateTime.parse(dob);
-    final today = DateTime.now();
-    int age = today.year - birthDate.year;
-    
-    // Adjust age if birthday hasn't occurred this year
-    if (today.month < birthDate.month || 
-        (today.month == birthDate.month && today.day < birthDate.day)) {
-      age--;
+  String? validateInputs({
+    required String firstName,
+    required String lastName,
+    required String dob,
+    required String phone,
+    required String email,
+    required String password,
+    required String confirmPassword,
+  }) {
+    if (firstName.isEmpty ||
+        lastName.isEmpty ||
+        dob.isEmpty ||
+        phone.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
+      return "Please fill in all required fields!";
     }
-    
-    if (age < 18) {
-      return "You must be at least 18 years old to sign up!";
+
+    // Age validation
+    try {
+      final birthDate = DateTime.parse(dob);
+      final today = DateTime.now();
+      int age = today.year - birthDate.year;
+      
+      // Adjust age if birthday hasn't occurred this year
+      if (today.month < birthDate.month || 
+          (today.month == birthDate.month && today.day < birthDate.day)) {
+        age--;
+      }
+      
+      if (age < 18) {
+        return "You must be at least 18 years old to sign up!";
+      }
+    } catch (e) {
+      return "Invalid date format. Please use YYYY-MM-DD format!";
     }
-  } catch (e) {
-    return "Invalid date format. Please use YYYY-MM-DD format!";
-  }
 
-  if (phone.length < 8 || !RegExp(r'^[0-9]+$').hasMatch(phone)) {
-    return "Phone number must be at least 8 digits long!";
-  }
+    if (phone.length < 8 || !RegExp(r'^[0-9]+$').hasMatch(phone)) {
+      return "Phone number must be at least 8 digits long!";
+    }
 
-  if (!RegExp(
-          r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+$")
-      .hasMatch(email)) {
-    return "Invalid email address!";
-  }
+    if (!RegExp(
+            r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+$")
+        .hasMatch(email)) {
+      return "Invalid email address!";
+    }
 
-  if (password != confirmPassword) {
-    return "Passwords do not match!";
-  }
+    if (password != confirmPassword) {
+      return "Passwords do not match!";
+    }
 
-  return null;
-}
-
-  /// Hashes password for secure storage
-  String hashPassword(String password) {
-    final bytes = utf8.encode(password.trim());
-    final digest = sha256.convert(bytes);
-    return digest.toString();
+    return null;
   }
 
   /// Gets current user ID if available
@@ -249,7 +374,6 @@ String? validateInputs({
 
   /// Logs out user and clears session
   Future<void> logoutUser() async {
-    await _supabase.auth.signOut();
     await _clearSession();
   }
 
