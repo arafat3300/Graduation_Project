@@ -30,11 +30,12 @@ class UserController {
       debugPrint('\nGetting shared database connection...');
       _connection = await DatabaseConfig.getConnection();
       _isConnected = true;
-      print('Successfully connected to PostgreSQL database');
+      debugPrint('Successfully connected to PostgreSQL database');
     } catch (e) {
-      print('Error connecting to PostgreSQL: $e');
+      debugPrint('Error connecting to PostgreSQL: $e');
     }
   }
+  
 
   bool _isUUID(String token) {
     final uuidPattern = RegExp(
@@ -285,7 +286,7 @@ class UserController {
     if (_isConnected && _connection != null) {
       await _connection!.close();
       _isConnected = false;
-      print('Disconnected from PostgreSQL database');
+      debugPrint('Disconnected from PostgreSQL database');
     }
   }
 
@@ -294,10 +295,13 @@ class UserController {
     final Uri url = Uri.parse(apiUrl);
 
     try {
+      // Assuming you have a way to get the host, e.g., from a config or environment variable
+      String host = DatabaseConfig.host; // Replace with actual host retrieval logic
+
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'user_id': userId}),
+        body: jsonEncode({'user_id': userId, 'host': host}), // Include host in the payload
       );
 
       if (response.statusCode == 200) {

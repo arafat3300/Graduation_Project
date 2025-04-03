@@ -1,67 +1,131 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from supabase import create_client
-from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
-from sklearn.metrics.pairwise import cosine_similarity
+import asyncpg
 import pandas as pd
 import logging
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.metrics.pairwise import cosine_similarity
+from contextlib import asynccontextmanager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ContentBasedLogger")
 
-# Initialize FastAPI app
-app = FastAPI()
+# PostgreSQL configuration
+DB_USERNAME = "postgres"
+DB_PASSWORD = "postgres"
+DB_PORT = "5432"
+DB_NAME = "odoo18v3"
 
-# Supabase configuration
-SUPABASE_URL = "https://zodbnolhtcemthbjttab.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpvZGJub2xodGNlbXRoYmp0dGFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE4MjMsImV4cCI6MjA1MDU0NzgyM30.bkW3OpxY1_IwU01GwybxHfrQQ9t3yFgLZVi406WvgVI"  
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
 
-# Input model for user ID
+app = FastAPI(lifespan=lifespan)
+
 class UserIdPayload(BaseModel):
     user_id: int
+    host: str
 
 @app.post("/recommendations/")
 async def get_recommendations(payload: UserIdPayload):
     user_id = payload.user_id
-    logger.info(f"Fetching recommendations for user_id: {user_id}")
+    host = payload.host
+
+    logger.info(f"Fetching recommendations for user_id: {user_id} from host: {host}")
+
+    POSTGRES_URL = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{host}:{DB_PORT}/{DB_NAME}"
+    logger.debug(f"Connecting to PostgreSQL at: {POSTGRES_URL}")
 
     try:
-        # Fetch properties from Supabase
-        properties_response = supabase.table("properties").select("*").execute()
-        properties_df = pd.DataFrame(properties_response.data).drop_duplicates(subset=["id"])
+        conn = await asyncpg.connect(POSTGRES_URL)
+        logger.info("Successfully connected to the database.")
+
+        # Fetch properties
+        properties_response = await conn.fetch("SELECT * FROM public.real_estate_property")
+        properties_df = pd.DataFrame([dict(row) for row in properties_response])
+        logger.debug(f"Property DataFrame columns: {properties_df.columns}")
+        properties_df = properties_df.drop_duplicates(subset=["id"])
         properties_df["id"] = properties_df["id"].astype(int)
         properties_df["level"] = properties_df["level"].fillna(0)
 
-        # Fetch user favorites from Supabase
-        favorites_response = supabase.table("user_favorites").select("*").eq("user_id", user_id).execute()
-        user_favorites_df = pd.DataFrame(favorites_response.data).drop_duplicates(subset=["property_id"])
+        # Fetch user favorites
+        favorites_response = await conn.fetch(
+            "SELECT * FROM public.real_estate_user_favorites WHERE user_id = $1", user_id
+        )
+        user_favorites_df = pd.DataFrame([dict(row) for row in favorites_response])
+        logger.debug(f"Favorites DataFrame columns: {user_favorites_df.columns}")
+        user_favorites_df = user_favorites_df.drop_duplicates(subset=["property_id"])
         favorite_property_ids = user_favorites_df["property_id"].tolist()
+        logger.info(f"Favorite property IDs: {favorite_property_ids}")
 
         if not favorite_property_ids:
             raise HTTPException(status_code=404, detail="No favorite properties found for the user.")
 
-        # Normalize and encode properties data
+        # Feature weights
+        weights = {
+            'type': 1.3,
+            'city': 1.1,
+            'compound': 1.1,
+            'price': 1.3,
+            'area': 1.2,
+            'bedrooms': 1.0,
+            'bathrooms': 1.0,
+            'level': 1.0
+        }
+
+        # Normalize numeric features
         numerical_columns = ["price", "area", "bedrooms", "bathrooms", "level"]
         scaler = MinMaxScaler()
         normalized_features = scaler.fit_transform(properties_df[numerical_columns])
-        normalized_df = pd.DataFrame(normalized_features, columns=[f"{col}_scaled" for col in numerical_columns])
+        normalized_df = pd.DataFrame(
+            normalized_features, columns=[f"{col}_scaled" for col in numerical_columns]
+        )
+        for col in numerical_columns:
+            normalized_df[f"{col}_scaled"] *= weights[col]
+        logger.debug("Normalized and weighted numerical features")
 
+        # Handle categorical features
         categorical_columns = ["type", "city", "payment_option", "compound"]
-        encoder = OneHotEncoder()
-        encoded_features = encoder.fit_transform(properties_df[categorical_columns]).toarray()
+        for col in categorical_columns:
+            properties_df[col] = properties_df[col].fillna("unknown").str.lower().str.strip()
+
+        encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+        encoded_features = encoder.fit_transform(properties_df[categorical_columns])
         encoded_df = pd.DataFrame(encoded_features, columns=encoder.get_feature_names_out(categorical_columns))
 
-        # Prepare item profiles
-        properties_df["furnished_numeric"] = properties_df["furnished"].map({"Yes": 1, "No": 0}).fillna(0.5)
-        item_profiles = pd.concat([normalized_df, encoded_df, properties_df[["id", "furnished_numeric"]]], axis=1)
+        for col in categorical_columns:
+            encoded_df.loc[:, encoded_df.columns.str.startswith(col)] *= weights.get(col, 1)
 
-        # User profile computation
+        logger.debug("Encoded and weighted categorical features")
+
+        # Handle 'furnished' values
+        properties_df["furnished"] = (
+            properties_df["furnished"]
+            .fillna("unknown")
+            .astype(str)
+            .str.lower()
+            .str.strip()
+        )
+
+        furnished_map = {"yes": 1.0, "no": 0.0, "unknown": 0.5}
+        properties_df["furnished_numeric"] = properties_df["furnished"].map(furnished_map).fillna(0.5)
+
+        logger.debug(f"Furnished value counts: {properties_df['furnished'].value_counts()}")
+
+        # Combine all features
+        item_profiles = pd.concat([
+            normalized_df,
+            encoded_df,
+            properties_df[["id", "furnished_numeric"]]
+        ], axis=1)
+        logger.debug(f"Final item_profiles columns: {item_profiles.columns}")
+
+        # Compute user profile
         favorite_profiles = item_profiles[item_profiles["id"].isin(favorite_property_ids)].drop(columns=["id"])
         user_profile = favorite_profiles.mean(axis=0)
 
-        # Recommendation calculation
+        # Compute similarity
         non_favorite_profiles = item_profiles[~item_profiles["id"].isin(favorite_property_ids)].copy()
         similarity_scores = cosine_similarity([user_profile], non_favorite_profiles.drop(columns=["id"]))[0]
         non_favorite_profiles["similarity_score"] = similarity_scores
@@ -69,8 +133,12 @@ async def get_recommendations(payload: UserIdPayload):
         recommended_properties = non_favorite_profiles.sort_values(by="similarity_score", ascending=False).head(5)
         recommendations = recommended_properties[["id", "similarity_score"]].to_dict(orient="records")
 
+        logger.info(f"Recommendations generated: {recommendations}")
+
+        await conn.close()
+        logger.info("Database connection closed.")
         return {"user_id": user_id, "recommendations": recommendations}
+
     except Exception as e:
         logger.error(f"Error generating recommendations: {e}")
         raise HTTPException(status_code=500, detail="An error occurred while generating recommendations.")
-
