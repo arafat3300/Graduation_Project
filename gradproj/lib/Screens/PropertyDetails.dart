@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gradproj/Controllers/chat_controller.dart';
 import 'package:gradproj/Models/singletonSession.dart';
+import 'package:gradproj/config/database_config.dart';
 import 'package:http/http.dart' as http;
 import '../Providers/EmailProvider.dart';
 import '../Providers/FavouritesProvider.dart';
@@ -34,7 +36,11 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   bool _isSending = false;
   bool _isBulkLoading = false;
   final FeedbackController _feedbackService =
-      FeedbackController(supabase: Supabase.instance.client);
+      FeedbackController();
+    late  ChatController _chatController;
+
+
+      
 
   final String fastApiUrl = 'http://192.168.1.36:8009/feedback';
   String test = 't';
@@ -42,15 +48,16 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   @override
   void initState() {
     super.initState();
+    _chatController = ChatController();
     _loadFeedbacks();
     _sendAllFeedbacksToFastAPI();
     _loadMessages();
+
   }
 
   Future<void> _loadFeedbacks() async {
     try {
-      final feedbacks =
-          await _feedbackService.getFeedbacksByProperty(widget.property.id);
+      final feedbacks = await _feedbackService.getFeedbacksByProperty(widget.property.id);
       if (mounted) {
         setState(() {
           _feedbacks = feedbacks;
@@ -97,7 +104,7 @@ Future<void> _submitFeedback() async {
   setState(() => _isLoading = true);
 
   try {
-    final supabase = Supabase.instance.client;
+    // final supabase = Supabase.instance.client;
     final userId = singletonSession().userId;
 
     // Save to Supabase
@@ -106,6 +113,7 @@ Future<void> _submitFeedback() async {
       _feedbackController.text,
       userId,
     );
+    debugPrint("Feedback added to DB: ${_feedbackController.text}");
 
     // Send to FastAPI
     await _sendFeedbackToFastAPI(
@@ -280,68 +288,55 @@ Future<void> _createLead() async {
     }
   }
 
-  Future<void> _loadMessages() async {
-    try {
-      final propertyId = widget.property.id;
-      final supabase = Supabase.instance.client;
-      final response = await supabase
-          .from('messages')
-          .select('*')
-          .eq('property_id', propertyId)
-          .order('created_at', ascending: false);
+ Future<void> _loadMessages() async {
+  try {
+    final propertyId = widget.property.id!;
+    debugPrint("Loading messages via controller for property ID: $propertyId");
 
-      if (response != null && response is List<dynamic>) {
-        final messages = response
-            .map((message) {
-              try {
-                return Message.fromMap(message as Map<String, dynamic>);
-              } catch (e) {
-                return null;
-              }
-            })
-            .whereType<Message>()
-            .toList();
+    final messages = await _chatController.loadMessages(propertyId);
 
-        if (mounted) {
-          setState(() {
-            _messages = messages;
-          });
-        }
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading messages: $e')),
-      );
-    }
-  }
-
-  Future<void> _sendMessage() async {
-    if (_messageController.text.isEmpty) return;
-
-    setState(() => _isSending = true);
-
-    try {
-      final supabase = Supabase.instance.client;
-      final messageContent = _messageController.text.trim();
-
-      await supabase.from('messages').insert({
-        'sender_id': singletonSession().userId,
-        'rec_id': widget.property.userId,
-        'property_id': widget.property.id,
-        'content': messageContent,
-        'created_at': DateTime.now().toIso8601String(),
+    if (mounted) {
+      setState(() {
+        _messages = messages;
       });
+    }
+  } catch (e) {
+    debugPrint("Error loading messages: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error loading messages: $e')),
+    );
+  }
+  debugPrint("Messages loaded successfully mvc");
+}
 
-      _messageController.clear();
-      await _loadMessages();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sending message: $e')),
-      );
-    } finally {
+Future<void> _sendMessage() async {
+  if (_messageController.text.isEmpty) return;
+
+  setState(() => _isSending = true);
+
+  try {
+    final content = _messageController.text.trim();
+    await _chatController.sendMessage(
+      senderId: singletonSession().userId!,
+      receiverId: widget.property.userId!,
+      propertyId: widget.property.id!,
+      content: content,
+    );
+
+    _messageController.clear();
+    await _loadMessages(); // Refresh messages
+  } catch (e) {
+    debugPrint("Error sending message: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error sending message: $e')),
+    );
+  } finally {
+    if (mounted) {
       setState(() => _isSending = false);
     }
   }
+  debugPrint("Message sent successfully mvc");
+}
 
   @override
   void dispose() {
@@ -575,69 +570,37 @@ Future<void> _createLead() async {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    StreamBuilder<List<Map<String, dynamic>>>(
-                      stream: Supabase.instance.client
-                          .from('messages')
-                          .stream(primaryKey: ['id'])
-                          .eq('property_id', widget.property.id)
-                          .order('created_at'),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
-                        if (snapshot.hasError) {
-                          return Center(
-                            child: Text(
-                              'Error: ${snapshot.error}',
-                              style: const TextStyle(color: Colors.red),
-                            ),
-                          );
-                        }
-                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return const Center(
-                            child: Text(
-                              'No messages yet. Start a conversation!',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          );
-                        }
+                    if (_messages.isNotEmpty)
+                      Container(
+                        height: 300,
+                        child: ListView.builder(
+                          reverse: true,
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            final message = _messages[index];
+                            final isMe = message.senderId == singletonSession().userId;
+                            debugPrint("Message senderId: ${message.senderId}, Current userId: ${singletonSession().userId}");
 
-                        final messages = snapshot.data!;
-                        return Container(
-                          height: 300,
-                          child: ListView.builder(
-                            reverse: true,
-                            itemCount: messages.length,
-                            itemBuilder: (context, index) {
-                              final message = messages[index];
-                              final isMe =
-                                  message['sender_id'] == singletonSession().userId;
-
-                              return Align(
-                                alignment: isMe
-                                    ? Alignment.centerRight
-                                    : Alignment.centerLeft,
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                      vertical: 5, horizontal: 10),
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: isMe ? theme.colorScheme.primary : Colors.grey[300],
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    message['content'],
-                                    style: TextStyle(
-                                        color:
-                                            isMe ? Colors.white : Colors.black),
-                                  ),
+                            return Align(
+                              alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: isMe ? theme.colorScheme.primary : Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
+                                child: Text(
+                                  message.content,
+                                  style: TextStyle(color: isMe ? Colors.white : Colors.black),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    else
+                      const Center(child: Text('No messages yet. Start a conversation!')),
                     const SizedBox(height: 8),
                     Row(
                       children: [

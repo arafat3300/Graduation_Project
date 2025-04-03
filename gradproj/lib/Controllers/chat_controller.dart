@@ -1,9 +1,11 @@
 import 'package:flutter/cupertino.dart';
+import 'package:gradproj/Models/Message.dart';
 import 'package:postgres/postgres.dart';
 import '../config/database_config.dart';
 import '../Models/User.dart' as local;
 import '../Models/singletonSession.dart';
 import 'dart:async';
+import 'package:flutter/material.dart';
 
 class ChatController {
   PostgreSQLConnection? _connection;
@@ -73,7 +75,7 @@ class ChatController {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getMessages(int propertyId) async {
+  Future<List<Message>> loadMessages(int propertyId) async {
     try {
       if (!_isConnected) await _initializeConnection();
       
@@ -92,9 +94,12 @@ class ChatController {
         ''',
         substitutionValues: {'propertyId': propertyId},
       );
-      return results.map((row) => row.toColumnMap()).toList();
+
+      return results.map((row) {
+        return Message.fromMap(row.toColumnMap());
+      }).toList();
     } catch (e) {
-      debugPrint("Error getting messages: $e");
+      debugPrint("Error loading messages: $e");
       return [];
     }
   }
@@ -111,7 +116,7 @@ class ChatController {
       await _connection!.execute(
         '''
         INSERT INTO real_estate_messages (
-          sender_id, rec_id, property_id, content, created_at
+          sender_id, receiver_id, property_id, content, created_at
         ) VALUES (
           @senderId, @receiverId, @propertyId, @content, NOW()
         )

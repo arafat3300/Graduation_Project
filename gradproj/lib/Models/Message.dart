@@ -24,12 +24,14 @@ class Message {
   // Factory method to create a Message from a map
   factory Message.fromMap(Map<String, dynamic> map) {
     return Message(
-      id: map['id'] as String,
-      senderId: map['sender_id'] as String,
-      receiverId: map['rec_id'] as String,
-      propertyId: map['property_id'] as int, // Parse property_id as int
+      id: map['id'].toString(),
+      senderId: map['sender_id'].toString(),
+      receiverId: map['rec_id'].toString(),
+      propertyId: map['property_id'] as int,
       content: map['content'] as String,
-      createdAt: DateTime.parse(map['created_at'] as String),
+      createdAt: map['created_at'] is DateTime
+          ? map['created_at']
+          : DateTime.parse(map['created_at'] as String),
     );
   }
 

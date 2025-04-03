@@ -96,7 +96,7 @@ class _MyListingsState extends State<MyListings> {
                               fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          "Status: ${property.status ?? 'N/A'}",
+                          "Status: ${property.status ?? 'N/A'} (ID: ${property.id})",
                           style:
                               TextStyle(fontSize: 16, color: Colors.grey[600]),
                         ),
