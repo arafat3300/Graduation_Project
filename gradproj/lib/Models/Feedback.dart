@@ -3,6 +3,8 @@ class propertyFeedbacks {
   late int property_id;
   late String feedback;
   late int? user_id;
+  String? email; // for UI only, not saved to DB
+
 
   
   propertyFeedbacks({
@@ -10,6 +12,7 @@ class propertyFeedbacks {
     required this.property_id,
     required this.feedback,
     this.user_id, 
+    this.email,
   });
 
   factory propertyFeedbacks.fromJson(Map<String, dynamic> json) {

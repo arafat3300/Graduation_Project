@@ -105,29 +105,30 @@ Future<List<propertyFeedbacks>> getAllFeedbacks() async {
 
 
 
+Future<Map<String, dynamic>?> fetchUserInfo(int userId) async {
+  try {
+    if (!_isConnected) await _initializeConnection();
 
-  Future<Map<String, dynamic>?> fetchUserName(int userId) async {
-    try {
-      if (!_isConnected) await _initializeConnection();
-      
-      final results = await _connection!.query(
-        '''
-        SELECT firstname, lastname 
-        FROM users_users 
-        WHERE id = @userId
-        ''',
-        substitutionValues: {'userId': userId},
-      );
+    final results = await _connection!.query(
+      '''
+      SELECT firstname, lastname, email 
+      FROM users_users 
+      WHERE id = @userId
+      ''',
+      substitutionValues: {'userId': userId},
+    );
 
-      if (results.isNotEmpty) {
-        final userData = results.first.toColumnMap();
-        return {
-          'fullName': '${userData['firstname'] ?? 'Unknown'} ${userData['lastname'] ?? 'User'}'
-        };
-      }
-    } catch (e) {
-      throw Exception('Error fetching user name for ID $userId: $e');
+    if (results.isNotEmpty) {
+      final data = results.first.toColumnMap();
+      return {
+        'fullName': '${data['firstname']} ${data['lastname']}',
+        'email': data['email'],
+      };
     }
-    return null;
+  } catch (e) {
+    debugPrint('Error fetching user info for ID $userId: $e');
   }
+  return null;
+}
+
 }
