@@ -1,16 +1,55 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:gradproj/Models/Admin.dart';
 import 'package:gradproj/Models/Baseuser.dart';
-import 'package:gradproj/Models/User.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:gradproj/Models/User.dart' as local;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
-import '../Models/singletonSession.dart';
+import 'package:postgres/postgres.dart';
+import '../config/database_config.dart';
 import 'package:crypto/crypto.dart';
+import 'package:uuid/uuid.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+import '../Models/singletonSession.dart';
+import 'dart:io';  // For SocketException
+import 'dart:async';  // For TimeoutException
 
 class LoginController {
-  // Initialize Supabase client for database operations
-  final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
+  // final  supabase = supabase.instance.client;
+  final Uuid _uuid = const Uuid();
+  PostgreSQLConnection? _connection;
+  bool _isConnected = false;
+
+  LoginController() {
+    _initializeConnection();
+  }
+
+  Future<void> _initializeConnection() async {
+    try {
+      debugPrint('\n=================== DATABASE CONNECTION ATTEMPT ===================');
+      debugPrint('Time: ${DateTime.now()}');
+      
+      debugPrint('\nStep 1: Getting shared database connection...');
+      _connection = await DatabaseConfig.getConnection();
+      _isConnected = true;
+      debugPrint('✓ Successfully connected to PostgreSQL database');
+    } catch (e) {
+      debugPrint('\n=================== CONNECTION ERROR ===================');
+      debugPrint('Error Type: ${e.runtimeType}');
+      debugPrint('Error Message: $e');
+      debugPrint('\nTroubleshooting steps:');
+      debugPrint('1. Verify PostgreSQL is running: services.msc');
+      debugPrint('2. Check Windows Firewall allows port ${DatabaseConfig.port}');
+      debugPrint('3. Verify hotspot connection between devices');
+      debugPrint('4. Current connection details:');
+      debugPrint('   - Host: ${DatabaseConfig.host}');
+      debugPrint('   - Port: ${DatabaseConfig.port}');
+      debugPrint('   - Database: ${DatabaseConfig.databaseName}');
+      _isConnected = false;
+      rethrow;
+    }
+  }
 
   /// Save all session information in SharedPreferences
   /// Stores token, role, and phone number for the logged-in user
@@ -77,144 +116,173 @@ class LoginController {
     return digest.toString();
   }
 
-Future<BaseUser?> getUserByEmail(String email) async {
-  try {
-    print('Looking for user/admin with email: $email');
-    final normalizedEmail = email.trim().toLowerCase();
+  Future<BaseUser?> getUserByEmail(String email) async {
+    try {
+      if (!_isConnected) await _initializeConnection();
+      debugPrint('\n=== Starting User Lookup ===');
+      debugPrint('Looking for user/admin with email: $email');
+      final normalizedEmail = email.trim().toLowerCase();
+      debugPrint('Normalized email: $normalizedEmail');
 
-    // Check regular users first
-    final userResponse = await _supabase
-        .from('users')
-        .select()
-        .eq('email', normalizedEmail)
-        .maybeSingle();
+      // Check regular users first
+      debugPrint('\nQuerying users_users table...');
+      final userResults = await _connection!.query(
+        '''
+        SELECT * FROM users_users 
+        WHERE email = @email
+        ''',
+        substitutionValues: {'email': normalizedEmail},
+      );
+      debugPrint('Query results count: ${userResults.length}');
 
-    print('Raw User Response: $userResponse');
+      if (userResults.isNotEmpty) {
+        try {
+          debugPrint('\nProcessing user data...');
+          final userData = userResults.first.toColumnMap();
+          debugPrint('Raw user data: $userData');
+          
+          debugPrint('\nAttempting to create User object...');
+          final user = local.User.fromJson({
+            'id': int.tryParse(userData['id']?.toString() ?? '0') ?? 0,
+            'idd': userData['idd']?.toString(),
+            'firstname': userData['firstname']?.toString() ?? '',
+            'lastname': userData['lastname']?.toString() ?? '',
+            'dob': userData['dob']?.toString() ?? '',
+            'phone': userData['phone']?.toString() ?? '',
+            'country': userData['country']?.toString() ?? '',
+            'job': userData['job']?.toString() ?? '',
+            'email': userData['email']?.toString() ?? '',
+            'password': userData['password']?.toString() ?? '',
+            'token': userData['token']?.toString() ?? '',
+            'created_at': userData['created_at']?.toString(),
+            'role': int.tryParse(userData['role']?.toString() ?? '2') ?? 2
+          });
+          debugPrint('User object created successfully');
 
-    if (userResponse != null) {
-      try {
-        // Detailed mapping with error handling for user
-        final user = User.fromJson({
-          'id' : userResponse['id'],
-          'idd': userResponse['idd'],
-          'firstname': userResponse['firstname'] ?? userResponse['first_name'],
-          'lastname': userResponse['lastname'] ?? userResponse['last_name'],
-          'dob': userResponse['dob'],
-          'phone': userResponse['phone'],
-          'country': userResponse['country'],
-          'job': userResponse['job'],
-          'email': userResponse['email'],
-          'password': userResponse['password'],
-          'token': userResponse['token'] ?? '', // Default empty string
-          'created_at': userResponse['created_at'],
-          'role': userResponse['role']
-        });
-
-        singletonSession().userId=user.id;
-      
-        
-        debugPrint('Successfully mapped user: ${user.email}');
-        return user;
-      } catch (mappingError) {
-        debugPrint('Error mapping user record: $mappingError');
-        debugPrint('Problematic map: $userResponse');
-        return null;
+          singletonSession().userId = user.id;
+          debugPrint('User ID set in singleton session: ${user.id}');
+          return user;
+        } catch (mappingError, stackTrace) {
+          debugPrint('\n=== Error Mapping User Record ===');
+          debugPrint('Error type: ${mappingError.runtimeType}');
+          debugPrint('Error message: $mappingError');
+          debugPrint('Stack trace: $stackTrace');
+          return null;
+        }
       }
-    }
 
-    // If no user found, check admin users
-    final adminResponse = await _supabase
-        .from('admins')
-        .select()
-        .eq('email', normalizedEmail)
-        .maybeSingle();
+      // If no user found, check admin users
+      debugPrint('\nNo regular user found, checking admin users...');
+      final adminResults = await _connection!.query(
+        '''
+        SELECT * FROM real_estate_admins 
+        WHERE email = @email
+        ''',
+        substitutionValues: {'email': normalizedEmail},
+      );
+      debugPrint('Admin query results count: ${adminResults.length}');
 
-    print('Raw Admin Response: $adminResponse');
+      if (adminResults.isNotEmpty) {
+        try {
+          debugPrint('\nProcessing admin data...');
+          final adminData = adminResults.first.toColumnMap();
+          debugPrint('Raw admin data: $adminData');
+          
+          debugPrint('\nAttempting to create Admin object...');
+          final admin = AdminRecord.fromMap({
+            'id': adminData['id'],
+            'email': adminData['email'],
+            'first_name': adminData['first_name'],
+            'last_name': adminData['last_name'],
+            'password': adminData['password'],
+            'token': adminData['token'] ?? '',
+            'idd': adminData['idd']
+          });
+          debugPrint('Admin object created successfully');
 
-    if (adminResponse != null) {
-      try {
-        // Detailed mapping with error handling for admin
-        final admin = AdminRecord.fromMap({
-          'id': adminResponse['id'],
-          'email': adminResponse['email'],
-          'first_name': adminResponse['first_name'],
-          'last_name': adminResponse['last_name'],
-          'password': adminResponse['password'],
-          'token': adminResponse['token'] ?? '', // Default empty string
-          'idd': adminResponse['idd'] // Optional field
-        });
-        singletonSession().userId = admin.id;
-        debugPrint('user id : ${singletonSession().userId}');
-        
-        debugPrint('Successfully mapped admin: ${admin.email}');
-        singletonSession().userId=admin.id;
-        return admin;
-      } catch (mappingError) {
-        debugPrint('Error mapping admin record: $mappingError');
-        debugPrint('Problematic map: $adminResponse');
-        return null;
+          singletonSession().userId = admin.id;
+          debugPrint('Admin ID set in singleton session: ${admin.id}');
+          return admin;
+        } catch (mappingError, stackTrace) {
+          debugPrint('\n=== Error Mapping Admin Record ===');
+          debugPrint('Error type: ${mappingError.runtimeType}');
+          debugPrint('Error message: $mappingError');
+          debugPrint('Stack trace: $stackTrace');
+          return null;
+        }
       }
-    }
 
-    return null;
-  } catch (error) {
-    print('Detailed error fetching user: $error');
-    return null;
+      debugPrint('\nNo user or admin found with email: $email');
+      return null;
+    } catch (error, stackTrace) {
+      debugPrint('\n=== Error in getUserByEmail ===');
+      debugPrint('Error type: ${error.runtimeType}');
+      debugPrint('Error message: $error');
+      debugPrint('Stack trace: $stackTrace');
+      return null;
+    }
   }
-}
 
   /// Login method combining previous and new approaches
   Future<String> loginUser(String email, String password) async {
     try {
-// Validate input fields
-    if (email.trim().isEmpty) {
-      return "Email is required.";
-    }
-    if (password.trim().isEmpty) {
-      return "Password is required.";
-    }
+      debugPrint('\n=== Starting Login Process ===');
+      debugPrint('Email: $email');
+      
+      if (email.trim().isEmpty) {
+        debugPrint('Error: Email is empty');
+        return "Email is required.";
+      }
+      if (password.trim().isEmpty) {
+        debugPrint('Error: Password is empty');
+        return "Password is required.";
+      }
 
-    // Check if email format is valid
-    if (!isValidEmail(email)) {
-      return "Invalid email format.";
-    }
+      if (!isValidEmail(email)) {
+        debugPrint('Error: Invalid email format');
+        return "Invalid email format.";
+      }
 
-    // Attempt to fetch user data
-    final user = await getUserByEmail(email);
+      debugPrint('\nFetching user by email...');
+      final user = await getUserByEmail(email);
 
-    // Check if user exists
-    if (user == null) {
-      return "No account found with the provided email.";
-    }
+      if (user == null) {
+        debugPrint('Error: No user found with email: $email');
+        return "No account found with the provided email.";
+      }
 
-      // Hash the provided password for comparison
+      debugPrint('\nValidating password...');
       final hashedPassword = hashPassword(password.trim());
+      debugPrint('Hashed input password: $hashedPassword');
 
-      // Validate password
       if (!user.validatePassword(password)) {
+        debugPrint('Error: Password validation failed');
         return "Incorrect password.";
       }
 
-      // Get SharedPreferences instance
+      debugPrint('\nSaving session data...');
       final prefs = await SharedPreferences.getInstance();
       
-      // Handle session storage based on user type
       String? phoneNumber;
-      if (user is User) {
-        // For regular users, get their phone number
+      if (user is local.User) {
         phoneNumber = user.getPhone();
         await prefs.setString('user_type', 'User');
+        debugPrint('User type set to: User');
       } else {
-        // For admin users
         await prefs.setString('user_type', 'AdminRecord');
+        debugPrint('User type set to: AdminRecord');
       }
 
-      // Save all session data
       await _saveSession(user.getToken(), user.getRole(), phoneNumber);
+      debugPrint('Session saved successfully');
 
+      debugPrint('\nLogin successful!');
       return "Login successful!";
-    } catch (error) {
-      debugPrint('Login error: $error');
+    } catch (error, stackTrace) {
+      debugPrint('\n=== Login Error ===');
+      debugPrint('Error type: ${error.runtimeType}');
+      debugPrint('Error message: $error');
+      debugPrint('Stack trace: $stackTrace');
       return "An unexpected error occurred during login.";
     }
   }
@@ -262,26 +330,29 @@ Future<BaseUser?> getUserByEmail(String email) async {
       }
 
       // Verify token by attempting to fetch user data
-      BaseUser? user;
+      if (!_isConnected) await _initializeConnection();
+
       if (userType == 'User') {
-        user = await _supabase
-            .from('users')
-            .select()
-            .eq('id', token)
-            .single()
-            .then((response) => 
-                response != null ? User.fromJson(response) : null);
+        final results = await _connection!.query(
+          '''
+          SELECT * FROM users_users 
+          WHERE id = @token
+          ''',
+          substitutionValues: {'token': token},
+        );
+        return results.isNotEmpty;
       } else if (userType == 'AdminRecord') {
-        user = await _supabase
-            .from('admin')
-            .select()
-            .eq('id', token)
-            .single()
-            .then((response) => 
-                response != null ? AdminRecord.fromMap(response) : null);
+        final results = await _connection!.query(
+          '''
+          SELECT * FROM real_estate_admins 
+          WHERE id = @token
+          ''',
+          substitutionValues: {'token': token},
+        );
+        return results.isNotEmpty;
       }
 
-      return user != null;
+      return false;
     } catch (error) {
       debugPrint("Login status check error: $error");
       return false;
@@ -316,6 +387,14 @@ Future<BaseUser?> getUserByEmail(String email) async {
     } catch (e) {
       debugPrint('Error retrieving phone number: $e');
       return null;
+    }
+  }
+
+  Future<void> dispose() async {
+    if (_isConnected && _connection != null) {
+      await _connection!.close();
+      _isConnected = false;
+      debugPrint('Disconnected from PostgreSQL database');
     }
   }
 }

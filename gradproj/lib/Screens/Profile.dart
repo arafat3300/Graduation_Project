@@ -17,6 +17,7 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
   final UserController _userController = UserController();
   List<Property> userProperties = [];
   bool _isLoading = true;
+final int userId = singletonSession().userId !=null ? singletonSession().userId! : 0;
 
   @override
   void initState() {
@@ -24,20 +25,26 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
     fetchUserProperties();
   }
 
-  Future<Map<String, String>> _getUserData() async {
-    try {
-      final email = await _userController.getLoggedInUserEmail();
-      final name = await _userController.getLoggedInUserName();
-      final phone = await _userController.getLoggedInUserNumber();
+ Future<Map<String, String>> _getUserData() async {
+  try {
+    final user = await _userController.getUserBySessionId(userId);
+
+    if (user == null) {
       return {
-        "email": email ?? "Email not found",
-        "name": name ?? "Name not found",
-        "phone": phone ?? "Phone not found",
+        "error": "User not found",
       };
-    } catch (error) {
-      return {"error": error.toString()};
     }
+
+    return {
+      "email": user.email.isNotEmpty ? user.email : "Email not found",
+      "name": user.firstName.isNotEmpty ? user.firstName : "Name not found",
+      "phone": user.phone.isNotEmpty ? user.phone : "Phone not found",
+    };
+  } catch (error) {
+    return {"error": error.toString()};
   }
+}
+
 
   Future<void> fetchUserProperties() async {
   setState(() => _isLoading = true);

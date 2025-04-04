@@ -47,6 +47,9 @@ class RecommendationCard extends StatelessWidget {
             Text(
               property.city,
               style: theme.textTheme.bodyMedium,
+            ),Text(
+              'id : ${property.id.toString()}',
+              style: theme.textTheme.bodyMedium,
             ),
             Text(
               '\$${property.price.toStringAsFixed(2)}',  // ✅ Show price
