@@ -1,19 +1,27 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/Messages.dart';
-import '../controllers/user_controller.dart'; // Import your controller
+import '../controllers/user_controller.dart';
+import '../models/singletonSession.dart';
 
 Future<List<Message>> fetchMessages() async {
   final userController = UserController();
 
   try {
-    final userEmail = await userController.getLoggedInUserEmail();
+    final userId = singletonSession().userId;
 
-    if (userEmail == null) {
-      throw Exception("User not logged in or missing email.");
+    if (userId == null) {
+      throw Exception("User ID not found in session.");
     }
 
-    print("🟣 Fetching messages for: $userEmail");
+    final user = await userController.getUserBySessionId(userId);
+
+    if (user == null || user.email.isEmpty) {
+      throw Exception("User not found or missing email.");
+    }
+
+    final userEmail = user.email;
+    print("📧 Fetched email from session: $userEmail");
 
     final response = await http.post(
       Uri.parse('http://192.168.1.43:8069/crm/messages/user'),
