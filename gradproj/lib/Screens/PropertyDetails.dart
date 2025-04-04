@@ -183,36 +183,131 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
     }
   }
 
-  Future<void> _createLead() async {
-    final userId = singletonSession().userId;
-    final propertyId = widget.property.id!;
-    final price = widget.property.price ?? 0;
+Future<void> _createLead() async {
+  print("🔍 Starting _createLead");
 
-    if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please log in to contact the sales person.")),
-      );
-      return;
-    }
+  final supabase = Supabase.instance.client;
+  final userId = singletonSession().userId;
 
-    final odoo = OdooRPCController();
+  if (userId == null) {
+    print("❌ User not logged in, userId is null");
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Please log in to contact the sales person.")),
+    );
+    return;
+  }
 
-    final success = await odoo.createLeadFromPostgres(
-      userId: userId,
-      propertyId: propertyId,
-      propertyPrice: price.toDouble(),
+  try {
+    print("📡 Fetching user details from Supabase...");
+    final response = await supabase
+        .from('users')
+        .select('firstname, lastname, email, phone, job')
+        .eq('id', userId)
+        .single();
+
+    print("✅ Got user info from Supabase: $response");
+
+    final userName = "${response['firstname'] ?? "Unknown"} ${response['lastname'] ?? "User"}";
+    final userEmail = response['email'] ?? "No Email";
+    final userPhone = response['phone'] ?? "No Phone";
+    final job = response['job'] ?? "No Job";
+    final propertyPrice = widget.property.price ?? 0;
+
+    print("📋 User info: Name=$userName, Email=$userEmail, Phone=$userPhone, Job=$job");
+
+    // Odoo API Details
+   const String odooUrl = "http://192.168.1.43:8069/jsonrpc";
+    const String odooDb = "odoodb";
+    const String odooUsername = "aliarafat534@gmail.com";
+    const String odooPassword = "lilO_khaled20";
+
+    print("🔐 Authenticating with Odoo...");
+
+    final authResponse = await http.post(
+      Uri.parse(odooUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        "jsonrpc": "2.0",
+        "method": "call",
+        "params": {
+          "service": "common",
+          "method": "authenticate",
+          "args": [odooDb, odooUsername, odooPassword, {}]
+        }
+      }),
     );
 
-    if (success) {
+    final authData = jsonDecode(authResponse.body);
+    print("🔑 Auth response: $authData");
+
+    final userIdOdoo = authData['result'];
+    if (userIdOdoo == null) {
+      print("❌ Odoo authentication failed!");
+      throw Exception("Failed to authenticate with Odoo");
+    }
+
+    print("✅ Authenticated with Odoo. User ID: $userIdOdoo");
+    print("📝 Sending lead creation request to Odoo...");
+
+    final leadResponse = await http.post(
+      Uri.parse(odooUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        "jsonrpc": "2.0",
+        "method": "call",
+        "params": {
+          "service": "object",
+          "method": "execute_kw",
+          "args": [
+            odooDb,
+            userIdOdoo,
+            odooPassword,
+            "crm.lead",
+            "create",
+            [
+              {
+                "name": "Property Inquiry: ${widget.property.id} ",
+                "contact_name": userName,
+                "email_from": userEmail,
+                "phone": userPhone,
+                "expected_revenue": propertyPrice,
+                "function": job,
+                "description":
+                    "User $userName is interested in property with the ID of : ${widget.property.id}, priced at \$${widget.property.price} and his job is $job ",
+              }
+            ]
+          ],
+        },
+      }),
+    );
+
+    final leadData = jsonDecode(leadResponse.body);
+    print("📨 Lead Creation Response: $leadData");
+
+    if (!mounted) return;
+
+    if (leadData['result'] != null) {
+      print("✅ Lead created successfully!");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Lead created successfully in Odoo!")),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to create lead.")),
-      );
+      print("❌ Lead creation failed with error: ${leadData['error']}");
+      throw Exception("Failed to create lead in Odoo: ${leadData['error'] ?? 'Unknown error'}");
     }
+  } catch (e, stack) {
+    print("💥 Caught error in _createLead: $e");
+    print("🧱 Stack trace: $stack");
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: $e")),
+    );
   }
+}
+
 
   Future<void> _loadMessages() async {
     try {
