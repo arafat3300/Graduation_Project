@@ -1,13 +1,21 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Add the required permissions here -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.gradproj">
+
+    <!-- Permissions -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:label="gradproj"
         android:name="${applicationName}"
+        android:label="gradproj"
         android:icon="@mipmap/ic_launcher">
+
+        <!-- ✅ This disables Impeller -->
+        <meta-data
+            android:name="flutter.renderer"
+            android:value="skia" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -17,37 +25,37 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
-            
+
             <meta-data
-              android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
-              />
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme" />
+
+            <!-- Main intent -->
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            
-            <!-- Add the OAuth redirect intent filter -->
+
+            <!-- OAuth redirect intent -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="597173543256-m4ci753tic22sbi8r9u4r5en2nrg9upb.apps.googleusercontent.com"
-                    android:host="oauth2redirect"/>
+                    android:host="oauth2redirect" />
             </intent-filter>
         </activity>
-        
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
-    
+
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
-            
         </intent>
     </queries>
 </manifest>

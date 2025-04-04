@@ -36,7 +36,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   final FeedbackController _feedbackService =
       FeedbackController(supabase: Supabase.instance.client);
 
-  final String fastApiUrl = 'http://192.168.1.36:8009/feedback';
+  final String fastApiUrl = 'http://192.168.56.1:8009/feedback';
   String test = 't';
 
   @override
@@ -91,60 +91,64 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
       throw Exception('Error sending feedback to AI pipeline: $e');
     }
   }
-Future<void> _submitFeedback() async {
-  if (!_formKey.currentState!.validate()) return;
+// Future<void> _submitFeedback() async {
+//   if (!_formKey.currentState!.validate()) return;
 
-  setState(() => _isLoading = true);
+//   setState(() => _isLoading = true);
 
-  try {
-    final supabase = Supabase.instance.client;
-    final userId = singletonSession().userId;
+//   try {
+//     final supabase = Supabase.instance.client;
+//     final userId = singletonSession().userId;
 
-    // Save to Supabase
-    await _feedbackService.addFeedback(
-      widget.property.id!,
-      _feedbackController.text,
-      userId,
-    );
+//     // Save to Supabase
+//     await _feedbackService.addFeedback(
+//       widget.property.id!,
+//       _feedbackController.text,
+//       userId,
+//     );
 
-    // Send to FastAPI
-    await _sendFeedbackToFastAPI(
-      feedbackText: _feedbackController.text,
-      propertyId: widget.property.id!,
-      userId: userId.toString(),
-    );
+//     // Send to FastAPI
+//     await _sendFeedbackToFastAPI(
+//       feedbackText: _feedbackController.text,
+//       propertyId: widget.property.id!,
+//       userId: userId.toString(),
+//     );
 
-    // Send email
-    final emailSender = ref.read(emailSenderProvider);
-    await emailSender.sendEmail(
-      propertyId: widget.property.id!,
-      userId: userId!,
-      feedbackText: _feedbackController.text, // Pass the feedback text here
-    );
+//     // Send email
+//     final emailSender = ref.read(emailSenderProvider);
+//     await emailSender.sendEmail(
+//       propertyId: widget.property.id!,
+//       userId: userId!,
+//       feedbackText: _feedbackController.text, // Pass the feedback text here
+//     );
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Feedback submitted successfully!')),
-      );
-    }
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error submitting feedback: $e')),
-      );
-    }
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
-    _feedbackController.clear(); // Clear the feedback text AFTER sending the email
-  }
-}
+//     if (mounted) {
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         const SnackBar(content: Text('Feedback submitted successfully!')),
+//       );
+//     }
+//   } catch (e) {
+//     if (mounted) {
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         SnackBar(content: Text('Error submitting feedback: $e')),
+//       );
+//     }
+//   } finally {
+//     if (mounted) {
+//       setState(() => _isLoading = false);
+//     }
+//     _feedbackController.clear(); // Clear the feedback text AFTER sending the email
+//   }
+// }
 Future<void> _createLead() async {
+  print("🔍 Starting _createLead");
+
   final supabase = Supabase.instance.client;
   final userId = singletonSession().userId;
 
   if (userId == null) {
+    print("❌ User not logged in, userId is null");
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Please log in to contact the sales person.")),
     );
@@ -152,29 +156,31 @@ Future<void> _createLead() async {
   }
 
   try {
-    // Fetch user details from Supabase
+    print("📡 Fetching user details from Supabase...");
     final response = await supabase
         .from('users')
         .select('firstname, lastname, email, phone, job')
         .eq('id', userId)
         .single();
 
+    print("✅ Got user info from Supabase: $response");
+
     final userName = "${response['firstname'] ?? "Unknown"} ${response['lastname'] ?? "User"}";
     final userEmail = response['email'] ?? "No Email";
     final userPhone = response['phone'] ?? "No Phone";
     final job = response['job'] ?? "No Job";
-  final propertyPrice = widget.property.price ?? 0;
-    log(userName);
-    log(userEmail);
-    log(userPhone);
+    final propertyPrice = widget.property.price ?? 0;
+
+    print("📋 User info: Name=$userName, Email=$userEmail, Phone=$userPhone, Job=$job");
 
     // Odoo API Details
-    const String odooUrl = "http://10.0.2.2:8069/jsonrpc";
-    const String odooDb = "PropertyFinder";
+   const String odooUrl = "http://192.168.1.43:8069/jsonrpc";
+    const String odooDb = "odoodb";
     const String odooUsername = "aliarafat534@gmail.com";
     const String odooPassword = "lilO_khaled20";
 
-    // Authenticate with Odoo
+    print("🔐 Authenticating with Odoo...");
+
     final authResponse = await http.post(
       Uri.parse(odooUrl),
       headers: {'Content-Type': 'application/json'},
@@ -190,13 +196,17 @@ Future<void> _createLead() async {
     );
 
     final authData = jsonDecode(authResponse.body);
-    final userIdOdoo = authData['result'];
+    print("🔑 Auth response: $authData");
 
+    final userIdOdoo = authData['result'];
     if (userIdOdoo == null) {
+      print("❌ Odoo authentication failed!");
       throw Exception("Failed to authenticate with Odoo");
     }
 
-    // Create a lead in Odoo with property price in the name
+    print("✅ Authenticated with Odoo. User ID: $userIdOdoo");
+    print("📝 Sending lead creation request to Odoo...");
+
     final leadResponse = await http.post(
       Uri.parse(odooUrl),
       headers: {'Content-Type': 'application/json'},
@@ -219,8 +229,9 @@ Future<void> _createLead() async {
                 "email_from": userEmail,
                 "phone": userPhone,
                 "expected_revenue": propertyPrice,
-                "function": job,  //  field for Job Position
-                "description": "User $userName is interested in property with the ID of : ${widget.property.id}, priced at \$${widget.property.price} and his job is $job ",
+                "function": job,
+                "description":
+                    "User $userName is interested in property with the ID of : ${widget.property.id}, priced at \$${widget.property.price} and his job is $job ",
               }
             ]
           ],
@@ -229,22 +240,31 @@ Future<void> _createLead() async {
     );
 
     final leadData = jsonDecode(leadResponse.body);
-    log("Lead Creation Response: $leadData");  // Log the full response for debugging
+    print("📨 Lead Creation Response: $leadData");
+
+    if (!mounted) return;
 
     if (leadData['result'] != null) {
+      print("✅ Lead created successfully!");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Lead created successfully in Odoo!")),
       );
     } else {
+      print("❌ Lead creation failed with error: ${leadData['error']}");
       throw Exception("Failed to create lead in Odoo: ${leadData['error'] ?? 'Unknown error'}");
     }
-  } catch (e) {
-    log("Error during lead creation: $e");  // Log error for debugging
+  } catch (e, stack) {
+    print("💥 Caught error in _createLead: $e");
+    print("🧱 Stack trace: $stack");
+
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Error: $e")),
     );
   }
 }
+
 
 
 
@@ -516,13 +536,13 @@ Future<void> _createLead() async {
                         },
                       ),
                       const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : _submitFeedback,
-                        child: Text(_isLoading ? "Submitting..." : "Submit Feedback"),
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.white, backgroundColor: theme.colorScheme.primary,
-                        ),
-                      ),
+                      // ElevatedButton(
+                      //   onPressed: _isLoading ? null : _submitFeedback,
+                      //   child: Text(_isLoading ? "Submitting..." : "Submit Feedback"),
+                      //   style: ElevatedButton.styleFrom(
+                      //     foregroundColor: Colors.white, backgroundColor: theme.colorScheme.primary,
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),
