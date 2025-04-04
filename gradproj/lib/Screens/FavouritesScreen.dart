@@ -208,7 +208,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                               ),
                             ),
                             title: Text(
-                              '${property.type} (${property.id})',
+                              '${property.type}',
                               style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
                             ),
                             subtitle: Column(
@@ -216,6 +216,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                               children: [
                                 Text(
                                   property.city,
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                                 Text(
+                                  'id : ${property.id.toString()}',
                                   style: theme.textTheme.bodyMedium,
                                 ),
                                 const SizedBox(height: 4),

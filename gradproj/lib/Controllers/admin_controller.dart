@@ -21,20 +21,14 @@ class AdminController {
     _initializeConnection();
   }
 
-  Future<void> _initializeConnection() async {
+Future<void> _initializeConnection() async {
     try {
-      _connection = PostgreSQLConnection(
-        DatabaseConfig.host,
-        DatabaseConfig.port,
-        DatabaseConfig.databaseName,
-        username: DatabaseConfig.username,
-        password: DatabaseConfig.password,
-      );
-      await _connection!.open();
+      debugPrint('\nGetting shared database connection...');
+      _connection = await DatabaseConfig.getConnection();
       _isConnected = true;
-      print('Successfully connected to PostgreSQL database');
+      debugPrint('Successfully connected to PostgreSQL database');
     } catch (e) {
-      print('Error connecting to PostgreSQL: $e');
+      debugPrint('Error connecting to PostgreSQL: $e');
     }
   }
 

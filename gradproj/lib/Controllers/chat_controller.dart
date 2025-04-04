@@ -22,9 +22,9 @@ class ChatController {
       debugPrint('\nGetting shared database connection...');
       _connection = await DatabaseConfig.getConnection();
       _isConnected = true;
-      print('Successfully connected to PostgreSQL database');
+      debugPrint('Successfully connected to PostgreSQL database');
     } catch (e) {
-      print('Error connecting to PostgreSQL: $e');
+      debugPrint('Error connecting to PostgreSQL: $e');
     }
   }
 
@@ -172,7 +172,7 @@ class ChatController {
     }
   }
 
-  // Keep Supabase real-time subscription for new messages
+  
   Stream<List<Map<String, dynamic>>> subscribeToMessages(int propertyId) {
     final controller = StreamController<List<Map<String, dynamic>>>();
     DateTime lastCheck = DateTime.now();

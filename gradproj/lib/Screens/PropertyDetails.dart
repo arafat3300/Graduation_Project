@@ -47,7 +47,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
     super.initState();
     _chatController = ChatController();
     _loadFeedbacks();
-    _sendAllFeedbacksToFastAPI();
+    // _sendAllFeedbacksToFastAPI();
     _loadMessages();
   }
 
@@ -80,64 +80,56 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
     }
   }
 
-  Future<void> _sendAllFeedbacksToFastAPI() async {
-    setState(() => _isBulkLoading = true);
+  // Future<void> _sendAllFeedbacksToFastAPI() async {
+  //   setState(() => _isBulkLoading = true);
 
-    try {
-      final feedbacks = await _feedbackService.getAllFeedbacks();
-      for (final feedback in feedbacks) {
-        await _sendFeedbackToFastAPI(
-          feedbackText: feedback.feedback,
-          propertyId: feedback.property_id,
-          userId: feedback.user_id.toString() ?? 'anonymous',
-        );
-      }
+  //   try {
+  //     final feedbacks = await _feedbackService.getAllFeedbacks();
+  //     for (final feedback in feedbacks) {
+  //       await _sendFeedbackToFastAPI(
+  //         feedbackText: feedback.feedback,
+  //         propertyId: feedback.property_id,
+  //         userId: feedback.user_id.toString() ?? 'anonymous',
+  //       );
+  //     }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('All feedbacks sent to FastAPI successfully!')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error sending feedbacks to FastAPI: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isBulkLoading = false);
-      }
-    }
-  }
+  //     debugPrint('All feedbacks sent to FastAPI successfully!');
+  //   } catch (e) {
+  //     debugPrint('Error sending feedbacks to FastAPI: $e');
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() => _isBulkLoading = false);
+  //     }
+  //   }
+  // }
 
-  Future<void> _sendFeedbackToFastAPI({
-    required String feedbackText,
-    required int propertyId,
-    required String? userId,
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse(fastApiUrl),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'feedback_text': feedbackText,
-          'property_id': propertyId,
-          'user_id': userId ?? 'anonymous',
-        }),
-      );
+  // Future<void> _sendFeedbackToFastAPI({
+  //   required String feedbackText,
+  //   required int propertyId,
+  //   required String? userId,
+  // }) async {
+  //   try {
+  //     final response = await http.post(
+  //       Uri.parse(fastApiUrl),
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: jsonEncode({
+  //         'feedback_text': feedbackText,
+  //         'property_id': propertyId,
+  //         'user_id': userId ?? 'anonymous',
+  //       }),
+  //     );
 
-      if (response.statusCode != 200) {
-        throw Exception(
-            'Failed to send feedback to AI pipeline: ${response.body}');
-      }
-    } catch (e) {
-      throw Exception('Error sending feedback to AI pipeline: $e');
-    }
-  }
+  //     if (response.statusCode != 200) {
+  //       throw Exception(
+  //           'Failed to send feedback to AI pipeline: ${response.body}');
+  //     }
+  //   } catch (e) {
+  //     // throw Exception('Error sending feedback to AI pipeline: $e');
+  //     debugPrint('Error sending feedback to AI pipeline: $e');
+  //   }
+  // }
 
   Future<void> _submitFeedback() async {
     if (!_formKey.currentState!.validate()) return;
@@ -157,11 +149,11 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
       debugPrint("Feedback added to DB: ${_feedbackController.text}");
 
       // Send to FastAPI
-      await _sendFeedbackToFastAPI(
-        feedbackText: _feedbackController.text,
-        propertyId: widget.property.id!,
-        userId: userId.toString(),
-      );
+      // await _sendFeedbackToFastAPI(
+      //   feedbackText: _feedbackController.text,
+      //   propertyId: widget.property.id!,
+      //   userId: userId.toString(),
+      // );
 
       // Send email
       final emailSender = ref.read(emailSenderProvider);

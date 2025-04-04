@@ -71,6 +71,7 @@ class UserController {
   }
 
   Future<local.User?> getUserById(String userId) async {
+
     try {
       if (!_isConnected) await _initializeConnection();
       
@@ -321,4 +322,95 @@ class UserController {
     }
     return [];
   }
+  
+
+
+
+
+
+Future<local.User?> getUserBySessionId(int userId) async {
+  try {
+    debugPrint("[getUserBySessionId] Starting...");
+
+    if (!_isConnected) {
+      debugPrint("[getUserBySessionId] Not connected. Initializing connection...");
+      await _initializeConnection();
+    }
+
+    debugPrint("[getUserBySessionId] Session userId passed: $userId");
+
+    final results = await _connection!.query(
+      '''
+      SELECT * FROM users_users 
+      WHERE id = @value
+      ''',
+      substitutionValues: {
+        'value': userId,
+      },
+    );
+
+    debugPrint("[getUserBySessionId] Query executed. Rows returned: ${results.length}");
+
+    if (results.isEmpty) {
+      debugPrint("[getUserBySessionId] No user found with id: $userId");
+      return null;
+    }
+
+    final userData = results.first.toColumnMap();
+    debugPrint("[getUserBySessionId] User data received: $userData");
+
+    // Safely handle created_at
+    final createdAtRaw = userData['created_at'];
+    final createdAt = (createdAtRaw is DateTime)
+        ? createdAtRaw
+        : (createdAtRaw is String)
+            ? DateTime.tryParse(createdAtRaw) ?? DateTime.now()
+            : DateTime.now();
+    debugPrint("[getUserBySessionId] Parsed createdAt: $createdAt");
+
+    // Safely handle dob
+    final dobRaw = userData['dob'];
+    final dob = (dobRaw is DateTime)
+        ? dobRaw.toIso8601String()
+        : (dobRaw is String)
+            ? dobRaw
+            : '';
+    debugPrint("[getUserBySessionId] Parsed dob: $dob");
+
+    final user = local.User(
+      idd: userData['idd']?.toString(),
+      id: userData['id'] as int,
+      firstName: userData['firstname'] ?? '',
+      lastName: userData['lastname'] ?? '',
+      dob: dob,
+      phone: userData['phone'] ?? '',
+      country: userData['country'] ?? '',
+      job: userData['job'] ?? '',
+      email: userData['email'] ?? '',
+      password: '', // Never retrieve password
+      token: '', // Not needed here
+      role: userData['role'] is int
+    ? userData['role']
+    : int.tryParse(userData['role'].toString()) ?? 2,
+
+      createdAt: createdAt,
+    );
+
+    debugPrint("[getUserBySessionId] User object created: ${user.firstName}, ${user.email}");
+    return user;
+  } catch (e) {
+    debugPrint("[getUserBySessionId] Error: $e");
+    return null;
+  }
+}
+
+
+
+
+
+
+
+
+
+  
 }

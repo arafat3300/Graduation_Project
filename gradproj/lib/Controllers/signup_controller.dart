@@ -33,9 +33,9 @@ class SignUpController {
       );
       await _connection!.open();
       _isConnected = true;
-      print('Successfully connected to PostgreSQL database');
+      debugPrint('Successfully connected to PostgreSQL database');
     } catch (e) {
-      print('Error connecting to PostgreSQL: $e');
+      debugPrint('Error connecting to PostgreSQL: $e');
     }
   }
 

@@ -64,14 +64,14 @@ async def get_recommendations(payload: UserIdPayload):
 
         # Feature weights
         weights = {
-            'type': 1.3,
+            'type': 1.2,
             'city': 1.1,
             'compound': 1.1,
             'price': 1.3,
-            'area': 1.2,
-            'bedrooms': 1.0,
-            'bathrooms': 1.0,
-            'level': 1.0
+            'area': 1.1,
+            'bedrooms': 0.7,
+            'bathrooms': 0.3,
+            'level': 0.6
         }
 
         # Normalize numeric features
