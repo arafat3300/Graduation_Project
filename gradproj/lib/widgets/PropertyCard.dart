@@ -1,37 +1,27 @@
 import 'package:flutter/material.dart';
-
-
 import '../Models/propertyClass.dart';
 
 class PropertyCard extends StatelessWidget {
   final Property property;
 
-  const PropertyCard({
-    super.key,
-    required this.property,
-  });
+  const PropertyCard({super.key, required this.property});
 
   @override
   Widget build(BuildContext context) {
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
 
     return Card(
-      elevation: 4,
-      color: theme.colorScheme.surfaceVariant,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      elevation: 8,
+      shadowColor: theme.colorScheme.primary.withOpacity(0.3),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Property image
+          // Property Image
           ClipRRect(
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(12),
-            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
             child: AspectRatio(
               aspectRatio: 16 / 9,
               child: Image.network(
@@ -40,114 +30,71 @@ class PropertyCard extends StatelessWidget {
                     : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  return Center(
-                    child: Icon(
-                      Icons.broken_image,
-                      size: 40,
-                      color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
-                    ),
+                  return Container(
+                    color: theme.colorScheme.surfaceVariant,
+                    alignment: Alignment.center,
+                    child: Icon(Icons.broken_image, size: 60, color: Colors.grey.shade400),
                   );
                 },
               ),
             ),
           ),
-
-          // Property details
+// const SizedBox(height:30),
+          // Property Info 
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildRow([
+                  _buildLabeledColumn(Icons.home, "Type", property.type, theme, textTheme),
+                  _buildLabeledColumn(Icons.attach_money, "Price", "\$${property.price.toStringAsFixed(0)}", theme, textTheme),
+                ]),
+                _buildRow([
+                  _buildLabeledColumn(Icons.payment, "Payment", property.paymentOption, theme, textTheme),
+                  _buildLabeledColumn(Icons.location_on, "City", property.city, theme, textTheme),
+                ]),
+                _buildRow([
+                  _buildLabeledColumn(Icons.square_foot, "Area", "${property.area} sqft", theme, textTheme),
+                  _buildLabeledColumn(Icons.king_bed, "Bedrooms", "${property.bedrooms}", theme, textTheme),
+                ]),
+                _buildRow([
+                  _buildLabeledColumn(Icons.bathtub, "Bathrooms", "${property.bathrooms}", theme, textTheme),
+                  _buildLabeledColumn(Icons.chair, "Furnished", property.furnished, theme, textTheme),
+                ]),
+                _buildRow([
+                  _buildLabeledColumn(Icons.sell, "Transaction", property.sale_rent, theme, textTheme),
+                  _buildLabeledColumn(Icons.tag, "Property ID", property.id.toString(), theme, textTheme),
+                ]),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRow(List<Widget> children) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildLabeledColumn(IconData icon, String label, String value, ThemeData theme, TextTheme textTheme) {
+    return Expanded(
+      child: Row(
+        children: [
+          Icon(icon, size: 26, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title and Price Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        property.type,
-                        style: textTheme.titleLarge?.copyWith(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Text(
-                      "\$${property.price.toStringAsFixed(0)}",
-                      style: textTheme.titleLarge?.copyWith(
-                        fontSize: 18,
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 4),
-
-                // Payment Option
-                Text(
-                  property.paymentOption,
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontSize: 14,
-                    color: theme.colorScheme.secondary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-
-                const SizedBox(height: 4),
-
-                // Location and Area Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        property.city,
-                        style: textTheme.bodySmall?.copyWith(
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Text(
-                      "${property.area} sqft",
-                      style: textTheme.bodySmall?.copyWith(
-                        fontSize: 12,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 4),
-
-                // Beds, Baths and Furnished Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "${property.bedrooms}B ${property.bathrooms}B",
-                      style: textTheme.bodySmall?.copyWith(
-                        fontSize: 12,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    Text(
-                      property.furnished,
-                      style: textTheme.bodySmall?.copyWith(
-                        fontSize: 12,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
+                Text(label, style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+                Text(value, style: textTheme.bodyLarge?.copyWith(fontSize: 18, color: theme.colorScheme.onSurface)),
               ],
             ),
           ),
