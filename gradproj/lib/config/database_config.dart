@@ -41,4 +41,4 @@ class DatabaseConfig {
   // Connection string for debugging (properly escaped)
   static String get connectionString => 
     'postgresql://$username:${Uri.encodeComponent(password)}@$host:$port/$databaseName?sslmode=disable';
-} 
+} git add lib/
