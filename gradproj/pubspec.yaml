@@ -40,6 +40,7 @@ dependencies:
   path: ^1.8.2
   webview_flutter: ^4.10.0
   postgres: ^2.6.3
+  flutter_html: ^3.0.0
   
   
   

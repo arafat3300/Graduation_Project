@@ -164,6 +164,7 @@ class UserController {
       return null;
     }
   }
+  
 
   bool isTokenValid(String token) {
     if (_isUUID(token)) {
