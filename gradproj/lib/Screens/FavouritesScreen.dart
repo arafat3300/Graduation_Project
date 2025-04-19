@@ -58,88 +58,52 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     });
   }
 
-
-
-
-
-
-  // Future<void> fetchPropertiesFromSupabase(List<Map<String, dynamic>> recommendedData) async {
-  //   final supabase = Supabase.instance.client;
-
+  // Future<void> loadFeedbackRecommendations() async {
   //   try {
-  //     List<int> propertyIds = recommendedData.map<int>((item) => item['id'] as int).toList();
-  //     Map<int, double> similarityScores = {
-  //       for (var item in recommendedData) item['id'] as int: (item['similarity_score'] as num).toDouble()
-  //     };
+  //     debugPrint("🔄 Starting to load feedback recommendations...");
+      
+  //     // First try to get cached recommendations
+  //     final recs = await _userController.fetchCachedAIRecommendations();
+  //     debugPrint("💾 Cached feedback-based properties: ${recs.length}");
 
-  //     final List<Map<String, dynamic>> response = await supabase
-  //         .from('properties')
-  //         .select('*')
-  //         .filter('id', 'in', propertyIds);
-
-  //     if (response.isEmpty) {
-  //       debugPrint("Supabase Error: No properties found for IDs: $propertyIds");
+  //     if (recs.isNotEmpty) {
+  //       debugPrint("✅ Using cached recommendations");
+  //       setState(() {
+  //         feedbackRecommendations = recs;
+  //       });
   //       return;
   //     }
 
-  //     setState(() {
-  //       recommendations = response.map<Property>((json) {
-  //         Property property = Property.fromJson(json);
-
-  //         if (similarityScores.containsKey(property.id)) {
-  //           property.similarityScore = similarityScores[property.id];
-  //         }
-
-  //         return property;
-  //       }).toList();
-
-  //       recommendations.sort((a, b) => b.similarityScore!.compareTo(a.similarityScore!));
-  //     });
-
-  //     debugPrint("Sorted Property Data from Supabase with Similarity Scores: $recommendations");
-  //   } catch (e) {
-  //     debugPrint("Exception fetching from Supabase: $e");
-  //   }
-  // }
-
-  // Future<void> fetchRecommendations(int userId) async {
-  //   const String apiUrl = 'http://192.168.1.12:8080/recommendations/';
-  //   final Uri url = Uri.parse(apiUrl);
-
-  //   debugPrint("Sending request to: $url with user_id: $userId");
-
-  //   try {
-  //     final response = await http.post(
-  //       url,
-  //       headers: {'Content-Type': 'application/json'},
-  //       body: jsonEncode({'user_id': userId}),
-  //     );
-
-  //     debugPrint("Response Status Code: ${response.statusCode}");
-  //     debugPrint("Response Body: ${response.body}");
-
-  //     if (response.statusCode == 200) {
-  //       final data = jsonDecode(response.body);
-
-  //       if (data.containsKey('recommendations') && data['recommendations'] is List) {
-  //         List<Map<String, dynamic>> recommendedData = (data['recommendations'] as List)
-  //             .map((item) => {
-  //                   "id": item['id'],
-  //                   "similarity_score": item['similarity_score'],
-  //                 })
-  //             .toList();
-
-  //         debugPrint("Recommended Data: $recommendedData");
-
-  //         await fetchPropertiesFromSupabase(recommendedData);
+  //     // If no cached recommendations, try to get raw data
+  //     debugPrint("🔍 No cached recommendations, trying raw data...");
+  //     final rawData = await _userController.fetchCachedAIRecommendationsRaw();
+      
+  //     if (rawData != null && rawData.isNotEmpty) {
+  //       debugPrint("📊 Raw feedback data found: ${rawData.length} items");
+  //       debugPrint("📊 Raw feedback data: $rawData");
+        
+  //       // Use the safe method to fetch properties
+  //       debugPrint("🔄 Fetching properties from raw data...");
+  //       final properties = await _propertyController.fetchFeedbackBasedRecommendationsSafe(rawData);
+  //       debugPrint("✅ Fetched ${properties.length} properties from raw data");
+        
+  //       if (properties.isNotEmpty) {
+  //         setState(() {
+  //           feedbackRecommendations = properties;
+  //         });
+  //         return;
   //       } else {
-  //         debugPrint("Error: 'recommendations' key missing or not a list.");
+  //         debugPrint("⚠️ No properties found from raw data");
   //       }
   //     } else {
-  //       debugPrint("Error: ${response.statusCode} ${response.reasonPhrase}");
+  //       debugPrint("⚠️ No raw feedback data available");
   //     }
-  //   } catch (e) {
-  //     debugPrint("Exception: $e");
+      
+  //     // If we get here, we couldn't find any recommendations
+  //     debugPrint("ℹ️ No feedback-based recommendations available");
+  //   } catch (e, stackTrace) {
+  //     debugPrint("❌ Error loading feedback recommendations: $e");
+  //     debugPrint("❌ Stack trace: $stackTrace");
   //   }
   // }
 
