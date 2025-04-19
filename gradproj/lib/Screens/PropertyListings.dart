@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:gradproj/Controllers/property_controller.dart';
 import 'package:gradproj/Models/singletonSession.dart';
+import 'package:gradproj/Screens/LeadListScreen.dart';
 import 'package:gradproj/Screens/MessagesScreen.dart';
 import 'package:gradproj/Screens/MyListings.dart';
 import '../Controllers/user_controller.dart';
@@ -183,18 +184,12 @@ Future<void> fetchProperties() async {
                       });
                     },
                   ),
-                  // IconButton(
-                  //   icon: const Icon(Icons.account_circle, color: Colors.black),
-                  //   onPressed: () {
-                  //     Navigator.pushNamed(context, '/signup');
-                  //   },
-                  // ),
-                  ElevatedButton(
+ ElevatedButton(
   onPressed: () {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MessagesScreen(leadId: 69),
+        builder: (context) => const LeadListScreen(),
       ),
     );
   },
