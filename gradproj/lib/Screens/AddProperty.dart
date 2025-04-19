@@ -25,12 +25,16 @@ class _AddPropertyScreenState extends State<AddPropertyScreen> {
   final TextEditingController _levelController = TextEditingController();
   final TextEditingController _compoundController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
+  final TextEditingController _downPaymentController = TextEditingController();
+  final TextEditingController _installmentYearsController = TextEditingController();
 
 final PropertyController _propertyController = PropertyController(Supabase.instance.client);
 
   String? _furnished = "Yes";
   String? _paymentOption = "Cash";
   String? _transactionType;
+  String? _deliveryYear = "2025";
+  String? _finishing = "semi finished";
   int? _userId = singletonSession().userId;
 
   List<Asset> _selectedImages = [];
@@ -65,69 +69,6 @@ final PropertyController _propertyController = PropertyController(Supabase.insta
       );
     }
   }
-
-
-  // Future<void> _uploadImages() async {
-  //   try {
-  //     if (_selectedImages.isEmpty) {
-  //       throw Exception("No images to upload");
-  //     }
-
-  //     for (var asset in _selectedImages) {
-  //       final byteData = await asset.getByteData();
-  //       final fileBytes = byteData.buffer.asUint8List();
-  //       final uniqueFileName =
-  //           "${uuid.v4()}_${asset.name.replaceAll(' ', '_')}";
-
-  //       debugPrint("Preparing to upload image: $uniqueFileName...");
-  //       debugPrint("File size: ${fileBytes.length} bytes");
-
-  //       try {
-  //         final filePath = await supabase.storage
-  //             .from('properties-images')
-  //             .uploadBinary(uniqueFileName, fileBytes);
-
-  //         if (filePath.isEmpty) {
-  //           throw Exception("Upload failed for $uniqueFileName");
-  //         }
-
-  //         debugPrint("Image uploaded successfully: $filePath");
-
-  //         final relativePath = filePath.replaceFirst('properties-images/', '');
-
-  //         final publicUrl = supabase.storage
-  //             .from('properties-images')
-  //             .getPublicUrl(relativePath);
-
-  //         if (publicUrl.isEmpty) {
-  //           throw Exception(
-  //               "Failed to generate public URL for $uniqueFileName");
-  //         }
-
-  //         debugPrint("Public URL generated: $publicUrl");
-
-  //         setState(() {
-  //           _uploadedImageUrls.add(publicUrl);
-  //         });
-  //       } catch (e) {
-  //         debugPrint("Error uploading image: $uniqueFileName, Error: $e");
-  //         ScaffoldMessenger.of(context).showSnackBar(
-  //           SnackBar(content: Text("Error uploading $uniqueFileName: $e")),
-  //         );
-  //       }
-  //     }
-
-  //     debugPrint("All images processed successfully.");
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text("Images uploaded successfully.")),
-  //     );
-  //   } catch (e) {
-  //     debugPrint("Error during image upload: $e");
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text("Error: $e")),
-  //     );
-  //   }
-  // }
 
 Future<void> _uploadImages() async {
   try {
@@ -164,6 +105,10 @@ Future<void> _submitForm() async {
         paymentOption: _paymentOption,
         transactionType: _transactionType,
         userId: _userId,
+        downPayment: _transactionType == "sale" ? double.tryParse(_downPaymentController.text) : null,
+        installmentYears: _transactionType == "sale" ? int.tryParse(_installmentYearsController.text) : null,
+        deliveryIn: _transactionType == "sale" ? int.tryParse(_deliveryYear ?? "2025") : null,
+        finishing: _transactionType == "sale" ? _finishing : null,
       );
 
       bool success = await _propertyController.submitPropertyForm(
@@ -201,60 +146,6 @@ Future<void> _submitForm() async {
     }
   }
 }
-
-
-
-
-
-
-  // Future<void> _submitForm() async {
-  //   if (_formKey.currentState!.validate()) {
-  //     try {
-  //       final property = {
-  //         "type": _typeController.text,
-  //         "price": int.parse(_priceController.text),
-  //         "bedrooms": int.parse(_bedroomsController.text),
-  //         "bathrooms": int.parse(_bathroomsController.text),
-  //         "area": int.parse(_areaController.text),
-  //         "furnished": _furnished,
-  //         "level": _levelController.text.isNotEmpty
-  //             ? int.parse(_levelController.text)
-  //             : null,
-  //         "compound": _compoundController.text.isNotEmpty
-  //             ? _compoundController.text
-  //             : "Unavailable",
-  //         "payment_option": _paymentOption,
-  //         "city": _cityController.text,
-  //         "img_url": _uploadedImageUrls,
-  //         "user_id" :_userId,
-  //         "sale_rent" : _transactionType
-  //       };
-
-  //       await _uploadImages();
-
-  //       await supabase.from('properties').insert(property);
-
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(
-  //           content: Text("Property added successfully!"),
-  //           backgroundColor: Colors.green,
-  //         ),
-  //       );
-
-  //       await Future.delayed(const Duration(seconds: 4), () {
-  //         Navigator.pushNamed(context, "/property-listings");
-  //       });
-  //     } catch (e) {
-  //       debugPrint('Error: $e');
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(
-  //           content: Text("Error: $e"),
-  //           backgroundColor: Colors.red,
-  //         ),
-  //       );
-  //     }
-  //   }
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -423,6 +314,91 @@ Future<void> _submitForm() async {
                     ? "Transaction type is required"
                     : null,
               ),
+              if (_transactionType == "sale") ...[
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _downPaymentController,
+                  decoration: const InputDecoration(
+                    labelText: "Down Payment (%)",
+                    prefixIcon: Icon(Icons.payments),
+                    hintText: "Type in a percentage",
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "Down payment is required for sale";
+                    }
+                    final percentage = double.tryParse(value);
+                    if (percentage == null || percentage <= 0 || percentage > 100) {
+                      return "Please enter a valid percentage between 0 and 100";
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _installmentYearsController,
+                  decoration: const InputDecoration(
+                    labelText: "Installment Years",
+                    prefixIcon: Icon(Icons.calendar_today),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "Installment years is required for sale";
+                    }
+                    final years = int.tryParse(value);
+                    if (years == null || years <= 0) {
+                      return "Please enter a valid number of years";
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _deliveryYear,
+                  decoration: const InputDecoration(
+                    labelText: "Delivery Year",
+                    prefixIcon: Icon(Icons.event),
+                  ),
+                  items: List.generate(8, (index) => (2025 + index).toString())
+                      .map((year) => DropdownMenuItem(
+                            value: year,
+                            child: Text(year),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _deliveryYear = value;
+                    });
+                  },
+                  validator: (value) => value == null || value.isEmpty
+                      ? "Delivery year is required for sale"
+                      : null,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _finishing,
+                  decoration: const InputDecoration(
+                    labelText: "Finishing",
+                    prefixIcon: Icon(Icons.home_work),
+                  ),
+                  items: ["semi finished", "fully finished", "unfinished"]
+                      .map((finish) => DropdownMenuItem(
+                            value: finish,
+                            child: Text(finish),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _finishing = value;
+                    });
+                  },
+                  validator: (value) => value == null || value.isEmpty
+                      ? "Finishing is required for sale"
+                      : null,
+                ),
+              ],
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -442,12 +418,6 @@ Future<void> _submitForm() async {
                   ),
                 ],
               ),
-              // const SizedBox(height: 8),
-              // ElevatedButton.icon(
-              //   onPressed: _uploadImages,
-              //   icon: const Icon(Icons.cloud_upload),
-              //   label: const Text("Upload Images"),
-              // ),
               const SizedBox(height: 24),
               Center(
                 child: ElevatedButton(

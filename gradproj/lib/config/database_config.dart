@@ -2,7 +2,7 @@ import 'package:postgres/postgres.dart';
 
 class DatabaseConfig {
   // Network settings
-  static const String host = '192.168.56.1';  // Your laptop's actual IP address
+  static const String host = '192.168.1.12';  // Your laptop's actual IP address
   static const int port = 5432;  // Standard PostgreSQL port
   
   // Database settings
