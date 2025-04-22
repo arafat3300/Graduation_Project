@@ -405,6 +405,47 @@ Future<local.User?> getUserBySessionId(int userId) async {
   }
 }
 
+  Future<List<Map<String, dynamic>>?> fetchCachedAIRecommendationsRaw() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rawData = prefs.getString('ai_recommendations_raw');
+      debugPrint("📦 Raw recommendations data: $rawData");
+
+      if (rawData == null || rawData.isEmpty) {
+        debugPrint("⚠️ No raw recommendations found");
+        return null;
+      }
+
+      // Check if the data is a simple string (like "No recommendations found.")
+      if (rawData.startsWith('"') && rawData.endsWith('"')) {
+        debugPrint("⚠️ Raw data is a simple string, not a JSON object");
+        return null;
+      }
+
+      final dynamic decodedData = jsonDecode(rawData);
+      debugPrint("🔍 Decoded raw data type: ${decodedData.runtimeType}");
+      
+      List<Map<String, dynamic>> recommendations = [];
+      
+      if (decodedData is List) {
+        for (var item in decodedData) {
+          if (item is Map<String, dynamic>) {
+            recommendations.add(item);
+          }
+        }
+      } else if (decodedData is Map<String, dynamic>) {
+        // Handle case where it's a single recommendation
+        recommendations.add(decodedData);
+      }
+      
+      debugPrint("✅ Successfully parsed ${recommendations.length} raw recommendations");
+      return recommendations;
+    } catch (e) {
+      debugPrint("❌ Error fetching raw AI recommendations: $e");
+      return null;
+    }
+  }
+
 
 
 

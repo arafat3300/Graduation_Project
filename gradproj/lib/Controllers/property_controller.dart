@@ -138,11 +138,13 @@ class PropertyController {
                 INSERT INTO real_estate_property (
                     type, price, bedrooms, bathrooms, area, furnished,
                     level, compound, payment_option, city, user_id,
-                    sale_rent, img_url, status
+                    sale_rent, img_url, status, down_payment, installment_years,
+                    delivery_in, finishing
                 ) VALUES (
                     @type, @price, @bedrooms, @bathrooms, @area, @furnished,
                     @level, @compound, @paymentOption, @city, @userId,
-                    @saleRent, @imgUrl, 'pending'
+                    @saleRent, @imgUrl, 'pending', @downPayment, @installmentYears,
+                    @deliveryIn, @finishing
                 )
                 ''',
         substitutionValues: {
@@ -158,7 +160,11 @@ class PropertyController {
           'city': property['city'],
           'userId': property['user_id'],
           'saleRent': property['sale_rent'],
-          'imgUrl': property['img_url'], // Now formatted as an array
+          'imgUrl': property['img_url'],
+          'downPayment': property['down_payment'],
+          'installmentYears': property['installment_years'],
+          'deliveryIn': property['delivery_in'],
+          'finishing': property['finishing'],
         },
       );
 
@@ -234,6 +240,10 @@ class PropertyController {
     required String? paymentOption,
     required String? transactionType,
     required int? userId,
+    double? downPayment,
+    int? installmentYears,
+    int? deliveryIn,
+    String? finishing,
   }) {
     return {
       "type": typeController.text,
@@ -251,7 +261,11 @@ class PropertyController {
       "payment_option": paymentOption,
       "city": cityController.text,
       "user_id": userId,
-      "sale_rent": transactionType
+      "sale_rent": transactionType,
+      "down_payment": downPayment,
+      "installment_years": installmentYears,
+      "delivery_in": deliveryIn,
+      "finishing": finishing,
     };
   }
 
@@ -325,6 +339,100 @@ class PropertyController {
           .toList();
     } catch (e) {
       debugPrint('Error fetching approved properties: $e');
+      return [];
+    }
+  }
+
+  // Safe method for handling feedback-based recommendations with proper error handling
+  Future<List<Property>> fetchFeedbackBasedRecommendationsSafe(
+      List<Map<String, dynamic>> feedbackData) async {
+    try {
+      // Check if the data is empty
+      if (feedbackData.isEmpty) {
+        debugPrint("❌ No feedback recommendation data provided");
+        return [];
+      }
+
+      debugPrint("📊 Processing feedback data: $feedbackData");
+
+      // Extract property IDs, handling both 'id' and 'property_id' keys
+      final List<int> validIds = [];
+      final Map<int, double> scoreMap = {};
+
+      for (var item in feedbackData) {
+        // Try to get property_id first, then fall back to id
+        final idValue = item['property_id'] ?? item['id'];
+        if (idValue == null) {
+          debugPrint("⚠️ Missing property ID in feedback data: $item");
+          continue;
+        }
+
+        // Convert to integer, handling both string and int types
+        int? propertyId;
+        if (idValue is int) {
+          propertyId = idValue;
+          debugPrint("✅ Found integer ID: $propertyId");
+        } else if (idValue is String) {
+          propertyId = int.tryParse(idValue);
+          debugPrint("✅ Converted string ID '$idValue' to: $propertyId");
+        } else {
+          debugPrint("⚠️ Unexpected ID type: ${idValue.runtimeType}");
+          continue;
+        }
+
+        if (propertyId == null || propertyId <= 0) {
+          debugPrint("⚠️ Invalid property ID: $idValue");
+          continue;
+        }
+
+        validIds.add(propertyId);
+
+        // Extract similarity score
+        final scoreValue = item['similarity_score'];
+        double? score;
+        if (scoreValue is num) {
+          score = scoreValue.toDouble();
+          debugPrint("✅ Found numeric score: $score");
+        } else if (scoreValue is String) {
+          score = double.tryParse(scoreValue);
+          debugPrint("✅ Converted string score '$scoreValue' to: $score");
+        } else {
+          debugPrint("⚠️ Unexpected score type: ${scoreValue?.runtimeType}");
+        }
+
+        if (score != null) {
+          scoreMap[propertyId] = score;
+        }
+      }
+
+      if (validIds.isEmpty) {
+        debugPrint("❌ No valid property IDs found in feedback data");
+        return [];
+      }
+
+      debugPrint("✅ Found ${validIds.length} valid property IDs: $validIds");
+      debugPrint("📊 Score map: $scoreMap");
+
+      if (!_isConnected) await _initializeConnection();
+
+      // Use a direct SQL query to fetch properties by IDs
+      final results = await _connection!.query(
+        'SELECT * FROM real_estate_property WHERE id = ANY(@ids)',
+        substitutionValues: {'ids': validIds},
+      );
+
+      debugPrint("✅ Found ${results.length} properties in database");
+
+      final List<Property> result = results.map((data) {
+        final property = Property.fromJson(data.toColumnMap());
+        property.similarityScore = scoreMap[property.id] ?? 0.0;
+        return property;
+      }).toList();
+
+      result.sort((a, b) => (b.similarityScore ?? 0.0).compareTo(a.similarityScore ?? 0.0));
+      return result;
+    } catch (e) {
+      debugPrint("❌ Error in fetchFeedbackBasedRecommendationsSafe: $e");
       return [];
     }
   }

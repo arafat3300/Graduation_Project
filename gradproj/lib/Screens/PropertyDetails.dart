@@ -487,6 +487,48 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                 ),
               ],
             ),
+            if (property.sale_rent == "sale") ...[
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.payments, color: Colors.black), // Icon for down payment
+                      const SizedBox(width: 8),
+                      Text("Down Payment: ${property.downPayment?.toStringAsFixed(1)}%", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today, color: Colors.black), // Icon for installment years
+                      const SizedBox(width: 8),
+                      Text("Installment Years: ${property.installmentYears ?? 'N/A'}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.event, color: Colors.black), // Icon for delivery year
+                      const SizedBox(width: 8),
+                      Text("Delivery Year: ${property.deliveryIn ?? 'N/A'}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Icon(Icons.home_work, color: Colors.black), // Icon for finishing
+                      const SizedBox(width: 8),
+                      Text("Finishing: ${property.finishing ?? 'N/A'}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

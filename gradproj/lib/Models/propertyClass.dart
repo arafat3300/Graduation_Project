@@ -15,6 +15,10 @@ class Property {
   late List<String>? imgUrl;
   late String ?status ;
 late double ?similarityScore;
+late double ?downPayment;
+late int ?installmentYears;
+late int ?deliveryIn;
+late String ?finishing;
 
   Property({
    required this.id,
@@ -32,7 +36,11 @@ late double ?similarityScore;
     this.userId,
     this.imgUrl,
      this.status, 
-     this.similarityScore
+     this.similarityScore,
+     this.downPayment,
+     this.installmentYears,
+     this.deliveryIn,
+     this.finishing
   });
 
 factory Property.fromJson(Map<String, dynamic> json) {
@@ -54,8 +62,23 @@ factory Property.fromJson(Map<String, dynamic> json) {
     imgUrl: json['img_url'] != null
         ? (json['img_url'] as List<dynamic>).map((e) => e.toString()).toList()
         : [], 
-       similarityScore: (json['similarity_score'] as num?)?.toDouble() ?? 0.0,
-        
+    similarityScore: (json['similarity_score'] as num?)?.toDouble() ?? 0.0,
+    downPayment: json['down_payment'] != null 
+        ? (json['down_payment'] is num 
+            ? (json['down_payment'] as num).toDouble() 
+            : double.tryParse(json['down_payment'].toString()) ?? 0.0)
+        : null,
+    installmentYears: json['installment_years'] != null 
+        ? (json['installment_years'] is num 
+            ? (json['installment_years'] as num).toInt() 
+            : int.tryParse(json['installment_years'].toString()))
+        : null,
+    deliveryIn: json['delivery_in'] != null 
+        ? (json['delivery_in'] is num 
+            ? (json['delivery_in'] as num).toInt() 
+            : int.tryParse(json['delivery_in'].toString()))
+        : null,
+    finishing: json['finishing'] != null ? json['finishing'] as String : "unknown",
   );
 }
 

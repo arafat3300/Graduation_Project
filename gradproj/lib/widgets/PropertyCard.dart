@@ -65,6 +65,16 @@ class PropertyCard extends StatelessWidget {
                   _buildLabeledColumn(Icons.sell, "Transaction", property.sale_rent, theme, textTheme),
                   _buildLabeledColumn(Icons.tag, "Property ID", property.id.toString(), theme, textTheme),
                 ]),
+                if (property.sale_rent == "sale") ...[
+                  _buildRow([
+                    _buildLabeledColumn(Icons.payments, "Down Payment", "${property.downPayment?.toStringAsFixed(1)}%", theme, textTheme),
+                    _buildLabeledColumn(Icons.calendar_today, "Installment Years", "${property.installmentYears ?? 'N/A'}", theme, textTheme),
+                  ]),
+                  _buildRow([
+                    _buildLabeledColumn(Icons.event, "Delivery Year", "${property.deliveryIn ?? 'N/A'}", theme, textTheme),
+                    _buildLabeledColumn(Icons.home_work, "Finishing", property.finishing ?? "N/A", theme, textTheme),
+                  ]),
+                ],
               ],
             ),
           ),
