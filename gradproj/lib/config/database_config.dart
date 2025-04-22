@@ -31,7 +31,7 @@ class DatabaseConfig {
         password: password,
         timeoutInSeconds: connectionTimeout.inSeconds,
         useSSL: useSSL,
-        allowClearTextPassword: false  // Force encrypted password
+        allowClearTextPassword: true  // Force encrypted password
       );
       await _connection!.open();
     }
