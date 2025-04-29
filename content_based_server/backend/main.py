@@ -135,6 +135,83 @@ async def get_recommendations(payload: UserIdPayload):
 
         logger.info(f"Recommendations generated: {recommendations}")
 
+        # Save recommendations to database
+        try:
+            # 1. Fetch the latest recommendation for the user
+            old_recommendation = await conn.fetchrow(
+                '''
+                SELECT id FROM public.real_estate_recommendedproperties
+                WHERE user_id = $1
+                ORDER BY created_at DESC
+                LIMIT 1
+                ''',
+                user_id
+            )
+            old_property_ids = set()
+            if old_recommendation:
+                old_recommendation_id = old_recommendation['id']
+                old_details = await conn.fetch(
+                    '''
+                    SELECT property_id FROM public.real_estate_recommendedpropertiesdetails
+                    WHERE recommendation_id = $1
+                    ''',
+                    old_recommendation_id
+                )
+                old_property_ids = set([row['property_id'] for row in old_details])
+
+            new_property_ids = set([rec['id'] for rec in recommendations])
+
+            # If the recommendations are the same, skip saving
+            if old_property_ids == new_property_ids and old_recommendation:
+                logger.info(f"Duplicate recommendations detected for user_id: {user_id}. Skipping save.")
+                await conn.close()
+                logger.info("Database connection closed.")
+                return {"user_id": user_id, "recommendations": recommendations}
+
+            # 2. If different, delete old recommendations
+            if old_property_ids != new_property_ids and old_recommendation:
+                await conn.execute(
+                    '''
+                    DELETE FROM public.real_estate_recommendedpropertiesdetails
+                    WHERE recommendation_id = $1
+                    ''',
+                    old_recommendation_id
+                )
+                await conn.execute(
+                    '''
+                    DELETE FROM public.real_estate_recommendedproperties
+                    WHERE id = $1
+                    ''',
+                    old_recommendation_id
+                )
+                logger.info(f"Deleted old recommendations for user_id: {user_id}")
+
+            # 3. Insert new recommendations
+            recommendation_id = await conn.fetchval(
+                """
+                INSERT INTO public.real_estate_recommendedproperties 
+                (user_id, recommendation_type) 
+                VALUES ($1, $2) 
+                RETURNING id
+                """,
+                user_id, 'interactions'
+            )
+            
+            for rec in recommendations:
+                await conn.execute(
+                    """
+                    INSERT INTO public.real_estate_recommendedpropertiesdetails 
+                    (recommendation_id, property_id, score) 
+                    VALUES ($1, $2, $3)
+                    """,
+                     recommendation_id, rec['id'], round(float(rec['similarity_score']), 2)
+                )
+            
+            logger.info(f"Saved recommendations to database with recommendation_id: {recommendation_id}")
+        except Exception as e:
+            logger.error(f"Error saving recommendations to database: {e}")
+            # Continue execution even if saving fails
+
         await conn.close()
         logger.info("Database connection closed.")
         return {"user_id": user_id, "recommendations": recommendations}

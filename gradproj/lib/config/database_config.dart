@@ -2,7 +2,7 @@ import 'package:postgres/postgres.dart';
 
 class DatabaseConfig {
   // Network settings
-  static const String host = '192.168.1.12';  // Your laptop's actual IP address
+  static const String host = '192.168.1.7';  // Your laptop's actual IP address
   static const int port = 5432;  // Standard PostgreSQL port
   
   // Database settings
@@ -42,3 +42,9 @@ class DatabaseConfig {
   static String get connectionString => 
     'postgresql://$username:${Uri.encodeComponent(password)}@$host:$port/$databaseName?sslmode=disable';
 } 
+
+// DON'T DELETE THIS COMMENTTTTT
+// SELECT setval(
+//   'real_estate_recommendedpropertiesdetails_id_seq',
+//   (SELECT COALESCE(MAX(id), 0) FROM public.real_estate_recommendedpropertiesdetails)
+// );

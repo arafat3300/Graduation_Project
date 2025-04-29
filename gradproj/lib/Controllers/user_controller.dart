@@ -293,7 +293,9 @@ class UserController {
   }
 
   Future<List<Map<String, dynamic>>> fetchRecommendationsRaw(int userId) async {
-    const String apiUrl = 'http://192.168.1.12:8080/recommendations/';
+    // const String apiUrl = 'http://192.168.1.12:8080/recommendations/';
+    const String dbHost = DatabaseConfig.host;
+    const String apiUrl = 'http://$dbHost:8080/recommendations/';
     final Uri url = Uri.parse(apiUrl);
 
     try {
