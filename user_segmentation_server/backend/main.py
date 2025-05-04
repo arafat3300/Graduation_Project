@@ -24,10 +24,10 @@ logger = logging.getLogger("UserSegmentationLogger")
 DB_USERNAME = os.getenv("DB_USERNAME", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "odoo18v3")
+DB_NAME = os.getenv("DB_NAME", "user_segmentation_test")
 
 # Gemini API configuration
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY","AIzaSyDXLCM-4lzUKUGBEVtbFPQbCGa6uXXI8lU")
 if not GOOGLE_API_KEY:
     raise ValueError("GOOGLE_API_KEY environment variable is not set")
 genai.configure(api_key=GOOGLE_API_KEY)
@@ -35,7 +35,7 @@ genai.configure(api_key=GOOGLE_API_KEY)
 app = FastAPI()
 
 class HostPayload(BaseModel):
-    host: str
+    host: str = "192.168.1.12"
     n_clusters: int = 5  # default number of clusters
 
 def calculate_age(dob):
@@ -45,71 +45,92 @@ def calculate_age(dob):
     return today.year - pd.to_datetime(dob).year
 
 async def fetch_user_data(conn, host):
-    """Fetch and prepare user data for segmentation"""
+    """Fetch and prepare user data for segmentation (favorites 70% + recommendations 30%)"""
     try:
-        # Fetch user information with favorites analysis
         users_query = """
-        WITH user_favorites_stats AS (
+        WITH weighted_properties AS (
+            -- Favorites (weight = 1.0)
             SELECT 
-                uf.user_id,
-                COUNT(DISTINCT uf.property_id) as total_favorites,
-                AVG(rp.price) as avg_favorited_price,
-                MODE() WITHIN GROUP (ORDER BY rp.type) as favorite_property_type,
-                MODE() WITHIN GROUP (ORDER BY rp.city) as favorite_city,
-                AVG(rp.area) as avg_favorited_area,
-                AVG(rp.bedrooms) as avg_favorited_bedrooms,
-                MODE() WITHIN GROUP (ORDER BY rp.payment_option) as favorite_payment_option,
-                MODE() WITHIN GROUP (ORDER BY rp.sale_rent) as favorite_sale_rent,
-                COUNT(CASE WHEN rp.furnished = 'yes' THEN 1 END)::float / 
-                    NULLIF(COUNT(*), 0) as furnished_preference_ratio,
+                uf.user_id AS uid, 
+                rp.id, rp.price, rp.type, rp.city, rp.area, rp.bedrooms, rp.payment_option,
+                rp.sale_rent, rp.furnished, rp.installment_years, rp.delivery_in, rp.finishing,
+                1.0 AS weight
+            FROM real_estate_user_favorites uf
+            JOIN real_estate_property rp ON uf.property_id = rp.id
+
+            UNION ALL
+
+            -- Recommendations (weight = 0.43)
+            SELECT 
+                r.user_id AS uid, 
+                rp.id, rp.price, rp.type, rp.city, rp.area, rp.bedrooms, rp.payment_option,
+                rp.sale_rent, rp.furnished, rp.installment_years, rp.delivery_in, rp.finishing,
+                0.43 AS weight
+            FROM real_estate_recommendedproperties r
+            JOIN real_estate_recommendedpropertiesdetails d ON r.id = d.recommendation_id
+            JOIN real_estate_property rp ON d.property_id = rp.id
+        ),
+        user_weighted_stats AS (
+            SELECT 
+                wp.uid AS user_id,
+                COUNT(*) FILTER (WHERE weight = 1.0) as total_favorites,
+                SUM(weight * price) / NULLIF(SUM(weight), 0) as avg_favorited_price,
+                MODE() WITHIN GROUP (ORDER BY type) as favorite_property_type,
+                MODE() WITHIN GROUP (ORDER BY city) as favorite_city,
+                SUM(weight * area) / NULLIF(SUM(weight), 0) as avg_favorited_area,
+                SUM(weight * bedrooms) / NULLIF(SUM(weight), 0) as avg_favorited_bedrooms,
+                MODE() WITHIN GROUP (ORDER BY payment_option) as favorite_payment_option,
+                MODE() WITHIN GROUP (ORDER BY sale_rent) as favorite_sale_rent,
+                SUM(weight * CASE WHEN furnished = 'yes' THEN 1 ELSE 0 END)::float / NULLIF(SUM(weight), 0) as furnished_preference_ratio,
                 -- Sale-specific preferences
-                AVG(CASE WHEN rp.sale_rent = 'sale' THEN rp.installment_years END) as avg_installment_years,
-                AVG(CASE WHEN rp.sale_rent = 'sale' THEN rp.delivery_in END) as avg_delivery_time,
+                SUM(weight * CASE WHEN sale_rent = 'sale' THEN installment_years ELSE NULL END) 
+                    / NULLIF(SUM(CASE WHEN sale_rent = 'sale' THEN weight ELSE 0 END), 0) as avg_installment_years,
+                SUM(weight * CASE WHEN sale_rent = 'sale' THEN delivery_in ELSE NULL END) 
+                    / NULLIF(SUM(CASE WHEN sale_rent = 'sale' THEN weight ELSE 0 END), 0) as avg_delivery_time,
                 MODE() WITHIN GROUP (ORDER BY 
-                    CASE WHEN rp.sale_rent = 'sale' THEN rp.finishing END
+                    CASE WHEN sale_rent = 'sale' THEN finishing END
                 ) as preferred_finishing,
-                COUNT(CASE WHEN rp.sale_rent = 'sale' THEN 1 END)::float / 
-                    NULLIF(COUNT(*), 0) as sale_preference_ratio
-            FROM 
-                real_estate_user_favorites uf
-                JOIN real_estate_property rp ON uf.property_id = rp.id
-            GROUP BY 
-                uf.user_id
+                SUM(CASE WHEN sale_rent = 'sale' THEN weight ELSE 0 END) / NULLIF(SUM(weight), 0) as sale_preference_ratio
+            FROM weighted_properties wp
+            GROUP BY wp.uid
         )
         SELECT 
             u.id,
             u.job,
             u.country,
             u.dob,
-            COALESCE(fs.total_favorites, 0) as total_favorites,
-            fs.avg_favorited_price,
-            fs.favorite_property_type,
-            fs.favorite_city,
-            fs.avg_favorited_area,
-            fs.avg_favorited_bedrooms,
-            fs.favorite_payment_option,
-            fs.favorite_sale_rent,
-            fs.furnished_preference_ratio,
-            fs.avg_installment_years,
-            fs.avg_delivery_time,
-            fs.preferred_finishing,
-            fs.sale_preference_ratio
+            COALESCE(ws.total_favorites, 0) as total_favorites,
+            ws.avg_favorited_price,
+            ws.favorite_property_type,
+            ws.favorite_city,
+            ws.avg_favorited_area,
+            ws.avg_favorited_bedrooms,
+            ws.favorite_payment_option,
+            ws.favorite_sale_rent,
+            ws.furnished_preference_ratio,
+            ws.avg_installment_years,
+            ws.avg_delivery_time,
+            ws.preferred_finishing,
+            ws.sale_preference_ratio
         FROM 
             users_users u
-            LEFT JOIN user_favorites_stats fs ON u.id = fs.user_id
+            LEFT JOIN user_weighted_stats ws ON u.id = ws.user_id
         """
-        
+
         results = await conn.fetch(users_query)
         user_data = pd.DataFrame([dict(row) for row in results])
-        
+
         # Calculate age from dob
         user_data['age'] = user_data['dob'].apply(calculate_age)
-        
+
         return user_data
-    
+
     except Exception as e:
         logger.error(f"Error fetching user data: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+        
 
 def prepare_features(df):
     """Prepare features for clustering"""
@@ -152,9 +173,10 @@ def prepare_features(df):
     
     return feature_matrix, numerical_features, categorical_features, encoder.get_feature_names_out(categorical_features)
 
-async def get_cluster_description(cluster_data: Dict) -> str:
+def get_cluster_description(cluster_data: Dict) -> Dict[str, str]:
     """Get cluster description from Gemini"""
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
+
     
     prompt = f"""
     As a real estate market expert, analyze this user cluster data and provide a creative, 
@@ -173,17 +195,35 @@ async def get_cluster_description(cluster_data: Dict) -> str:
     - Overall behavior patterns in favoriting properties
 
     Please provide the response in the following format:
-    Name: [A unique, creative 1-3 word segment name]
+    Name: [A unique formal 1-3 word segment name but yet simple english]
     Description: [2-3 detailed sentences describing what makes this segment unique, their key 
     preferences, and their typical behavior patterns]
     """
     
     try:
-        response = await model.generate_content(prompt)
-        return response.text
+        response = model.generate_content(prompt)
+        text = response.text
+        
+        # Split the response into name and description
+        name_part = text.split("Name:")[1].split("Description:")[0].strip()
+        desc_part = text.split("Description:")[1].strip()
+        
+        # Clean up special characters and formatting from name
+        name = name_part.replace("\n", "").replace("**", "").replace("_", "").replace("-", " ").replace(":", "").replace(";", "").replace(",", "").replace(".", "").replace("!", "").replace("?", "").replace("'", "").replace('"', "").strip()
+        
+        # Clean up special characters from description
+        description = desc_part.replace("\n", " ").replace("**", "").strip()
+        
+        return {
+            "name": name,
+            "description": description
+        }
     except Exception as e:
         logger.error(f"Error getting cluster description: {e}")
-        return "Cluster Description Unavailable"
+        return {
+            "name": "Unnamed Cluster",
+            "description": "Cluster Description Unavailable"
+        }
 
 @app.post("/user-segments/")
 async def create_user_segments(payload: HostPayload):
@@ -228,8 +268,8 @@ async def create_user_segments(payload: HostPayload):
             }
             
             # Get cluster description from Gemini
-            description = await get_cluster_description(cluster_stats)
-            cluster_stats['description'] = description
+            description_dict = get_cluster_description(cluster_stats)
+            cluster_stats.update(description_dict)
             cluster_insights.append(cluster_stats)
         
         await conn.close()
