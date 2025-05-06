@@ -12,13 +12,23 @@ from typing import List, Dict
 import json
 import os
 from dotenv import load_dotenv
+from sklearn.metrics import silhouette_score
+
+
+#adjust the default host & no.of clusters
+#adjust the db name
+
 
 # Load environment variables
 load_dotenv()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("UserSegmentationLogger")
+logger.setLevel(logging.INFO)
+ch = logging.StreamHandler()
+ch.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+logger.addHandler(ch)
+
 
 # PostgreSQL configuration from environment variables
 DB_USERNAME = os.getenv("DB_USERNAME", "postgres")
@@ -37,6 +47,7 @@ app = FastAPI()
 class HostPayload(BaseModel):
     host: str = "192.168.1.12"
     n_clusters: int = 5  # default number of clusters
+    find_optimal_clusters: bool = False  # flag to find optimal number of clusters
 
 def calculate_age(dob):
     if pd.isna(dob):
@@ -164,12 +175,14 @@ def prepare_features(df):
     scaled_numerical = scaler.fit_transform(numerical_data)
     
     # Handle categorical features
-    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
     categorical_data = df[categorical_features].fillna('unknown')
     encoded_categorical = encoder.fit_transform(categorical_data)
     
     # Combine features
     feature_matrix = np.hstack([scaled_numerical, encoded_categorical])
+    
+    
     
     return feature_matrix, numerical_features, categorical_features, encoder.get_feature_names_out(categorical_features)
 
@@ -224,6 +237,36 @@ def get_cluster_description(cluster_data: Dict) -> Dict[str, str]:
             "name": "Unnamed Cluster",
             "description": "Cluster Description Unavailable"
         }
+    
+
+def calculate_silhouette_scores(feature_matrix: np.ndarray, max_clusters: int = 10) -> Dict[str, float]:
+    """
+    Calculate silhouette scores for different numbers of clusters to find the optimal number.
+    
+    Parameters:
+    -----------
+    feature_matrix : np.ndarray
+        The feature matrix used for clustering
+    max_clusters : int
+        Maximum number of clusters to try
+        
+    Returns:
+    --------
+    Dict[str, float]
+        Dictionary containing cluster numbers and their corresponding silhouette scores
+    """
+    silhouette_scores = {}
+    
+    # Try different numbers of clusters
+    for n_clusters in range(2, max_clusters + 1):
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+        cluster_labels = kmeans.fit_predict(feature_matrix)
+        
+        # Calculate silhouette score
+        score = silhouette_score(feature_matrix, cluster_labels)
+        silhouette_scores[str(n_clusters)] = float(score)
+        
+    return silhouette_scores
 
 @app.post("/user-segments/")
 async def create_user_segments(payload: HostPayload):
@@ -232,10 +275,19 @@ async def create_user_segments(payload: HostPayload):
         # Connect to database
         POSTGRES_URL = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{payload.host}:{DB_PORT}/{DB_NAME}"
         conn = await asyncpg.connect(POSTGRES_URL)
+        logger.info(f"\nStarting segmentation for host={payload.host} clusters={payload.n_clusters} find the optimal clusters:{payload.find_optimal_clusters} ")
         
         # Fetch and prepare data
         user_data = await fetch_user_data(conn, payload.host)
         feature_matrix, num_features, cat_features, encoded_features = prepare_features(user_data)
+        
+        # If find_optimal_clusters is True, calculate silhouette scores
+        if payload.find_optimal_clusters:
+            silhouette_scores = calculate_silhouette_scores(feature_matrix)
+            # Find the optimal number of clusters (highest silhouette score)
+            optimal_clusters = max(silhouette_scores.items(), key=lambda x: x[1])[0]
+            logger.info(f"Optimal number of clusters: {optimal_clusters}")
+            payload.n_clusters = int(optimal_clusters)
         
         # Perform clustering
         kmeans = KMeans(n_clusters=payload.n_clusters, random_state=42)
@@ -254,6 +306,8 @@ async def create_user_segments(payload: HostPayload):
                 'size': int(cluster_mask.sum()),
                 'avg_age': float(cluster_users['age'].mean()),
                 'avg_favorites': float(cluster_users['total_favorites'].mean()),
+                "avg_favorited_area": float(cluster_users["avg_favorited_area"].mean()),
+                "avg_favorited_bedrooms": float(cluster_users["avg_favorited_bedrooms"].mean()),
                 'common_job': str(cluster_users['job'].mode().iloc[0]),
                 'common_country': str(cluster_users['country'].mode().iloc[0]),
                 'avg_favorited_price': float(cluster_users['avg_favorited_price'].mean()),
@@ -274,12 +328,19 @@ async def create_user_segments(payload: HostPayload):
         
         await conn.close()
         
-        return {
+        response = {
             "total_users": len(user_data),
             "n_clusters": payload.n_clusters,
             "cluster_insights": cluster_insights,
             "user_segments": user_data[['id', 'cluster']].to_dict(orient='records')
         }
+        
+        # Add silhouette scores to response if optimal clusters were calculated
+        if payload.find_optimal_clusters:
+            response["silhouette_scores"] = silhouette_scores
+            response["optimal_clusters"] = payload.n_clusters
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error in user segmentation: {e}")

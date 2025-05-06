@@ -1,5 +1,24 @@
 cd user_segmentation_server\backend
-python -m venv venv
+
 .\venv\Scripts\activate
+
+uvicorn main:app --host 0.0.0.0 --port 8081 --reload --log-level info
+
+POSTMANNNN:
+http://192.168.1.12:8081/user-segments/
+{
+  "host": "192.168.1.12",
+  "n_clusters": 5
+  "find_optimal_clusters": true
+}
+
+
+
+
+
+
+
+
+
+python -m venv venv
 Install: pip install -r requirements.txt
-uvicorn .main:app --host 0.0.0.0 --port 8081 --reload 
