@@ -39,6 +39,7 @@ DB_NAME = os.getenv("DB_NAME", "user_segmentation_test")
 # Gemini API configuration
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY","AIzaSyDXLCM-4lzUKUGBEVtbFPQbCGa6uXXI8lU")
 if not GOOGLE_API_KEY:
+    logger.error("GOOGLE_API_KEY environment variable is not set")
     raise ValueError("GOOGLE_API_KEY environment variable is not set")
 genai.configure(api_key=GOOGLE_API_KEY)
 
@@ -58,6 +59,7 @@ def calculate_age(dob):
 async def fetch_user_data(conn, host):
     """Fetch and prepare user data for segmentation (favorites 70% + recommendations 30%)"""
     try:
+        logger.info(f"Fetching user data from database at {host}")
         users_query = """
         WITH weighted_properties AS (
             -- Favorites (weight = 1.0)
@@ -130,9 +132,11 @@ async def fetch_user_data(conn, host):
 
         results = await conn.fetch(users_query)
         user_data = pd.DataFrame([dict(row) for row in results])
+        logger.info(f"Fetched data for {len(user_data)} users")
 
         # Calculate age from dob
         user_data['age'] = user_data['dob'].apply(calculate_age)
+        logger.info("Calculated ages for users")
 
         return user_data
 
@@ -145,75 +149,81 @@ async def fetch_user_data(conn, host):
 
 def prepare_features(df):
     """Prepare features for clustering"""
-    # Numerical features
-    numerical_features = [
-        'age', 
-        'total_favorites',
-        'avg_favorited_price', 
-        'avg_favorited_area', 
-        'avg_favorited_bedrooms',
-        'furnished_preference_ratio',
-        'avg_installment_years',
-        'avg_delivery_time',
-        'sale_preference_ratio'
-    ]
-    
-    # Categorical features
-    categorical_features = [
-        'job', 
-        'country', 
-        'favorite_property_type',
-        'favorite_city', 
-        'favorite_payment_option',
-        'favorite_sale_rent',
-        'preferred_finishing'
-    ]
-    
-    # Handle numerical features
-    scaler = StandardScaler()
-    numerical_data = df[numerical_features].fillna(df[numerical_features].mean())
-    scaled_numerical = scaler.fit_transform(numerical_data)
-    
-    # Handle categorical features
-    encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
-    categorical_data = df[categorical_features].fillna('unknown')
-    encoded_categorical = encoder.fit_transform(categorical_data)
-    
-    # Combine features
-    feature_matrix = np.hstack([scaled_numerical, encoded_categorical])
-    
-    
-    
-    return feature_matrix, numerical_features, categorical_features, encoder.get_feature_names_out(categorical_features)
+    try:
+        logger.info("Preparing features for clustering")
+        # Numerical features
+        numerical_features = [
+            'age', 
+            'total_favorites',
+            'avg_favorited_price', 
+            'avg_favorited_area', 
+            'avg_favorited_bedrooms',
+            'furnished_preference_ratio',
+            'avg_installment_years',
+            'avg_delivery_time',
+            'sale_preference_ratio'
+        ]
+        
+        # Categorical features
+        categorical_features = [
+            'job', 
+            'country', 
+            'favorite_property_type',
+            'favorite_city', 
+            'favorite_payment_option',
+            'favorite_sale_rent',
+            'preferred_finishing'
+        ]
+        
+        # Handle numerical features
+        logger.info("Scaling numerical features")
+        scaler = StandardScaler()
+        numerical_data = df[numerical_features].fillna(df[numerical_features].mean())
+        scaled_numerical = scaler.fit_transform(numerical_data)
+        
+        # Handle categorical features
+        logger.info("Encoding categorical features")
+        encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+        categorical_data = df[categorical_features].fillna('unknown')
+        encoded_categorical = encoder.fit_transform(categorical_data)
+        
+        # Combine features
+        feature_matrix = np.hstack([scaled_numerical, encoded_categorical])
+        logger.info(f"Created feature matrix with shape {feature_matrix.shape}")
+        
+        return feature_matrix, numerical_features, categorical_features, encoder.get_feature_names_out(categorical_features)
+    except Exception as e:
+        logger.error(f"Error preparing features: {e}")
+        raise
 
 def get_cluster_description(cluster_data: Dict) -> Dict[str, str]:
     """Get cluster description from Gemini"""
-    model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
-
-    
-    prompt = f"""
-    As a real estate market expert, analyze this user cluster data and provide a creative, 
-    meaningful name and detailed description for this segment of users. Consider all aspects 
-    of their behavior and preferences:
-
-    Cluster Statistics:
-    {json.dumps(cluster_data, indent=2)}
-    
-    Based on these statistics, create a unique, insightful segment name and description that 
-    captures the essence of this user group. Consider their:
-    - Demographics (age, job, country)
-    - Property preferences (type, size, location)
-    - Financial behavior (price ranges, payment preferences)
-    - For sale properties: their preferences about installments, delivery time, and finishing
-    - Overall behavior patterns in favoriting properties
-
-    Please provide the response in the following format:
-    Name: [A unique formal 1-3 word segment name but yet simple english]
-    Description: [2-3 detailed sentences describing what makes this segment unique, their key 
-    preferences, and their typical behavior patterns]
-    """
-    
     try:
+        logger.info("Generating cluster description using Gemini")
+        model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
+        
+        prompt = f"""
+        As a real estate market expert, analyze this user cluster data and provide a creative, 
+        meaningful name and detailed description for this segment of users. Consider all aspects 
+        of their behavior and preferences:
+
+        Cluster Statistics:
+        {json.dumps(cluster_data, indent=2)}
+        
+        Based on these statistics, create a unique, insightful segment name and description that 
+        captures the essence of this user group. Consider their:
+        - Demographics (age, job, country)
+        - Property preferences (type, size, location)
+        - Financial behavior (price ranges, payment preferences)
+        - For sale properties: their preferences about installments, delivery time, and finishing
+        - Overall behavior patterns in favoriting properties
+
+        Please provide the response in the following format:
+        Name: [A unique formal 1-3 word segment name but yet simple english]
+        Description: [2-3 detailed sentences describing what makes this segment unique, their key 
+        preferences, and their typical behavior patterns]
+        """
+        
         response = model.generate_content(prompt)
         text = response.text
         
@@ -227,6 +237,7 @@ def get_cluster_description(cluster_data: Dict) -> Dict[str, str]:
         # Clean up special characters from description
         description = desc_part.replace("\n", " ").replace("**", "").strip()
         
+        logger.info(f"Generated cluster name: {name}")
         return {
             "name": name,
             "description": description
@@ -240,42 +251,35 @@ def get_cluster_description(cluster_data: Dict) -> Dict[str, str]:
     
 
 def calculate_silhouette_scores(feature_matrix: np.ndarray, max_clusters: int = 10) -> Dict[str, float]:
-    """
-    Calculate silhouette scores for different numbers of clusters to find the optimal number.
-    
-    Parameters:
-    -----------
-    feature_matrix : np.ndarray
-        The feature matrix used for clustering
-    max_clusters : int
-        Maximum number of clusters to try
+    """Calculate silhouette scores for different numbers of clusters"""
+    try:
+        logger.info(f"Calculating silhouette scores for 2 to {max_clusters} clusters")
+        silhouette_scores = {}
         
-    Returns:
-    --------
-    Dict[str, float]
-        Dictionary containing cluster numbers and their corresponding silhouette scores
-    """
-    silhouette_scores = {}
-    
-    # Try different numbers of clusters
-    for n_clusters in range(2, max_clusters + 1):
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-        cluster_labels = kmeans.fit_predict(feature_matrix)
+        for n_clusters in range(2, max_clusters + 1):
+            logger.info(f"Calculating score for {n_clusters} clusters")
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+            cluster_labels = kmeans.fit_predict(feature_matrix)
+            
+            score = silhouette_score(feature_matrix, cluster_labels)
+            silhouette_scores[str(n_clusters)] = float(score)
+            logger.info(f"Silhouette score for {n_clusters} clusters: {score:.4f}")
         
-        # Calculate silhouette score
-        score = silhouette_score(feature_matrix, cluster_labels)
-        silhouette_scores[str(n_clusters)] = float(score)
-        
-    return silhouette_scores
+        return silhouette_scores
+    except Exception as e:
+        logger.error(f"Error calculating silhouette scores: {e}")
+        raise
 
 @app.post("/user-segments/")
 async def create_user_segments(payload: HostPayload):
     """Create user segments and get descriptions"""
     try:
+        logger.info(f"Starting segmentation with parameters: host={payload.host}, n_clusters={payload.n_clusters}, find_optimal_clusters={payload.find_optimal_clusters}")
+        
         # Connect to database
         POSTGRES_URL = f"postgresql://{DB_USERNAME}:{DB_PASSWORD}@{payload.host}:{DB_PORT}/{DB_NAME}"
+        logger.info(f"Connecting to database at {payload.host}:{DB_PORT}/{DB_NAME}")
         conn = await asyncpg.connect(POSTGRES_URL)
-        logger.info(f"\nStarting segmentation for host={payload.host} clusters={payload.n_clusters} find the optimal clusters:{payload.find_optimal_clusters} ")
         
         # Fetch and prepare data
         user_data = await fetch_user_data(conn, payload.host)
@@ -283,20 +287,23 @@ async def create_user_segments(payload: HostPayload):
         
         # If find_optimal_clusters is True, calculate silhouette scores
         if payload.find_optimal_clusters:
+            logger.info("Finding optimal number of clusters")
             silhouette_scores = calculate_silhouette_scores(feature_matrix)
-            # Find the optimal number of clusters (highest silhouette score)
             optimal_clusters = max(silhouette_scores.items(), key=lambda x: x[1])[0]
             logger.info(f"Optimal number of clusters: {optimal_clusters}")
             payload.n_clusters = int(optimal_clusters)
         
         # Perform clustering
+        logger.info(f"Performing K-means clustering with {payload.n_clusters} clusters")
         kmeans = KMeans(n_clusters=payload.n_clusters, random_state=42)
         clusters = kmeans.fit_predict(feature_matrix)
         user_data['cluster'] = clusters
         
         # Analyze clusters
+        logger.info("Analyzing clusters and generating descriptions")
         cluster_insights = []
         for cluster_id in range(payload.n_clusters):
+            logger.info(f"Processing cluster {cluster_id}")
             cluster_mask = clusters == cluster_id
             cluster_users = user_data[cluster_mask]
             
@@ -325,8 +332,10 @@ async def create_user_segments(payload: HostPayload):
             description_dict = get_cluster_description(cluster_stats)
             cluster_stats.update(description_dict)
             cluster_insights.append(cluster_stats)
+            logger.info(f"Completed processing cluster {cluster_id}: {description_dict['name']}")
         
         await conn.close()
+        logger.info("Database connection closed")
         
         response = {
             "total_users": len(user_data),
@@ -340,6 +349,7 @@ async def create_user_segments(payload: HostPayload):
             response["silhouette_scores"] = silhouette_scores
             response["optimal_clusters"] = payload.n_clusters
         
+        logger.info(f"Segmentation complete. Found {len(cluster_insights)} clusters with {len(user_data)} total users")
         return response
         
     except Exception as e:
@@ -348,4 +358,5 @@ async def create_user_segments(payload: HostPayload):
 
 if __name__ == "__main__":
     import uvicorn
+    logger.info("Starting user segmentation service")
     uvicorn.run(app, host="0.0.0.0", port=8081) 
