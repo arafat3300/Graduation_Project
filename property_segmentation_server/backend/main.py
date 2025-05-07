@@ -100,25 +100,111 @@ async def find_matching_properties(conn, cluster_insight: Dict, limit: int) -> L
         total_count = await conn.fetchval(count_query)
         logger.info(f"Total properties in database: {total_count}")
         
-        available_count_query = "SELECT COUNT(*) FROM real_estate_property WHERE status = 'available'"
-        available_count = await conn.fetchval(available_count_query)
-        logger.info(f"Available properties in database: {available_count}")
-        
-        # Get sample of properties to understand the data
-        sample_query = """
-        SELECT type, city, sale_rent, finishing, price, area, bedrooms
+        if total_count == 0:
+            logger.error("No properties found in the database")
+            return []
+            
+        # Check status values and their counts
+        status_query = """
+        SELECT status, COUNT(*) as count 
         FROM real_estate_property 
-        WHERE status = 'available'
+        GROUP BY status
+        """
+        statuses = await conn.fetch(status_query)
+        logger.info("Status distribution in database:")
+        for row in statuses:
+            logger.info(f"Status: {row['status']}, Count: {row['count']}")
+        
+        # Check if we have any properties with the specific characteristics we're looking for
+        characteristic_check_query = """
+        SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN LOWER(type) LIKE LOWER($1) || '%' THEN 1 END) as matching_type,
+            COUNT(CASE WHEN LOWER(city) LIKE LOWER($2) || '%' THEN 1 END) as matching_city,
+            COUNT(CASE WHEN LOWER(sale_rent) LIKE LOWER($3) || '%' THEN 1 END) as matching_sale_rent,
+            COUNT(CASE WHEN LOWER(finishing) LIKE LOWER($4) || '%' THEN 1 END) as matching_finishing
+        FROM real_estate_property
+        """
+        characteristic_check = await conn.fetchrow(
+            characteristic_check_query,
+            cluster_insight['favorite_property_type'],
+            cluster_insight['favorite_city'],
+            cluster_insight['favorite_sale_rent'],
+            cluster_insight['preferred_finishing']
+        )
+        logger.info("Characteristic matching in database:")
+        logger.info(f"Total properties: {characteristic_check['total']}")
+        logger.info(f"Matching type ({cluster_insight['favorite_property_type']}): {characteristic_check['matching_type']}")
+        logger.info(f"Matching city ({cluster_insight['favorite_city']}): {characteristic_check['matching_city']}")
+        logger.info(f"Matching sale_rent ({cluster_insight['favorite_sale_rent']}): {characteristic_check['matching_sale_rent']}")
+        logger.info(f"Matching finishing ({cluster_insight['preferred_finishing']}): {characteristic_check['matching_finishing']}")
+        
+        # Get sample of properties with their exact values
+        sample_query = """
+        SELECT 
+            id,
+            type,
+            city,
+            sale_rent,
+            finishing,
+            price,
+            area,
+            bedrooms,
+            status,
+            installment_years,
+            delivery_in
+        FROM real_estate_property 
         LIMIT 5
         """
         sample_results = await conn.fetch(sample_query)
-        logger.info("Sample of available properties:")
+        logger.info("Sample of properties in database (exact values):")
+        for row in sample_results:
+            logger.info(f"Property ID: {row['id']}")
+            logger.info(f"  Type: '{row['type']}'")
+            logger.info(f"  City: '{row['city']}'")
+            logger.info(f"  Sale/Rent: '{row['sale_rent']}'")
+            logger.info(f"  Finishing: '{row['finishing']}'")
+            logger.info(f"  Price: {row['price']}")
+            logger.info(f"  Area: {row['area']}")
+            logger.info(f"  Bedrooms: {row['bedrooms']}")
+            logger.info(f"  Status: '{row['status']}'")
+            logger.info(f"  Installment Years: {row['installment_years']}")
+            logger.info(f"  Delivery In: {row['delivery_in']}")
+            logger.info("---")
+        
+        # Check distinct values in key columns
+        distinct_values_query = """
+        SELECT 
+            'type' as column_name, array_agg(DISTINCT type) as values FROM real_estate_property
+            UNION ALL
+            SELECT 'city', array_agg(DISTINCT city) FROM real_estate_property
+            UNION ALL
+            SELECT 'sale_rent', array_agg(DISTINCT sale_rent) FROM real_estate_property
+            UNION ALL
+            SELECT 'finishing', array_agg(DISTINCT finishing) FROM real_estate_property
+            UNION ALL
+            SELECT 'status', array_agg(DISTINCT status) FROM real_estate_property
+        """
+        distinct_values = await conn.fetch(distinct_values_query)
+        logger.info("Distinct values in database:")
+        for row in distinct_values:
+            logger.info(f"{row['column_name']}: {row['values']}")
+        
+        # Get sample of all properties to understand the data
+        sample_query = """
+        SELECT type, city, sale_rent, finishing, price, area, bedrooms, status
+        FROM real_estate_property 
+        LIMIT 5
+        """
+        sample_results = await conn.fetch(sample_query)
+        logger.info("Sample of all properties:")
         for row in sample_results:
             logger.info(f"Property: Type={row['type']}, City={row['city']}, "
                        f"Sale/Rent={row['sale_rent']}, Finishing={row['finishing']}, "
-                       f"Price={row['price']}, Area={row['area']}, Bedrooms={row['bedrooms']}")
+                       f"Price={row['price']}, Area={row['area']}, Bedrooms={row['bedrooms']}, "
+                       f"Status={row['status']}")
         
-        # Build the query based on cluster characteristics with more flexible matching
+        # Build the query based on cluster characteristics
         query = """
         WITH property_scores AS (
             SELECT 
@@ -127,29 +213,34 @@ async def find_matching_properties(conn, cluster_insight: Dict, limit: int) -> L
                 CASE 
                     WHEN LOWER(p.type) LIKE LOWER($1) || '%' THEN 1 
                     WHEN LOWER($1) LIKE LOWER(p.type) || '%' THEN 1
+                    WHEN p.type IS NULL THEN 0.5
                     ELSE 0 
                 END as type_score,
                 
                 CASE 
                     WHEN LOWER(p.city) LIKE LOWER($2) || '%' THEN 1
                     WHEN LOWER($2) LIKE LOWER(p.city) || '%' THEN 1
+                    WHEN p.city IS NULL THEN 0.5
                     ELSE 0 
                 END as city_score,
                 
                 CASE 
                     WHEN LOWER(p.sale_rent) LIKE LOWER($3) || '%' THEN 1
                     WHEN LOWER($3) LIKE LOWER(p.sale_rent) || '%' THEN 1
+                    WHEN p.sale_rent IS NULL THEN 0.5
                     ELSE 0 
                 END as sale_rent_score,
                 
                 CASE 
                     WHEN LOWER(p.finishing) LIKE LOWER($4) || '%' THEN 1
                     WHEN LOWER($4) LIKE LOWER(p.finishing) || '%' THEN 1
+                    WHEN p.finishing IS NULL THEN 0.5
                     ELSE 0 
                 END as finishing_score,
                 
                 -- Price similarity (normalized with more flexible range)
                 CASE 
+                    WHEN p.price IS NULL THEN 0.5
                     WHEN p.price BETWEEN $5 * 0.7 AND $5 * 1.3 THEN 1
                     WHEN p.price BETWEEN $5 * 0.5 AND $5 * 1.5 THEN 0.8
                     WHEN p.price BETWEEN $5 * 0.3 AND $5 * 1.7 THEN 0.6
@@ -158,6 +249,7 @@ async def find_matching_properties(conn, cluster_insight: Dict, limit: int) -> L
                 
                 -- Area similarity (normalized with more flexible range)
                 CASE 
+                    WHEN p.area IS NULL THEN 0.5
                     WHEN p.area BETWEEN $6 * 0.7 AND $6 * 1.3 THEN 1
                     WHEN p.area BETWEEN $6 * 0.5 AND $6 * 1.5 THEN 0.8
                     WHEN p.area BETWEEN $6 * 0.3 AND $6 * 1.7 THEN 0.6
@@ -166,6 +258,7 @@ async def find_matching_properties(conn, cluster_insight: Dict, limit: int) -> L
                 
                 -- Bedrooms similarity (normalized with more flexible range)
                 CASE 
+                    WHEN p.bedrooms IS NULL THEN 0.5
                     WHEN p.bedrooms BETWEEN FLOOR($7 * 0.8) AND CEIL($7 * 1.2) THEN 1
                     WHEN p.bedrooms BETWEEN FLOOR($7 * 0.6) AND CEIL($7 * 1.4) THEN 0.8
                     WHEN p.bedrooms BETWEEN FLOOR($7 * 0.4) AND CEIL($7 * 1.6) THEN 0.6
@@ -174,6 +267,7 @@ async def find_matching_properties(conn, cluster_insight: Dict, limit: int) -> L
                 
                 -- Installment years similarity (normalized with more flexible range)
                 CASE 
+                    WHEN p.installment_years IS NULL THEN 0.5
                     WHEN LOWER(p.sale_rent) = 'sale' THEN 
                         CASE 
                             WHEN p.installment_years BETWEEN $8 * 0.7 AND $8 * 1.3 THEN 1
@@ -181,11 +275,12 @@ async def find_matching_properties(conn, cluster_insight: Dict, limit: int) -> L
                             WHEN p.installment_years BETWEEN $8 * 0.3 AND $8 * 1.7 THEN 0.6
                             ELSE 0.4
                         END
-                    ELSE 0
+                    ELSE 0.5
                 END as installment_score,
                 
                 -- Delivery time similarity (normalized with more flexible range)
                 CASE 
+                    WHEN p.delivery_in IS NULL THEN 0.5
                     WHEN LOWER(p.sale_rent) = 'sale' THEN 
                         CASE 
                             WHEN p.delivery_in BETWEEN $9 * 0.7 AND $9 * 1.3 THEN 1
@@ -193,51 +288,55 @@ async def find_matching_properties(conn, cluster_insight: Dict, limit: int) -> L
                             WHEN p.delivery_in BETWEEN $9 * 0.3 AND $9 * 1.7 THEN 0.6
                             ELSE 0.4
                         END
-                    ELSE 0
+                    ELSE 0.5
                 END as delivery_score
             FROM real_estate_property p
-            WHERE p.status = 'available'
+            WHERE p.status = 'approved'
+        ),
+        scored_properties AS (
+            SELECT 
+                id,
+                price,
+                bedrooms,
+                bathrooms,
+                type,
+                furnished,
+                compound,
+                payment_option,
+                city,
+                sale_rent,
+                area,
+                down_payment,
+                installment_years,
+                delivery_in,
+                finishing,
+                status,
+                -- Calculate total similarity score with adjusted weights
+                (
+                    type_score * 0.15 +
+                    city_score * 0.15 +
+                    sale_rent_score * 0.15 +
+                    finishing_score * 0.15 +
+                    price_score * 0.15 +
+                    area_score * 0.1 +
+                    bedrooms_score * 0.1 +
+                    installment_score * 0.025 +
+                    delivery_score * 0.025
+                ) as similarity_score,
+                -- Include individual scores for debugging
+                type_score,
+                city_score,
+                sale_rent_score,
+                finishing_score,
+                price_score,
+                area_score,
+                bedrooms_score,
+                installment_score,
+                delivery_score
+            FROM property_scores
         )
-        SELECT 
-            id,
-            price,
-            bedrooms,
-            bathrooms,
-            type,
-            furnished,
-            compound,
-            payment_option,
-            city,
-            sale_rent,
-            area,
-            down_payment,
-            installment_years,
-            delivery_in,
-            finishing,
-            -- Calculate total similarity score with adjusted weights
-            (
-                type_score * 0.15 +
-                city_score * 0.15 +
-                sale_rent_score * 0.15 +
-                finishing_score * 0.15 +
-                price_score * 0.15 +
-                area_score * 0.1 +
-                bedrooms_score * 0.1 +
-                installment_score * 0.025 +
-                delivery_score * 0.025
-            ) as similarity_score,
-            -- Include individual scores for debugging
-            type_score,
-            city_score,
-            sale_rent_score,
-            finishing_score,
-            price_score,
-            area_score,
-            bedrooms_score,
-            installment_score,
-            delivery_score
-        FROM property_scores
-        WHERE similarity_score > 0.3  -- Only return properties with some similarity
+        SELECT * FROM scored_properties
+        WHERE similarity_score > 0.2
         ORDER BY similarity_score DESC
         LIMIT $10
         """
@@ -267,6 +366,19 @@ async def find_matching_properties(conn, cluster_insight: Dict, limit: int) -> L
         ]
         logger.info(f"Query parameters: {json.dumps(dict(zip(param_names, params)), indent=2)}")
         
+        # Add a test query to see if any properties match the basic criteria
+        test_query = """
+        SELECT COUNT(*) 
+        FROM real_estate_property 
+        WHERE status = 'approved'
+        AND LOWER(type) LIKE LOWER($1) || '%'
+        AND LOWER(city) LIKE LOWER($2) || '%'
+        AND LOWER(sale_rent) LIKE LOWER($3) || '%'
+        AND LOWER(finishing) LIKE LOWER($4) || '%'
+        """
+        basic_match_count = await conn.fetchval(test_query, *params[:4])
+        logger.info(f"Properties matching basic criteria (type, city, sale_rent, finishing): {basic_match_count}")
+        
         results = await conn.fetch(query, *params)
         
         properties = [dict(row) for row in results]
@@ -285,9 +397,9 @@ async def find_matching_properties(conn, cluster_insight: Dict, limit: int) -> L
             logger.info(f"Bedrooms: {first_prop['bedrooms']} (score: {first_prop['bedrooms_score']})")
             logger.info(f"Total similarity score: {first_prop['similarity_score']}")
         else:
-            logger.warning("No properties found with similarity score > 0.3. This might indicate:")
+            logger.warning("No properties found with similarity score > 0.2. This might indicate:")
             logger.warning("1. No properties in the database")
-            logger.warning("2. No properties marked as 'available'")
+            logger.warning("2. No properties marked as 'approved'")
             logger.warning("3. Properties exist but don't match the cluster characteristics")
             
         return properties
@@ -337,4 +449,4 @@ async def get_property_recommendations(request: PropertyRecommendationRequest):
 if __name__ == "__main__":
     import uvicorn
     logger.info("Starting property segmentation service")
-    uvicorn.run(app, host="0.0.0.0", port=8082)
+    uvicorn.run(app, host="0.0.0.0", port=8082) 
