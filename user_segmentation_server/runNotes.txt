@@ -14,6 +14,28 @@ http://192.168.1.12:8081/user-segments/
 }
 
 
+db operations
+CREATE TABLE real_estate_clusters (
+    cluster_id INT PRIMARY KEY,
+    size INT,
+    avg_age FLOAT,
+    avg_favorites FLOAT,
+    avg_favorited_area FLOAT,
+    avg_favorited_bedrooms FLOAT,
+    common_job TEXT,
+    common_country TEXT,
+    avg_favorited_price FLOAT,
+    favorite_property_type TEXT,
+    favorite_city TEXT,
+    favorite_sale_rent TEXT,
+    furnished_preference FLOAT,
+    sale_preference FLOAT,
+    avg_installment_years FLOAT,
+    avg_delivery_time FLOAT,
+    preferred_finishing TEXT,
+    name TEXT,
+    description TEXT
+);
 
 
 

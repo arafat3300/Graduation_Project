@@ -519,6 +519,58 @@ def try_different_clustering_methods(feature_matrix: np.ndarray, n_clusters: int
         logger.error(f"Error calculating clustering metrics: {e}")
         raise
 
+async def save_cluster_insights(conn, cluster_insights: List[Dict]):
+    """Save cluster insights to the database"""
+    try:
+        logger.info("Saving cluster insights to database")
+        
+        # First, delete all existing records
+        await conn.execute("DELETE FROM real_estate_clusters")
+        logger.info("Deleted existing cluster records")
+        
+        # Prepare the insert query
+        insert_query = """
+        INSERT INTO real_estate_clusters (
+            cluster_id, size, avg_age, avg_favorites, avg_favorited_area,
+            avg_favorited_bedrooms, common_job, common_country, avg_favorited_price,
+            favorite_property_type, favorite_city, favorite_sale_rent,
+            furnished_preference, sale_preference, avg_installment_years,
+            avg_delivery_time, preferred_finishing, name, description
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+        """
+        
+        # Insert each cluster insight
+        for insight in cluster_insights:
+            # Round numeric values to 2 decimal places
+            await conn.execute(
+                insert_query,
+                insight['cluster_id'],  # Integer, no rounding needed
+                insight['size'],  # Integer, no rounding needed
+                round(float(insight['avg_age']), 2),
+                round(float(insight['avg_favorites']), 2),
+                round(float(insight['avg_favorited_area']), 2),
+                round(float(insight['avg_favorited_bedrooms']), 2),
+                insight['common_job'],  # Text, no rounding needed
+                insight['common_country'],  # Text, no rounding needed
+                round(float(insight['avg_favorited_price']), 2),
+                insight['favorite_property_type'],  # Text, no rounding needed
+                insight['favorite_city'],  # Text, no rounding needed
+                insight['favorite_sale_rent'],  # Text, no rounding needed
+                round(float(insight['furnished_preference']), 2),
+                round(float(insight['sale_preference']), 2),
+                round(float(insight['avg_installment_years']), 2),
+                round(float(insight['avg_delivery_time']), 2),
+                insight['preferred_finishing'],  # Text, no rounding needed
+                insight['name'],  # Text, no rounding needed
+                insight['description']  # Text, no rounding needed
+            )
+        
+        logger.info(f"Successfully saved {len(cluster_insights)} cluster insights to database")
+        
+    except Exception as e:
+        logger.error(f"Error saving cluster insights to database: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/user-segments/")
 async def create_user_segments(payload: HostPayload):
     """Create user segments and get descriptions"""
@@ -591,6 +643,9 @@ async def create_user_segments(payload: HostPayload):
             cluster_stats.update(description_dict)
             cluster_insights.append(cluster_stats)
             logger.info(f"Completed processing cluster {cluster_id}: {description_dict['name']}")
+        
+        # Save cluster insights to database
+        await save_cluster_insights(conn, cluster_insights)
         
         await conn.close()
         logger.info("Database connection closed")
