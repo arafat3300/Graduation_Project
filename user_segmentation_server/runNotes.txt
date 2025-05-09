@@ -8,8 +8,9 @@ POSTMANNNN:
 http://192.168.1.12:8081/user-segments/
 {
   "host": "192.168.1.12",
-  "n_clusters": 5
-  "find_optimal_clusters": true
+  "n_clusters": 5 ,
+  "find_optimal_clusters": true ,
+  "find_optimal_algorithm": false
 }
 
 

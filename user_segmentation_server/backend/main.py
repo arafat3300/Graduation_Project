@@ -3,16 +3,19 @@ from pydantic import BaseModel
 import asyncpg
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, KBinsDiscretizer, MinMaxScaler, RobustScaler
+from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
+from sklearn.mixture import GaussianMixture
+from sklearn.neighbors import NearestNeighbors
 from datetime import datetime
 import logging
 import google.generativeai as genai
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import json
 import os
 from dotenv import load_dotenv
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
+import matplotlib.pyplot as plt
 
 
 #adjust the default host & no.of clusters
@@ -129,6 +132,7 @@ async def fetch_user_data(conn, host):
             users_users u
             LEFT JOIN user_weighted_stats ws ON u.id = ws.user_id
         """
+        #left join to preserve users table as it is
 
         results = await conn.fetch(users_query)
         user_data = pd.DataFrame([dict(row) for row in results])
@@ -144,30 +148,201 @@ async def fetch_user_data(conn, host):
         logger.error(f"Error fetching user data: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-        
-
-def prepare_features(df):
-    """Prepare features for clustering"""
+def create_derived_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Create derived features for better clustering"""
     try:
-        logger.info("Preparing features for clustering")
-        # Numerical features
-        numerical_features = [
-            'age', 
-            'total_favorites',
+        logger.info("Creating derived features")
+        
+        # Convert all numeric columns to float and handle NaN
+        numeric_columns = [
             'avg_favorited_price', 
             'avg_favorited_area', 
             'avg_favorited_bedrooms',
             'furnished_preference_ratio',
+            'sale_preference_ratio',
             'avg_installment_years',
             'avg_delivery_time',
-            'sale_preference_ratio'
+            'total_favorites',
+            'age'
         ]
         
-        # Categorical features
+        for col in numeric_columns:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+                df[col] = df[col].fillna(df[col].median())
+                df[col] = df[col].astype(float)
+        
+        # Enhanced price-related features
+        df['price_per_sqm'] = df['avg_favorited_price'] / df['avg_favorited_area'].replace(0, np.nan)
+        df['price_per_sqm'] = df['price_per_sqm'].fillna(df['price_per_sqm'].median())
+        
+        # Price elasticity (normalized)
+        df['price_elasticity'] = (df['avg_favorited_price'] / df['avg_favorited_area'].replace(0, np.nan)) / df['avg_favorited_price'].mean()
+        df['price_elasticity'] = df['price_elasticity'].fillna(df['price_elasticity'].median())
+        
+        # Enhanced property preference features
+        df['property_type_strength'] = df.groupby('favorite_property_type')['favorite_property_type'].transform('count')
+        df['property_type_strength'] = (df['property_type_strength'] - df['property_type_strength'].min()) / (df['property_type_strength'].max() - df['property_type_strength'].min())
+        df['property_type_strength'] = df['property_type_strength'].fillna(0)
+        
+        # Enhanced location preference
+        df['location_strength'] = df.groupby('favorite_city')['favorite_city'].transform('count')
+        df['location_strength'] = (df['location_strength'] - df['location_strength'].min()) / (df['location_strength'].max() - df['location_strength'].min())
+        df['location_strength'] = df['location_strength'].fillna(0)
+        
+        # Enhanced payment preference
+        df['payment_preference_ratio'] = df.groupby('favorite_payment_option')['favorite_payment_option'].transform('count')
+        df['payment_preference_ratio'] = (df['payment_preference_ratio'] - df['payment_preference_ratio'].min()) / (df['payment_preference_ratio'].max() - df['payment_preference_ratio'].min())
+        df['payment_preference_ratio'] = df['payment_preference_ratio'].fillna(0)
+        
+        # New sophisticated features
+        # Investment sophistication score
+        df['investment_sophistication'] = (
+            df['price_per_sqm'] * 
+            df['location_strength'] * 
+            (1 + df['sale_preference_ratio'])
+        )
+        df['investment_sophistication'] = (df['investment_sophistication'] - df['investment_sophistication'].min()) / (df['investment_sophistication'].max() - df['investment_sophistication'].min())
+        
+        # Property complexity score
+        df['property_complexity'] = (
+            df['avg_favorited_bedrooms'] * 
+            df['avg_favorited_area'] * 
+            (1 + df['furnished_preference_ratio'])
+        )
+        df['property_complexity'] = (df['property_complexity'] - df['property_complexity'].min()) / (df['property_complexity'].max() - df['property_complexity'].min())
+        
+        # Financial capacity indicator
+        df['financial_capacity'] = (
+            df['avg_favorited_price'] * 
+            (1 + df['sale_preference_ratio']) * 
+            (1 + df['payment_preference_ratio'])
+        )
+        df['financial_capacity'] = (df['financial_capacity'] - df['financial_capacity'].min()) / (df['financial_capacity'].max() - df['financial_capacity'].min())
+        
+        # Lifestyle preference score
+        df['lifestyle_score'] = (
+            df['furnished_preference_ratio'] * 
+            df['property_complexity'] * 
+            (1 + df['location_strength'])
+        )
+        df['lifestyle_score'] = (df['lifestyle_score'] - df['lifestyle_score'].min()) / (df['lifestyle_score'].max() - df['lifestyle_score'].min())
+        
+        # User engagement score
+        df['engagement_score'] = (
+            df['total_favorites'] * 
+            (1 + df['property_type_strength']) * 
+            (1 + df['location_strength'])
+        )
+        df['engagement_score'] = (df['engagement_score'] - df['engagement_score'].min()) / (df['engagement_score'].max() - df['engagement_score'].min())
+        
+        # Fill NaN values with 0 for all derived features
+        derived_features = [
+            'price_per_sqm', 'price_elasticity', 'property_type_strength',
+            'location_strength', 'payment_preference_ratio', 'investment_sophistication',
+            'property_complexity', 'financial_capacity', 'lifestyle_score',
+            'engagement_score'
+        ]
+        
+        for feature in derived_features:
+            df[feature] = pd.to_numeric(df[feature], errors='coerce').fillna(0).astype(float)
+        
+        logger.info("Created enhanced derived features successfully")
+        return df
+    except Exception as e:
+        logger.error(f"Error creating derived features: {e}")
+        raise
+
+def handle_outliers(df: pd.DataFrame, columns: List[str], method: str = 'iqr') -> pd.DataFrame:
+    """Handle outliers in numerical features"""
+    try:
+        logger.info(f"Handling outliers using {method} method")
+        df_clean = df.copy()
+        
+        for col in columns:
+            if col not in df.columns:
+                continue
+                
+            if method == 'iqr':
+                # IQR method
+                Q1 = df[col].quantile(0.25)
+                Q3 = df[col].quantile(0.75)
+                IQR = Q3 - Q1
+                lower_bound = Q1 - 1.5 * IQR
+                upper_bound = Q3 + 1.5 * IQR
+                
+                # Replace outliers with bounds
+                df_clean[col] = df_clean[col].clip(lower=lower_bound, upper=upper_bound)
+                
+            elif method == 'zscore':
+                # Z-score method
+                mean = df[col].mean()
+                std = df[col].std()
+                z_scores = np.abs((df[col] - mean) / std)
+                df_clean[col] = df[col].mask(z_scores > 3, mean)
+                
+            elif method == 'percentile':
+                # Percentile method
+                lower_bound = df[col].quantile(0.01)
+                upper_bound = df[col].quantile(0.99)
+                df_clean[col] = df_clean[col].clip(lower=lower_bound, upper=upper_bound)
+        
+        logger.info("Outlier handling completed")
+        return df_clean
+    except Exception as e:
+        logger.error(f"Error handling outliers: {e}")
+        raise
+
+def prepare_features(df):
+    """Prepare features for clustering with weighted importance"""
+    try:
+        logger.info("Preparing features for clustering")
+        
+        # Create derived features
+        df = create_derived_features(df)
+        
+        # Updated feature weights based on importance
+        feature_weights = {
+            'price_per_sqm': 1.8,  # Increased weight
+            'price_elasticity': 1.6,
+            'property_type_strength': 1.4,
+            'location_strength': 1.7,
+            'payment_preference_ratio': 1.3,
+            'investment_sophistication': 2.0,  # Highest weight
+            'property_complexity': 1.5,
+            'financial_capacity': 1.9,
+            'lifestyle_score': 1.4,
+            'engagement_score': 1.6
+        }
+        
+        # Select most important features
+        numerical_features = list(feature_weights.keys())
+        
+        # Convert all numerical features to float
+        for feature in numerical_features:
+            if feature in df.columns:
+                df[feature] = pd.to_numeric(df[feature], errors='coerce').fillna(0).astype(float)
+        
+        # Enhanced outlier handling
+        df = handle_outliers(df, numerical_features, method='iqr')
+        df = handle_outliers(df, numerical_features, method='percentile')
+        
+        # Robust scaling with outlier handling
+        robust_scaler = RobustScaler(quantile_range=(1, 99))  # More robust to outliers
+        numerical_data = df[numerical_features].fillna(df[numerical_features].median())
+        robust_scaled = robust_scaler.fit_transform(numerical_data)
+        
+        # MinMax scaling after robust scaling
+        minmax_scaler = MinMaxScaler()
+        scaled_numerical = minmax_scaler.fit_transform(robust_scaled)
+        
+        # Apply weights to numerical features
+        for i, feature in enumerate(numerical_features):
+            if feature in feature_weights:
+                scaled_numerical[:, i] *= feature_weights[feature]
+        
+        # Handle categorical features
         categorical_features = [
-            'job', 
-            'country', 
             'favorite_property_type',
             'favorite_city', 
             'favorite_payment_option',
@@ -175,21 +350,13 @@ def prepare_features(df):
             'preferred_finishing'
         ]
         
-        # Handle numerical features
-        logger.info("Scaling numerical features")
-        scaler = StandardScaler()
-        numerical_data = df[numerical_features].fillna(df[numerical_features].mean())
-        scaled_numerical = scaler.fit_transform(numerical_data)
-        
-        # Handle categorical features
-        logger.info("Encoding categorical features")
         encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
         categorical_data = df[categorical_features].fillna('unknown')
         encoded_categorical = encoder.fit_transform(categorical_data)
         
         # Combine features
         feature_matrix = np.hstack([scaled_numerical, encoded_categorical])
-        logger.info(f"Created feature matrix with shape {feature_matrix.shape}")
+        logger.info(f"Created enhanced feature matrix with shape {feature_matrix.shape}")
         
         return feature_matrix, numerical_features, categorical_features, encoder.get_feature_names_out(categorical_features)
     except Exception as e:
@@ -250,24 +417,106 @@ def get_cluster_description(cluster_data: Dict) -> Dict[str, str]:
         }
     
 
-def calculate_silhouette_scores(feature_matrix: np.ndarray, max_clusters: int = 10) -> Dict[str, float]:
-    """Calculate silhouette scores for different numbers of clusters"""
+def calculate_clustering_metrics(feature_matrix: np.ndarray, max_clusters: int = 10) -> Dict[str, Dict[str, float]]:
+    """Calculate clustering metrics for different numbers of clusters"""
     try:
-        logger.info(f"Calculating silhouette scores for 2 to {max_clusters} clusters")
-        silhouette_scores = {}
+        logger.info(f"Calculating clustering metrics for 2 to {max_clusters} clusters")
+        metrics = {}
         
         for n_clusters in range(2, max_clusters + 1):
-            logger.info(f"Calculating score for {n_clusters} clusters")
-            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+            logger.info(f"Calculating metrics for {n_clusters} clusters")
+            kmeans = KMeans(
+                n_clusters=n_clusters, 
+                random_state=42, 
+                n_init=50,  # Increased from 20
+                max_iter=500,  # Increased from 300
+                algorithm='elkan'  # More efficient algorithm
+            )
             cluster_labels = kmeans.fit_predict(feature_matrix)
             
-            score = silhouette_score(feature_matrix, cluster_labels)
-            silhouette_scores[str(n_clusters)] = float(score)
-            logger.info(f"Silhouette score for {n_clusters} clusters: {score:.4f}")
+            metrics[str(n_clusters)] = {
+                'silhouette': silhouette_score(feature_matrix, cluster_labels),
+                'calinski_harabasz': calinski_harabasz_score(feature_matrix, cluster_labels),
+                'davies_bouldin': davies_bouldin_score(feature_matrix, cluster_labels),
+                'inertia': kmeans.inertia_
+            }
+            
+            logger.info(f"Metrics for {n_clusters} clusters:")
+            logger.info(f"Silhouette: {metrics[str(n_clusters)]['silhouette']:.4f}")
+            logger.info(f"Calinski-Harabasz: {metrics[str(n_clusters)]['calinski_harabasz']:.4f}")
+            logger.info(f"Davies-Bouldin: {metrics[str(n_clusters)]['davies_bouldin']:.4f}")
+            logger.info(f"Inertia: {metrics[str(n_clusters)]['inertia']:.4f}")
         
-        return silhouette_scores
+        return metrics
     except Exception as e:
-        logger.error(f"Error calculating silhouette scores: {e}")
+        logger.error(f"Error calculating clustering metrics: {e}")
+        raise
+
+def find_optimal_clusters(metrics: Dict[str, Dict[str, float]]) -> Dict[str, int]:
+    """Find optimal number of clusters based on different metrics"""
+    try:
+        optimal_clusters = {}
+        
+        # Extract metrics for each method
+        silhouette_scores = {k: v['silhouette'] for k, v in metrics.items()}
+        calinski_scores = {k: v['calinski_harabasz'] for k, v in metrics.items()}
+        davies_scores = {k: v['davies_bouldin'] for k, v in metrics.items()}
+        inertia_values = {k: v['inertia'] for k, v in metrics.items()}
+        
+        # Silhouette: higher is better
+        optimal_clusters['silhouette'] = int(max(silhouette_scores.items(), key=lambda x: x[1])[0])
+        
+        # Calinski-Harabasz: higher is better
+        optimal_clusters['calinski_harabasz'] = int(max(calinski_scores.items(), key=lambda x: x[1])[0])
+        
+        # Davies-Bouldin: lower is better
+        optimal_clusters['davies_bouldin'] = int(min(davies_scores.items(), key=lambda x: x[1])[0])
+        
+        # Inertia: find elbow point
+        inertia_values_list = list(inertia_values.values())
+        n_clusters = list(inertia_values.keys())
+        
+        # Calculate the rate of change of inertia
+        inertia_changes = np.diff(inertia_values_list)
+        # Find the point where the rate of change starts to level off
+        elbow_point = np.argmax(np.abs(np.diff(inertia_changes))) + 2
+        optimal_clusters['inertia'] = int(n_clusters[elbow_point])
+        
+        logger.info(f"Optimal clusters found: {optimal_clusters}")
+        return optimal_clusters
+    except Exception as e:
+        logger.error(f"Error finding optimal clusters: {e}")
+        raise
+
+def try_different_clustering_methods(feature_matrix: np.ndarray, n_clusters: int) -> Dict[str, Dict[str, float]]:
+    """Calculate clustering metrics for K-means"""
+    try:
+        logger.info("Calculating K-means clustering metrics")
+        metrics = {}
+        
+        # K-means with improved parameters
+        kmeans = KMeans(
+            n_clusters=n_clusters, 
+            random_state=42, 
+            n_init=50,
+            max_iter=500,
+            algorithm='elkan'
+        )
+        kmeans_labels = kmeans.fit_predict(feature_matrix)
+        metrics['kmeans'] = {
+            'silhouette': silhouette_score(feature_matrix, kmeans_labels),
+            'calinski_harabasz': calinski_harabasz_score(feature_matrix, kmeans_labels),
+            'davies_bouldin': davies_bouldin_score(feature_matrix, kmeans_labels),
+            'inertia': kmeans.inertia_
+        }
+        
+        logger.info(f"K-means metrics: silhouette={metrics['kmeans']['silhouette']:.4f}, "
+                   f"calinski_harabasz={metrics['kmeans']['calinski_harabasz']:.4f}, "
+                   f"davies_bouldin={metrics['kmeans']['davies_bouldin']:.4f}")
+        
+        return metrics
+    except Exception as e:
+        logger.error(f"Error calculating clustering metrics: {e}")
         raise
 
 @app.post("/user-segments/")
@@ -285,17 +534,26 @@ async def create_user_segments(payload: HostPayload):
         user_data = await fetch_user_data(conn, payload.host)
         feature_matrix, num_features, cat_features, encoded_features = prepare_features(user_data)
         
-        # If find_optimal_clusters is True, calculate silhouette scores
+        # If find_optimal_clusters is True, calculate all metrics
         if payload.find_optimal_clusters:
             logger.info("Finding optimal number of clusters")
-            silhouette_scores = calculate_silhouette_scores(feature_matrix)
-            optimal_clusters = max(silhouette_scores.items(), key=lambda x: x[1])[0]
-            logger.info(f"Optimal number of clusters: {optimal_clusters}")
-            payload.n_clusters = int(optimal_clusters)
+            metrics = calculate_clustering_metrics(feature_matrix)
+            optimal_clusters = find_optimal_clusters(metrics)
+            
+            # Use the most common optimal cluster number
+            optimal_n = max(set(optimal_clusters.values()), key=list(optimal_clusters.values()).count)
+            logger.info(f"Optimal number of clusters: {optimal_n}")
+            payload.n_clusters = optimal_n
         
-        # Perform clustering
+        # Perform K-means clustering
         logger.info(f"Performing K-means clustering with {payload.n_clusters} clusters")
-        kmeans = KMeans(n_clusters=payload.n_clusters, random_state=42)
+        kmeans = KMeans(
+            n_clusters=payload.n_clusters,
+            random_state=42,
+            n_init=50,
+            max_iter=500,
+            algorithm='elkan'
+        )
         clusters = kmeans.fit_predict(feature_matrix)
         user_data['cluster'] = clusters
         
@@ -340,14 +598,13 @@ async def create_user_segments(payload: HostPayload):
         response = {
             "total_users": len(user_data),
             "n_clusters": payload.n_clusters,
+            "clustering_metrics": metrics if payload.find_optimal_clusters else None,
             "cluster_insights": cluster_insights,
             "user_segments": user_data[['id', 'cluster']].to_dict(orient='records')
         }
         
-        # Add silhouette scores to response if optimal clusters were calculated
         if payload.find_optimal_clusters:
-            response["silhouette_scores"] = silhouette_scores
-            response["optimal_clusters"] = payload.n_clusters
+            response["optimal_clusters"] = optimal_clusters
         
         logger.info(f"Segmentation complete. Found {len(cluster_insights)} clusters with {len(user_data)} total users")
         return response

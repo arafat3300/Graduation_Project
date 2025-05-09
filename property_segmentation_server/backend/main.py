@@ -103,106 +103,6 @@ async def find_matching_properties(conn, cluster_insight: Dict, limit: int) -> L
         if total_count == 0:
             logger.error("No properties found in the database")
             return []
-            
-        # Check status values and their counts
-        status_query = """
-        SELECT status, COUNT(*) as count 
-        FROM real_estate_property 
-        GROUP BY status
-        """
-        statuses = await conn.fetch(status_query)
-        logger.info("Status distribution in database:")
-        for row in statuses:
-            logger.info(f"Status: {row['status']}, Count: {row['count']}")
-        
-        # Check if we have any properties with the specific characteristics we're looking for
-        characteristic_check_query = """
-        SELECT 
-            COUNT(*) as total,
-            COUNT(CASE WHEN LOWER(type) LIKE LOWER($1) || '%' THEN 1 END) as matching_type,
-            COUNT(CASE WHEN LOWER(city) LIKE LOWER($2) || '%' THEN 1 END) as matching_city,
-            COUNT(CASE WHEN LOWER(sale_rent) LIKE LOWER($3) || '%' THEN 1 END) as matching_sale_rent,
-            COUNT(CASE WHEN LOWER(finishing) LIKE LOWER($4) || '%' THEN 1 END) as matching_finishing
-        FROM real_estate_property
-        """
-        characteristic_check = await conn.fetchrow(
-            characteristic_check_query,
-            cluster_insight['favorite_property_type'],
-            cluster_insight['favorite_city'],
-            cluster_insight['favorite_sale_rent'],
-            cluster_insight['preferred_finishing']
-        )
-        logger.info("Characteristic matching in database:")
-        logger.info(f"Total properties: {characteristic_check['total']}")
-        logger.info(f"Matching type ({cluster_insight['favorite_property_type']}): {characteristic_check['matching_type']}")
-        logger.info(f"Matching city ({cluster_insight['favorite_city']}): {characteristic_check['matching_city']}")
-        logger.info(f"Matching sale_rent ({cluster_insight['favorite_sale_rent']}): {characteristic_check['matching_sale_rent']}")
-        logger.info(f"Matching finishing ({cluster_insight['preferred_finishing']}): {characteristic_check['matching_finishing']}")
-        
-        # Get sample of properties with their exact values
-        sample_query = """
-        SELECT 
-            id,
-            type,
-            city,
-            sale_rent,
-            finishing,
-            price,
-            area,
-            bedrooms,
-            status,
-            installment_years,
-            delivery_in
-        FROM real_estate_property 
-        LIMIT 5
-        """
-        sample_results = await conn.fetch(sample_query)
-        logger.info("Sample of properties in database (exact values):")
-        for row in sample_results:
-            logger.info(f"Property ID: {row['id']}")
-            logger.info(f"  Type: '{row['type']}'")
-            logger.info(f"  City: '{row['city']}'")
-            logger.info(f"  Sale/Rent: '{row['sale_rent']}'")
-            logger.info(f"  Finishing: '{row['finishing']}'")
-            logger.info(f"  Price: {row['price']}")
-            logger.info(f"  Area: {row['area']}")
-            logger.info(f"  Bedrooms: {row['bedrooms']}")
-            logger.info(f"  Status: '{row['status']}'")
-            logger.info(f"  Installment Years: {row['installment_years']}")
-            logger.info(f"  Delivery In: {row['delivery_in']}")
-            logger.info("---")
-        
-        # Check distinct values in key columns
-        distinct_values_query = """
-        SELECT 
-            'type' as column_name, array_agg(DISTINCT type) as values FROM real_estate_property
-            UNION ALL
-            SELECT 'city', array_agg(DISTINCT city) FROM real_estate_property
-            UNION ALL
-            SELECT 'sale_rent', array_agg(DISTINCT sale_rent) FROM real_estate_property
-            UNION ALL
-            SELECT 'finishing', array_agg(DISTINCT finishing) FROM real_estate_property
-            UNION ALL
-            SELECT 'status', array_agg(DISTINCT status) FROM real_estate_property
-        """
-        distinct_values = await conn.fetch(distinct_values_query)
-        logger.info("Distinct values in database:")
-        for row in distinct_values:
-            logger.info(f"{row['column_name']}: {row['values']}")
-        
-        # Get sample of all properties to understand the data
-        sample_query = """
-        SELECT type, city, sale_rent, finishing, price, area, bedrooms, status
-        FROM real_estate_property 
-        LIMIT 5
-        """
-        sample_results = await conn.fetch(sample_query)
-        logger.info("Sample of all properties:")
-        for row in sample_results:
-            logger.info(f"Property: Type={row['type']}, City={row['city']}, "
-                       f"Sale/Rent={row['sale_rent']}, Finishing={row['finishing']}, "
-                       f"Price={row['price']}, Area={row['area']}, Bedrooms={row['bedrooms']}, "
-                       f"Status={row['status']}")
         
         # Build the query based on cluster characteristics
         query = """
@@ -341,10 +241,7 @@ async def find_matching_properties(conn, cluster_insight: Dict, limit: int) -> L
         LIMIT $10
         """
         
-        # Execute query with cluster characteristics
-        logger.info("Executing property matching query with cluster characteristics")
-        
-        # Prepare parameters for logging
+        # Prepare parameters for the query
         params = [
             cluster_insight['favorite_property_type'],
             cluster_insight['favorite_city'],
@@ -358,50 +255,11 @@ async def find_matching_properties(conn, cluster_insight: Dict, limit: int) -> L
             limit
         ]
         
-        # Log parameters in a readable format
-        param_names = [
-            'property_type', 'city', 'sale_rent', 'finishing',
-            'avg_price', 'avg_area', 'avg_bedrooms',
-            'avg_installment_years', 'avg_delivery_time', 'limit'
-        ]
-        logger.info(f"Query parameters: {json.dumps(dict(zip(param_names, params)), indent=2)}")
-        
-        # Add a test query to see if any properties match the basic criteria
-        test_query = """
-        SELECT COUNT(*) 
-        FROM real_estate_property 
-        WHERE status = 'approved'
-        AND LOWER(type) LIKE LOWER($1) || '%'
-        AND LOWER(city) LIKE LOWER($2) || '%'
-        AND LOWER(sale_rent) LIKE LOWER($3) || '%'
-        AND LOWER(finishing) LIKE LOWER($4) || '%'
-        """
-        basic_match_count = await conn.fetchval(test_query, *params[:4])
-        logger.info(f"Properties matching basic criteria (type, city, sale_rent, finishing): {basic_match_count}")
-        
+        # Execute query
         results = await conn.fetch(query, *params)
-        
         properties = [dict(row) for row in results]
         logger.info(f"Found {len(properties)} matching properties")
         
-        if len(properties) > 0:
-            # Log details of the first property for debugging
-            first_prop = properties[0]
-            logger.info("First matching property details:")
-            logger.info(f"Type: {first_prop['type']} (score: {first_prop['type_score']})")
-            logger.info(f"City: {first_prop['city']} (score: {first_prop['city_score']})")
-            logger.info(f"Sale/Rent: {first_prop['sale_rent']} (score: {first_prop['sale_rent_score']})")
-            logger.info(f"Finishing: {first_prop['finishing']} (score: {first_prop['finishing_score']})")
-            logger.info(f"Price: {first_prop['price']} (score: {first_prop['price_score']})")
-            logger.info(f"Area: {first_prop['area']} (score: {first_prop['area_score']})")
-            logger.info(f"Bedrooms: {first_prop['bedrooms']} (score: {first_prop['bedrooms_score']})")
-            logger.info(f"Total similarity score: {first_prop['similarity_score']}")
-        else:
-            logger.warning("No properties found with similarity score > 0.2. This might indicate:")
-            logger.warning("1. No properties in the database")
-            logger.warning("2. No properties marked as 'approved'")
-            logger.warning("3. Properties exist but don't match the cluster characteristics")
-            
         return properties
         
     except Exception as e:
