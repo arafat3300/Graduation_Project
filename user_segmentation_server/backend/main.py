@@ -37,7 +37,7 @@ logger.addHandler(ch)
 DB_USERNAME = os.getenv("DB_USERNAME", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "user_segmentation_test")
+DB_NAME = os.getenv("DB_NAME", "segmentation_evaluation")
 
 # Gemini API configuration
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY","AIzaSyDXLCM-4lzUKUGBEVtbFPQbCGa6uXXI8lU")
@@ -159,9 +159,6 @@ def create_derived_features(df: pd.DataFrame) -> pd.DataFrame:
             'avg_favorited_area', 
             'avg_favorited_bedrooms',
             'furnished_preference_ratio',
-            'sale_preference_ratio',
-            'avg_installment_years',
-            'avg_delivery_time',
             'total_favorites',
             'age'
         ]
@@ -190,21 +187,15 @@ def create_derived_features(df: pd.DataFrame) -> pd.DataFrame:
         df['location_strength'] = (df['location_strength'] - df['location_strength'].min()) / (df['location_strength'].max() - df['location_strength'].min())
         df['location_strength'] = df['location_strength'].fillna(0)
         
-        # Enhanced payment preference
-        df['payment_preference_ratio'] = df.groupby('favorite_payment_option')['favorite_payment_option'].transform('count')
-        df['payment_preference_ratio'] = (df['payment_preference_ratio'] - df['payment_preference_ratio'].min()) / (df['payment_preference_ratio'].max() - df['payment_preference_ratio'].min())
-        df['payment_preference_ratio'] = df['payment_preference_ratio'].fillna(0)
-        
         # New sophisticated features
-        # Investment sophistication score
+        # Investment sophistication score (modified)
         df['investment_sophistication'] = (
             df['price_per_sqm'] * 
-            df['location_strength'] * 
-            (1 + df['sale_preference_ratio'])
+            df['location_strength']
         )
         df['investment_sophistication'] = (df['investment_sophistication'] - df['investment_sophistication'].min()) / (df['investment_sophistication'].max() - df['investment_sophistication'].min())
         
-        # Property complexity score
+        # Property complexity score (modified)
         df['property_complexity'] = (
             df['avg_favorited_bedrooms'] * 
             df['avg_favorited_area'] * 
@@ -212,15 +203,14 @@ def create_derived_features(df: pd.DataFrame) -> pd.DataFrame:
         )
         df['property_complexity'] = (df['property_complexity'] - df['property_complexity'].min()) / (df['property_complexity'].max() - df['property_complexity'].min())
         
-        # Financial capacity indicator
+        # Financial capacity indicator (modified)
         df['financial_capacity'] = (
             df['avg_favorited_price'] * 
-            (1 + df['sale_preference_ratio']) * 
-            (1 + df['payment_preference_ratio'])
+            df['price_per_sqm']
         )
         df['financial_capacity'] = (df['financial_capacity'] - df['financial_capacity'].min()) / (df['financial_capacity'].max() - df['financial_capacity'].min())
         
-        # Lifestyle preference score
+        # Lifestyle preference score (modified)
         df['lifestyle_score'] = (
             df['furnished_preference_ratio'] * 
             df['property_complexity'] * 
@@ -228,7 +218,7 @@ def create_derived_features(df: pd.DataFrame) -> pd.DataFrame:
         )
         df['lifestyle_score'] = (df['lifestyle_score'] - df['lifestyle_score'].min()) / (df['lifestyle_score'].max() - df['lifestyle_score'].min())
         
-        # User engagement score
+        # User engagement score (modified)
         df['engagement_score'] = (
             df['total_favorites'] * 
             (1 + df['property_type_strength']) * 
@@ -239,7 +229,7 @@ def create_derived_features(df: pd.DataFrame) -> pd.DataFrame:
         # Fill NaN values with 0 for all derived features
         derived_features = [
             'price_per_sqm', 'price_elasticity', 'property_type_strength',
-            'location_strength', 'payment_preference_ratio', 'investment_sophistication',
+            'location_strength', 'investment_sophistication',
             'property_complexity', 'financial_capacity', 'lifestyle_score',
             'engagement_score'
         ]
@@ -307,7 +297,6 @@ def prepare_features(df):
             'price_elasticity': 1.6,
             'property_type_strength': 1.4,
             'location_strength': 1.7,
-            'payment_preference_ratio': 1.3,
             'investment_sophistication': 2.0,  # Highest weight
             'property_complexity': 1.5,
             'financial_capacity': 1.9,
@@ -344,10 +333,7 @@ def prepare_features(df):
         # Handle categorical features
         categorical_features = [
             'favorite_property_type',
-            'favorite_city', 
-            'favorite_payment_option',
-            'favorite_sale_rent',
-            'preferred_finishing'
+            'favorite_city'
         ]
         
         encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
