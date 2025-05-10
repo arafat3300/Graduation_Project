@@ -37,7 +37,7 @@ logger.addHandler(ch)
 DB_USERNAME = os.getenv("DB_USERNAME", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "segmentation_evaluation")
+DB_NAME = os.getenv("DB_NAME", "user_segmentation_test")
 
 # Gemini API configuration
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY","AIzaSyDXLCM-4lzUKUGBEVtbFPQbCGa6uXXI8lU")

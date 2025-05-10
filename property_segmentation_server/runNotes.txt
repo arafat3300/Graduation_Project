@@ -17,7 +17,27 @@ http://192.168.1.12:8082//property-segmentation/
 
 
 
+-- 1. Add cluster_id to users_users
+ALTER TABLE users_users
+ADD COLUMN cluster_id INTEGER;
 
+-- Add foreign key constraint with ON DELETE SET NULL
+ALTER TABLE users_users
+ADD CONSTRAINT fk_users_cluster
+FOREIGN KEY (cluster_id)
+REFERENCES real_estate_clusters(cluster_id)
+ON DELETE SET NULL;
+
+-- 2. Add cluster_id to real_estate_property
+ALTER TABLE real_estate_property
+ADD COLUMN cluster_id INTEGER;
+
+-- Add foreign key constraint with ON DELETE SET NULL
+ALTER TABLE real_estate_property
+ADD CONSTRAINT fk_property_cluster
+FOREIGN KEY (cluster_id)
+REFERENCES real_estate_clusters(cluster_id)
+ON DELETE SET NULL;
 
 
 
