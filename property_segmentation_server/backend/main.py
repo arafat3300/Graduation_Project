@@ -373,43 +373,43 @@ async def find_top_properties_for_cluster(conn, cluster_insight: Dict, limit: in
                 CASE 
                     WHEN LOWER(p.type) LIKE LOWER($1) || '%' THEN 1 
                     WHEN LOWER($1) LIKE LOWER(p.type) || '%' THEN 1
-                    WHEN p.type IS NULL THEN 0.5
+                    WHEN p.type IS NULL THEN 0.3
                     ELSE 0 
                 END as type_score,
                 
                 CASE 
                     WHEN LOWER(p.city) LIKE LOWER($2) || '%' THEN 1
                     WHEN LOWER($2) LIKE LOWER(p.city) || '%' THEN 1
-                    WHEN p.city IS NULL THEN 0.5
+                    WHEN p.city IS NULL THEN 0.3
                     ELSE 0 
                 END as city_score,
                 
                 CASE 
                     WHEN LOWER(p.sale_rent) LIKE LOWER($3) || '%' THEN 1
                     WHEN LOWER($3) LIKE LOWER(p.sale_rent) || '%' THEN 1
-                    WHEN p.sale_rent IS NULL THEN 0.5
+                    WHEN p.sale_rent IS NULL THEN 0.3
                     ELSE 0 
                 END as sale_rent_score,
                 
                 CASE 
                     WHEN LOWER(p.finishing) LIKE LOWER($4) || '%' THEN 1
                     WHEN LOWER($4) LIKE LOWER(p.finishing) || '%' THEN 1
-                    WHEN p.finishing IS NULL THEN 0.5
+                    WHEN p.finishing IS NULL THEN 0.3
                     ELSE 0 
                 END as finishing_score,
                 
                 -- Price similarity (normalized with more flexible range)
                 CASE 
-                    WHEN p.price IS NULL THEN 0.5
+                    WHEN p.price IS NULL THEN 0.3
                     WHEN p.price BETWEEN $5 * 0.7 AND $5 * 1.3 THEN 1
-                    WHEN p.price BETWEEN $5 * 0.5 AND $5 * 1.5 THEN 0.8
-                    WHEN p.price BETWEEN $5 * 0.3 AND $5 * 1.7 THEN 0.6
+                    WHEN p.price BETWEEN $5 * 0.5 AND $5 * 1.5 THEN 0.65
+                    WHEN p.price BETWEEN $5 * 0.3 AND $5 * 1.7 THEN 0.45
                     ELSE 0.4
                 END as price_score,
                 
                 -- Area similarity (normalized with more flexible range)
                 CASE 
-                    WHEN p.area IS NULL THEN 0.5
+                    WHEN p.area IS NULL THEN 0.3
                     WHEN p.area BETWEEN $6 * 0.7 AND $6 * 1.3 THEN 1
                     WHEN p.area BETWEEN $6 * 0.5 AND $6 * 1.5 THEN 0.8
                     WHEN p.area BETWEEN $6 * 0.3 AND $6 * 1.7 THEN 0.6
@@ -418,7 +418,7 @@ async def find_top_properties_for_cluster(conn, cluster_insight: Dict, limit: in
                 
                 -- Bedrooms similarity (normalized with more flexible range)
                 CASE 
-                    WHEN p.bedrooms IS NULL THEN 0.5
+                    WHEN p.bedrooms IS NULL THEN 0.3
                     WHEN p.bedrooms BETWEEN FLOOR($7 * 0.8) AND CEIL($7 * 1.2) THEN 1
                     WHEN p.bedrooms BETWEEN FLOOR($7 * 0.6) AND CEIL($7 * 1.4) THEN 0.8
                     WHEN p.bedrooms BETWEEN FLOOR($7 * 0.4) AND CEIL($7 * 1.6) THEN 0.6
@@ -427,7 +427,7 @@ async def find_top_properties_for_cluster(conn, cluster_insight: Dict, limit: in
                 
                 -- Installment years similarity (normalized with more flexible range)
                 CASE 
-                    WHEN p.installment_years IS NULL THEN 0.5
+                    WHEN p.installment_years IS NULL THEN 0.3
                     WHEN LOWER(p.sale_rent) = 'sale' THEN 
                         CASE 
                             WHEN p.installment_years BETWEEN $8 * 0.7 AND $8 * 1.3 THEN 1
@@ -473,12 +473,12 @@ async def find_top_properties_for_cluster(conn, cluster_insight: Dict, limit: in
                 status,
                 -- Calculate total similarity score with adjusted weights
                 (
-                    type_score * 0.15 +
-                    city_score * 0.15 +
-                    sale_rent_score * 0.15 +
-                    finishing_score * 0.15 +
-                    price_score * 0.15 +
-                    area_score * 0.1 +
+                    type_score * 0.20 +
+                    city_score * 0.20 +
+                    sale_rent_score * 0.05 +
+                    finishing_score * 0.05 +
+                    price_score * 0.20 +
+                    area_score * 0.15 +
                     bedrooms_score * 0.1 +
                     installment_score * 0.025 +
                     delivery_score * 0.025
