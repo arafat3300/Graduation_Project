@@ -17,6 +17,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:developer';
 import '../Controllers/oodo_rpc_controller.dart';
+import 'package:profanity_filter/profanity_filter.dart';
 
 class PropertyDetails extends ConsumerStatefulWidget {
   final Property property;
@@ -31,6 +32,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   final TextEditingController _feedbackController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final ProfanityFilter _profanityFilter = ProfanityFilter();
   List<propertyFeedbacks> _feedbacks = [];
   List<dynamic> _messages = [];
   bool _isLoading = false;
@@ -134,33 +136,63 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   Future<void> _submitFeedback() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final feedbackText = _feedbackController.text.trim();
+    
+    // Check for profanity
+    if (_profanityFilter.hasProfanity(feedbackText)) {
+      // Show warning dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Inappropriate Language Detected'),
+              content: const Text('Your feedback contains inappropriate language. Would you like to:\n\n1. Edit your feedback\n2. Cancel submission'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Edit'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancel'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+      return;
+    }
+
+    // If no profanity, submit normally
+    await _submitFeedbackWithText(feedbackText);
+  }
+
+  Future<void> _submitFeedbackWithText(String feedbackText) async {
     setState(() => _isLoading = true);
 
     try {
-      // final supabase = Supabase.instance.client;
       final userId = singletonSession().userId;
 
       // Save to Supabase
       await _feedbackService.addFeedback(
         widget.property.id!,
-        _feedbackController.text,
+        feedbackText,
         userId,
       );
-      debugPrint("Feedback added to DB: ${_feedbackController.text}");
-
-      // Send to FastAPI
-      // await _sendFeedbackToFastAPI(
-      //   feedbackText: _feedbackController.text,
-      //   propertyId: widget.property.id!,
-      //   userId: userId.toString(),
-      // );
+      debugPrint("Feedback added to DB: $feedbackText");
 
       // Send email
       final emailSender = ref.read(emailSenderProvider);
       await emailSender.sendEmail(
         propertyId: widget.property.id!,
         userId: userId!,
-        feedbackText: _feedbackController.text, // Pass the feedback text here
+        feedbackText: feedbackText,
       );
 
       if (mounted) {
@@ -178,8 +210,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
-      _feedbackController
-          .clear(); // Clear the feedback text AFTER sending the email
+      _feedbackController.clear();
     }
   }
 
