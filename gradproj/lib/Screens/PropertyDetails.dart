@@ -19,6 +19,83 @@ import 'dart:developer';
 import '../Controllers/oodo_rpc_controller.dart';
 import 'package:profanity_filter/profanity_filter.dart';
 
+class CustomProfanityFilter extends ProfanityFilter {
+  final List<String> arabicProfanityWords = [
+    // Basic forms
+    'عاهر', 'عاهرة', 'كلب', 'كلبة', 'زاني', 'زانية',
+    'شرموط', 'شرموطة', 'قحبة', 'قحاب', 'عاهرات',
+    'زناة', 'كلاب', 'كلبات', 'شراميط', 'شراميط',
+    'قحاب', 'عاهرات', 'زناة', 'كلاب', 'كلبات',
+    'شراميط', 'شراميط', 'قحاب', 'عاهرات', 'زناة',
+    'كلاب', 'كلبات', 'شراميط', 'شراميط', 'قحاب',
+    'وسخ', 'زبالة', 'وساخ', 'زبال', 'وسخة', 'زبالة',
+    
+    // Variations with different spellings
+    'عاهره', 'عاهرات', 'عاهره', 'عاهرات', 'عاهره', 'عاهرات',
+    'كلبه', 'كلبات', 'كلبه', 'كلبات', 'كلبه', 'كلبات',
+    'زانيه', 'زناة', 'زانيه', 'زناة', 'زانيه', 'زناة',
+    'شرموطه', 'شراميط', 'شرموطه', 'شراميط', 'شرموطه', 'شراميط',
+    'قحبه', 'قحاب', 'قحبه', 'قحاب', 'قحبه', 'قحاب',
+    'وسخه', 'زباله', 'وساخه', 'زباله', 'وسخة', 'زبالة',
+    
+    // Common variations
+    'عاهرين', 'عاهرات', 'عاهرين', 'عاهرات', 'عاهرين', 'عاهرات',
+    'كلابين', 'كلبات', 'كلابين', 'كلبات', 'كلابين', 'كلبات',
+    'زانين', 'زناة', 'زانين', 'زناة', 'زانين', 'زناة',
+    'شراميطين', 'شراميط', 'شراميطين', 'شراميط', 'شراميطين', 'شراميط',
+    'قحابين', 'قحاب', 'قحابين', 'قحاب', 'قحابين', 'قحاب',
+    'وساخين', 'زبالين', 'وساخين', 'زبالين', 'وساخين', 'زبالين',
+    
+    // Additional forms
+    'عاهرون', 'عاهرات', 'عاهرون', 'عاهرات', 'عاهرون', 'عاهرات',
+    'كلابون', 'كلبات', 'كلابون', 'كلبات', 'كلابون', 'كلبات',
+    'زانون', 'زناة', 'زانون', 'زناة', 'زانون', 'زناة',
+    'شراميطون', 'شراميط', 'شراميطون', 'شراميط', 'شراميطون', 'شراميط',
+    'قحابون', 'قحاب', 'قحابون', 'قحاب', 'قحابون', 'قحاب',
+    'وساخون', 'زبالون', 'وساخون', 'زبالون', 'وساخون', 'زبالون',
+    
+    // Common combinations
+    'ابن العاهرة', 'بنت العاهرة', 'ابن الكلب', 'بنت الكلب',
+    'ابن الزاني', 'بنت الزانية', 'ابن الشرموط', 'بنت الشرموطة',
+    'ابن القحبة', 'بنت القحبة', 'ابن العاهر', 'بنت العاهرة',
+    'ابن الوسخ', 'بنت الوسخ', 'ابن الزبالة', 'بنت الزبالة',
+    
+    // Additional variations
+    'عاهرين', 'عاهرات', 'عاهرين', 'عاهرات', 'عاهرين', 'عاهرات',
+    'كلابين', 'كلبات', 'كلابين', 'كلبات', 'كلابين', 'كلبات',
+    'زانين', 'زناة', 'زانين', 'زناة', 'زانين', 'زناة',
+    'شراميطين', 'شراميط', 'شراميطين', 'شراميط', 'شراميطين', 'شراميط',
+    'قحابين', 'قحاب', 'قحابين', 'قحاب', 'قحابين', 'قحاب',
+    'وساخين', 'زبالين', 'وساخين', 'زبالين', 'وساخين', 'زبالين'
+  ];
+
+  @override
+  bool hasProfanity(String text) {
+    // Check both English and Arabic profanity
+    final hasEnglishProfanity = super.hasProfanity(text);
+    final hasArabicProfanity = arabicProfanityWords.any((word) => 
+      text.toLowerCase().contains(word.toLowerCase()) ||
+      text.contains(word)
+    );
+    
+    return hasEnglishProfanity || hasArabicProfanity;
+  }
+
+  @override
+  String censor(String text, {String? replaceWith}) {
+    String censoredText = super.censor(text, replaceWith: replaceWith);
+    // Censor Arabic profanity
+    for (var word in arabicProfanityWords) {
+      final pattern = RegExp(word, caseSensitive: false);
+      censoredText = censoredText.replaceAll(
+        pattern,
+        (replaceWith ?? '*') * word.length
+      );
+    }
+    return censoredText;
+  }
+}
+
 class PropertyDetails extends ConsumerStatefulWidget {
   final Property property;
 
@@ -32,7 +109,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   final TextEditingController _feedbackController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  final ProfanityFilter _profanityFilter = ProfanityFilter();
+  final CustomProfanityFilter _profanityFilter = CustomProfanityFilter();
   List<propertyFeedbacks> _feedbacks = [];
   List<dynamic> _messages = [];
   bool _isLoading = false;
@@ -646,8 +723,12 @@ Padding(
             border: OutlineInputBorder(
               borderSide: BorderSide(color: theme.colorScheme.primary),
             ),
+            alignLabelWithHint: true,
           ),
           maxLines: 3,
+          keyboardType: TextInputType.text,
+          textDirection: TextDirection.ltr,
+          textAlign: TextAlign.start,
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter your feedback';
