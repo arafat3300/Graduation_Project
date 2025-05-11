@@ -401,7 +401,42 @@ def get_cluster_description(cluster_data: Dict) -> Dict[str, str]:
             "name": "Unnamed Cluster",
             "description": "Cluster Description Unavailable"
         }
-    
+
+def get_cluster_message(cluster_data: Dict) -> str:
+    """Get personalized message for cluster members using Gemini"""
+    try:
+        logger.info("Generating personalized message using Gemini")
+        model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
+        
+        prompt = f"""
+        As a real estate marketing expert, create a personalized, engaging message for users in this segment.
+        The message should be welcoming, highlight their preferences, and encourage them to explore properties
+        that match their interests.
+
+        Cluster Statistics:
+        {json.dumps(cluster_data, indent=2)}
+
+        Create a friendly, personalized message that:
+        1. Acknowledges their preferences (property type, location, price range)
+        2. Highlights their unique characteristics as a segment
+        3. Encourages them to explore matching properties
+        4. Maintains a professional yet warm tone
+        5. Is concise (2-3 sentences maximum)
+
+        The message should be direct and engaging, as if speaking to them personally.
+        """
+        
+        response = model.generate_content(prompt)
+        message = response.text.strip()
+        
+        # Clean up the message
+        message = message.replace("\n", " ").replace("**", "").strip()
+        
+        logger.info(f"Generated personalized message for cluster")
+        return message
+    except Exception as e:
+        logger.error(f"Error getting cluster message: {e}")
+        return "Welcome to our property platform! We have curated properties that match your preferences."
 
 def calculate_clustering_metrics(feature_matrix: np.ndarray, max_clusters: int = 10) -> Dict[str, Dict[str, float]]:
     """Calculate clustering metrics for different numbers of clusters"""
@@ -521,12 +556,16 @@ async def save_cluster_insights(conn, cluster_insights: List[Dict]):
             avg_favorited_bedrooms, common_job, common_country, avg_favorited_price,
             favorite_property_type, favorite_city, favorite_sale_rent,
             furnished_preference, sale_preference, avg_installment_years,
-            avg_delivery_time, preferred_finishing, name, description
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+            avg_delivery_time, preferred_finishing, name, description, message
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
         """
         
         # Insert each cluster insight
         for insight in cluster_insights:
+            # Generate personalized message for the cluster
+            message = get_cluster_message(insight)
+            insight['message'] = message
+            
             # Round numeric values to 2 decimal places
             await conn.execute(
                 insert_query,
@@ -548,7 +587,8 @@ async def save_cluster_insights(conn, cluster_insights: List[Dict]):
                 round(float(insight['avg_delivery_time']), 2),
                 insight['preferred_finishing'],  # Text, no rounding needed
                 insight['name'],  # Text, no rounding needed
-                insight['description']  # Text, no rounding needed
+                insight['description'],  # Text, no rounding needed
+                insight['message']  # Text, no rounding needed
             )
         
         logger.info(f"Successfully saved {len(cluster_insights)} cluster insights to database")

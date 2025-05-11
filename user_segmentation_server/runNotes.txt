@@ -14,7 +14,7 @@ http://192.168.1.12:8081/user-segments/
 }
 
 
-db operations
+d
 CREATE TABLE real_estate_clusters (
     cluster_id INT PRIMARY KEY,
     size INT,
