@@ -9,7 +9,7 @@ import logging
 from dotenv import load_dotenv
 import os
 import json
-import genai
+import google.generativeai as genai
 
 # Load environment variables
 load_dotenv()
@@ -21,11 +21,18 @@ ch = logging.StreamHandler()
 ch.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
 logger.addHandler(ch)
 
+# Configure Google Generative AI
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY","AIzaSyDXLCM-4lzUKUGBEVtbFPQbCGa6uXXI8lU")
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+else:
+    logger.warning("GOOGLE_API_KEY not found in environment variables")
+
 # PostgreSQL configuration from environment variables
 DB_USERNAME = os.getenv("DB_USERNAME", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "user_segmentation_test")
+DB_NAME = os.getenv("DB_NAME", "odoo18v3")
 
 app = FastAPI()
 

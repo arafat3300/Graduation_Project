@@ -9,9 +9,9 @@ http://192.168.1.12:8082//property-segmentation/
 
 {
 "user_id": 35 , 
-  "host": "192.168.1.12",
-"limit" : 10 , 
-"find_optimal_clusters": true
+  "host": the DB.host,
+"limit" : 10 
+"find_optimal_clusters": false
 }
 
 

@@ -436,4 +436,36 @@ class PropertyController {
       return [];
     }
   }
+
+  Future<List<Property>> getPropertiesByCluster(int clusterId) async {
+    try {
+      if (!_isConnected) await _initializeConnection();
+
+      final results = await _connection!.query(
+        '''
+        SELECT p.*, p.cluster_score 
+        FROM real_estate_property p
+        WHERE p.cluster_id = @clusterId 
+        AND p.status = 'approved'
+        ORDER BY p.cluster_score DESC
+        ''',
+        substitutionValues: {'clusterId': clusterId},
+      );
+
+      if (results.isEmpty) {
+        return [];
+      }
+
+      return results.map((data) {
+        final Map<String, dynamic> propertyData = data.toColumnMap();
+        propertyData['cluster_score'] = double.tryParse(propertyData['cluster_score'].toString()) ?? 0.0;
+        final property = Property.fromJson(propertyData);
+        property.similarityScore = propertyData['cluster_score'];
+        return property;
+      }).toList();
+    } catch (e) {
+      debugPrint("Error fetching properties by cluster: $e");
+      return [];
+    }
+  }
 }

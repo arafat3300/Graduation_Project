@@ -540,4 +540,69 @@ class UserController {
       return [];
     }
   }
+
+  Future<Map<String, dynamic>?> getUserClusterInfo(int userId) async {
+    try {
+      if (!_isConnected) await _initializeConnection();
+
+      // Try HTTP request with timeout
+      String dbHost = DatabaseConfig.host;
+      try {
+        debugPrint("connecting to segmentation service");
+        final response = await http.post(
+          Uri.parse('http://$dbHost/property-segmentation/'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'user_id': userId,
+            'host': dbHost,
+            'limit': 10,
+            'find_optimal_clusters': false
+          }),
+        ).timeout(const Duration(seconds: 12));
+
+        debugPrint("Segmentation service response status: ${response.statusCode}");
+        
+
+        if (response.statusCode == 200) {
+          debugPrint('Successfully received cluster information from server');
+        }
+      } catch (e) {
+        debugPrint('HTTP request failed or timed out: $e');
+        // Continue to fetch from DB
+      }
+
+      // Fetch cluster info from database
+      debugPrint("Fetching cluster info from database for user: $userId");
+      final results = await _connection!.query(
+        '''
+        SELECT u.cluster_id, c.message 
+        FROM users_users u
+        LEFT JOIN real_estate_clusters c ON u.cluster_id = c.cluster_id
+        WHERE u.id = @userId
+        ''',
+        substitutionValues: {'userId': userId},
+      );
+
+    
+      if (results.isNotEmpty) {
+       
+      }
+
+      if (results.isEmpty) {
+        debugPrint("No cluster info found in database");
+        return null;
+      }
+
+      final row = results.first;
+      final clusterInfo = {
+        'cluster_id': row[0],
+        'message': row[1],
+      };
+      debugPrint("Returning cluster info: $clusterInfo");
+      return clusterInfo;
+    } catch (e) {
+      debugPrint("Error fetching user cluster info: $e");
+      return null;
+    }
+  }
 }

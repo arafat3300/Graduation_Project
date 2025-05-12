@@ -8,6 +8,7 @@ import '../Models/propertyClass.dart';
 import 'package:gradproj/Screens/CustomBottomNavBar.dart';
 import 'package:gradproj/Screens/PropertyListings.dart';
 import 'package:gradproj/Screens/FavouritesScreen.dart';
+import '../Screens/ClusterRecommendations.dart';
 
 class ViewProfilePage extends StatefulWidget {
   final VoidCallback? toggleTheme;
@@ -22,14 +23,44 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
   final UserController _userController = UserController();
   List<Property> userProperties = [];
   bool _isLoading = true;
+  bool _isClusterLoading = true;
   bool _isExpanded = false;
   int _currentIndex = 2;
   final int userId = singletonSession().userId !=null ? singletonSession().userId! : 0;
+  Map<String, dynamic>? _clusterInfo;
 
   @override
   void initState() {
     super.initState();
     fetchUserProperties();
+    _fetchClusterInfo();
+  }
+
+  Future<void> _fetchClusterInfo() async {
+    try {
+      setState(() {
+        _isClusterLoading = true;
+      });
+      debugPrint('Fetching cluster info for user ID: $userId');
+      final clusterInfo = await _userController.getUserClusterInfo(userId);
+      debugPrint('Received cluster info: $clusterInfo');
+      if (clusterInfo != null && clusterInfo['message'] != null) {
+        String message = clusterInfo['message'];
+        if (message.startsWith('Subject:')) {
+          message = message.substring(8).trim();
+        }
+        clusterInfo['message'] = message;
+      }
+      setState(() {
+        _clusterInfo = clusterInfo;
+        _isClusterLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error fetching cluster info: $e');
+      setState(() {
+        _isClusterLoading = false;
+      });
+    }
   }
 
  Future<Map<String, String>> _getUserData() async {
@@ -107,6 +138,7 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('Building profile with cluster info: $_clusterInfo');
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
@@ -156,7 +188,6 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                 ? const Center(child: CircularProgressIndicator())
                 : SingleChildScrollView(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
                           color: Colors.teal,
@@ -207,6 +238,124 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                             ),
                           ),
                         ),
+                        if (_isClusterLoading)
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            child: Card(
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  children: [
+                                    const Text(
+                                      'Analyzing your Smart-Match Profile',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.teal,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    const CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                        else if (_clusterInfo != null)
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            child: Card(
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Property Preferences',
+                                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                            color: Colors.teal,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 24,
+                                          ),
+                                        ),
+                                        ElevatedButton.icon(
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => ClusterRecommendations(
+                                                  clusterId: _clusterInfo!['cluster_id'],
+                                                  clusterMessage: _clusterInfo!['message'],
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.teal,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                          icon: const Icon(Icons.recommend),
+                                          label: const Text(
+                                            'View Recommendations',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Container(
+                                      padding: const EdgeInsets.all(15),
+                                      decoration: BoxDecoration(
+                                        color: Colors.teal.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Your Property Profile',
+                                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                              color: Colors.teal,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          Text(
+                                            _clusterInfo!['message'] ?? 'No preference information available',
+                                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                              fontSize: 16,
+                                              height: 1.5,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                         Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
@@ -404,6 +553,27 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
             );
           }
         },
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(String label, String value) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
       ),
     );
   }
