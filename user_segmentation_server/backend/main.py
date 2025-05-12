@@ -16,6 +16,8 @@ import os
 from dotenv import load_dotenv
 from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
 import matplotlib.pyplot as plt
+import time
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 
 #adjust the default host & no.of clusters
@@ -37,7 +39,7 @@ logger.addHandler(ch)
 DB_USERNAME = os.getenv("DB_USERNAME", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "user_segmentation_test")
+DB_NAME = os.getenv("DB_NAME", "odoo18v3")
 
 # Gemini API configuration
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY","AIzaSyDXLCM-4lzUKUGBEVtbFPQbCGa6uXXI8lU")
@@ -350,35 +352,39 @@ def prepare_features(df):
         raise
 
 def get_cluster_description(cluster_data: Dict) -> Dict[str, str]:
-    """Get cluster description from Gemini"""
+    """Get cluster description from Gemini with retry logic"""
     try:
         logger.info("Generating cluster description using Gemini")
         model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
         
-        prompt = f"""
-        As a real estate market expert, analyze this user cluster data and provide a creative, 
-        meaningful name and detailed description for this segment of users. Consider all aspects 
-        of their behavior and preferences:
+        @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+        def generate_description():
+            prompt = f"""
+            As a real estate market expert, analyze this user cluster data and provide a creative, 
+            meaningful name and detailed description for this segment of users. Consider all aspects 
+            of their behavior and preferences:
 
-        Cluster Statistics:
-        {json.dumps(cluster_data, indent=2)}
-        
-        Based on these statistics, create a unique, insightful segment name and description that 
-        captures the essence of this user group. Consider their:
-        - Demographics (age, job, country)
-        - Property preferences (type, size, location)
-        - Financial behavior (price ranges, payment preferences)
-        - For sale properties: their preferences about installments, delivery time, and finishing
-        - Overall behavior patterns in favoriting properties
+            Cluster Statistics:
+            {json.dumps(cluster_data, indent=2)}
+            
+            Based on these statistics, create a unique, insightful segment name and description that 
+            captures the essence of this user group. Consider their:
+            - Demographics (age, job, country)
+            - Property preferences (type, size, location)
+            - Financial behavior (price ranges, payment preferences)
+            - For sale properties: their preferences about installments, delivery time, and finishing
+            - Overall behavior patterns in favoriting properties
 
-        Please provide the response in the following format:
-        Name: [A unique formal 1-3 word segment name but yet simple english]
-        Description: [2-3 detailed sentences describing what makes this segment unique, their key 
-        preferences, and their typical behavior patterns]
-        """
+            Please provide the response in the following format:
+            Name: [A unique formal 1-3 word segment name but yet simple english]
+            Description: [2-3 detailed sentences describing what makes this segment unique, their key 
+            preferences, and their typical behavior patterns]
+            """
+            
+            response = model.generate_content(prompt)
+            return response.text
         
-        response = model.generate_content(prompt)
-        text = response.text
+        text = generate_description()
         
         # Split the response into name and description
         name_part = text.split("Name:")[1].split("Description:")[0].strip()
@@ -403,31 +409,35 @@ def get_cluster_description(cluster_data: Dict) -> Dict[str, str]:
         }
 
 def get_cluster_message(cluster_data: Dict) -> str:
-    """Get personalized message for cluster members using Gemini"""
+    """Get personalized message for cluster members using Gemini with retry logic"""
     try:
         logger.info("Generating personalized message using Gemini")
         model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
         
-        prompt = f"""
-        As a real estate marketing expert, create a personalized, engaging message for users in this segment.
-        The message should be welcoming, highlight their preferences, and encourage them to explore properties
-        that match their interests.
+        @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+        def generate_message():
+            prompt = f"""
+            As a real estate marketing expert, create a personalized, engaging message for users in this segment.
+            The message should be welcoming, highlight their preferences, and encourage them to explore properties
+            that match their interests.
 
-        Cluster Statistics:
-        {json.dumps(cluster_data, indent=2)}
+            Cluster Statistics:
+            {json.dumps(cluster_data, indent=2)}
 
-        Create a friendly, personalized message that:
-        1. Acknowledges their preferences (property type, location, price range)
-        2. Highlights their unique characteristics as a segment
-        3. Encourages them to explore matching properties
-        4. Maintains a professional yet warm tone
-        5. Is concise (2-3 sentences maximum)
+            Create a friendly, personalized message that:
+            1. Acknowledges their preferences (property type, location, price range)
+            2. Highlights their unique characteristics as a segment
+            3. Encourages them to explore matching properties
+            4. Maintains a professional yet warm tone
+            5. Is concise (2-3 sentences maximum)
 
-        The message should be direct and engaging, as if speaking to them personally.
-        """
+            The message should be direct and engaging, as if speaking to them personally.
+            """
+            
+            response = model.generate_content(prompt)
+            return response.text.strip()
         
-        response = model.generate_content(prompt)
-        message = response.text.strip()
+        message = generate_message()
         
         # Clean up the message
         message = message.replace("\n", " ").replace("**", "").strip()

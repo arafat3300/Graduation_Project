@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';  // Add this import for TimeoutException
 
 import 'package:flutter/material.dart';
 import 'package:gradproj/Models/singletonSession.dart';
@@ -293,119 +294,167 @@ class UserController {
   }
 
   Future<List<Map<String, dynamic>>> fetchRecommendationsRaw(int userId) async {
-    // const String apiUrl = 'http://192.168.1.12:8080/recommendations/';
     const String dbHost = DatabaseConfig.host;
     const String apiUrl = 'http://$dbHost:8080/recommendations/';
     final Uri url = Uri.parse(apiUrl);
 
     try {
-      // Assuming you have a way to get the host, e.g., from a config or environment variable
-      String host = DatabaseConfig.host; // Replace with actual host retrieval logic
+      String host = DatabaseConfig.host;
 
+      // Add timeout to the HTTP request
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'user_id': userId, 'host': host}), // Include host in the payload
+        body: jsonEncode({'user_id': userId, 'host': host}),
+      ).timeout(
+        const Duration(seconds: 8),
+        onTimeout: () {
+          debugPrint("Content-based server request timed out. Falling back to database...");
+          throw TimeoutException('Request timed out');
+        },
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        if (data.containsKey('recommendations') && data['recommendations'] is List) {
-          return (data['recommendations'] as List)
-              .map<Map<String, dynamic>>((item) => {
-                    "id": item['id'],
-                    "similarity_score": item['similarity_score'],
-                  })
-              .toList();
-        }
+        debugPrint("Successfully got response from content-based server");
+        return await fetchContentBasedRecommendationsFromDB(userId);
+      } else {
+        debugPrint("Content-based server returned status code: ${response.statusCode}. Falling back to database...");
+        return await fetchContentBasedRecommendationsFromDB(userId);
       }
+    } on TimeoutException {
+      debugPrint("Content-based server is not responding. Falling back to database...");
+      return await fetchContentBasedRecommendationsFromDB(userId);
     } catch (e) {
-      debugPrint("Error fetching recommendations: $e");
+      debugPrint("Error in content-based server request: $e. Falling back to database...");
+      return await fetchContentBasedRecommendationsFromDB(userId);
     }
-    return [];
   }
-  
 
+  Future<List<Map<String, dynamic>>> fetchContentBasedRecommendationsFromDB(int userId) async {
+    try {
+      if (!_isConnected) await _initializeConnection();
 
+      debugPrint("Fetching content-based recommendations from database for user: $userId");
 
+      // First get the latest content-based recommendation record for the user
+      final recommendationResult = await _connection!.query(
+        '''
+        SELECT id FROM real_estate_recommendedproperties 
+        WHERE user_id = @userId 
+        AND recommendation_type = 'interactions'
+        ORDER BY created_at DESC 
+        LIMIT 1
+        ''',
+        substitutionValues: {'userId': userId},
+      );
 
+      if (recommendationResult.isEmpty) {
+        debugPrint("No content-based recommendations found in database for user: $userId");
+        return [];
+      }
 
-Future<local.User?> getUserBySessionId(int userId) async {
-  try {
-    debugPrint("[getUserBySessionId] Starting...");
+      final recommendationId = recommendationResult.first[0];
+      debugPrint("Found recommendation ID: $recommendationId");
 
-    if (!_isConnected) {
-      debugPrint("[getUserBySessionId] Not connected. Initializing connection...");
-      await _initializeConnection();
+      // Then get the property details with scores
+      final detailsResult = await _connection!.query(
+        '''
+        SELECT property_id, score 
+        FROM real_estate_recommendedpropertiesdetails 
+        WHERE recommendation_id = @recommendationId 
+        ORDER BY score DESC
+        ''',
+        substitutionValues: {'recommendationId': recommendationId},
+      );
+
+      final recommendations = detailsResult.map((row) => {
+        "id": row[0],
+        "similarity_score": row[1],
+      }).toList();
+
+      debugPrint("Retrieved ${recommendations.length} recommendations from database");
+      return recommendations;
+    } catch (e) {
+      debugPrint("Error fetching content-based recommendations from database: $e");
+      return [];
     }
+  }
 
-    debugPrint("[getUserBySessionId] Session userId passed: $userId");
+  Future<local.User?> getUserBySessionId(int userId) async {
+    try {
+      debugPrint("[getUserBySessionId] Starting...");
 
-    final results = await _connection!.query(
-      '''
-      SELECT * FROM users_users 
-      WHERE id = @value
-      ''',
-      substitutionValues: {
-        'value': userId,
-      },
-    );
+      if (!_isConnected) {
+        debugPrint("[getUserBySessionId] Not connected. Initializing connection...");
+        await _initializeConnection();
+      }
 
-    debugPrint("[getUserBySessionId] Query executed. Rows returned: ${results.length}");
+      debugPrint("[getUserBySessionId] Session userId passed: $userId");
 
-    if (results.isEmpty) {
-      debugPrint("[getUserBySessionId] No user found with id: $userId");
+      final results = await _connection!.query(
+        '''
+        SELECT * FROM users_users 
+        WHERE id = @value
+        ''',
+        substitutionValues: {
+          'value': userId,
+        },
+      );
+
+      debugPrint("[getUserBySessionId] Query executed. Rows returned: ${results.length}");
+
+      if (results.isEmpty) {
+        debugPrint("[getUserBySessionId] No user found with id: $userId");
+        return null;
+      }
+
+      final userData = results.first.toColumnMap();
+      debugPrint("[getUserBySessionId] User data received:");
+
+      // Safely handle created_at
+      final createdAtRaw = userData['created_at'];
+      final createdAt = (createdAtRaw is DateTime)
+          ? createdAtRaw
+          : (createdAtRaw is String)
+              ? DateTime.tryParse(createdAtRaw) ?? DateTime.now()
+              : DateTime.now();
+      debugPrint("[getUserBySessionId] Parsed createdAt: $createdAt");
+
+      // Safely handle dob
+      final dobRaw = userData['dob'];
+      final dob = (dobRaw is DateTime)
+          ? dobRaw.toIso8601String()
+          : (dobRaw is String)
+              ? dobRaw
+              : '';
+      debugPrint("[getUserBySessionId] Parsed dob: $dob");
+
+      final user = local.User(
+        idd: userData['idd']?.toString(),
+        id: userData['id'] as int,
+        firstName: userData['firstname'] ?? '',
+        lastName: userData['lastname'] ?? '',
+        dob: dob,
+        phone: userData['phone'] ?? '',
+        country: userData['country'] ?? '',
+        job: userData['job'] ?? '',
+        email: userData['email'] ?? '',
+        password: '', // Never retrieve password
+        token: '', // Not needed here
+        role: userData['role'] is int
+      ? userData['role']
+      : int.tryParse(userData['role'].toString()) ?? 2,
+
+        createdAt: createdAt,
+      );
+
+      debugPrint("[getUserBySessionId] User object created: ${user.firstName}, ${user.email}");
+      return user;
+    } catch (e) {
+      debugPrint("[getUserBySessionId] Error: $e");
       return null;
     }
-
-    final userData = results.first.toColumnMap();
-    debugPrint("[getUserBySessionId] User data received: $userData");
-
-    // Safely handle created_at
-    final createdAtRaw = userData['created_at'];
-    final createdAt = (createdAtRaw is DateTime)
-        ? createdAtRaw
-        : (createdAtRaw is String)
-            ? DateTime.tryParse(createdAtRaw) ?? DateTime.now()
-            : DateTime.now();
-    debugPrint("[getUserBySessionId] Parsed createdAt: $createdAt");
-
-    // Safely handle dob
-    final dobRaw = userData['dob'];
-    final dob = (dobRaw is DateTime)
-        ? dobRaw.toIso8601String()
-        : (dobRaw is String)
-            ? dobRaw
-            : '';
-    debugPrint("[getUserBySessionId] Parsed dob: $dob");
-
-    final user = local.User(
-      idd: userData['idd']?.toString(),
-      id: userData['id'] as int,
-      firstName: userData['firstname'] ?? '',
-      lastName: userData['lastname'] ?? '',
-      dob: dob,
-      phone: userData['phone'] ?? '',
-      country: userData['country'] ?? '',
-      job: userData['job'] ?? '',
-      email: userData['email'] ?? '',
-      password: '', // Never retrieve password
-      token: '', // Not needed here
-      role: userData['role'] is int
-    ? userData['role']
-    : int.tryParse(userData['role'].toString()) ?? 2,
-
-      createdAt: createdAt,
-    );
-
-    debugPrint("[getUserBySessionId] User object created: ${user.firstName}, ${user.email}");
-    return user;
-  } catch (e) {
-    debugPrint("[getUserBySessionId] Error: $e");
-    return null;
   }
-}
 
   Future<List<Map<String, dynamic>>?> fetchCachedAIRecommendationsRaw() async {
     try {
@@ -448,13 +497,47 @@ Future<local.User?> getUserBySessionId(int userId) async {
     }
   }
 
+  Future<List<Map<String, dynamic>>> fetchFeedbackBasedRecommendationsFromDB(int userId) async {
+    try {
+      if (!_isConnected) await _initializeConnection();
 
+      // Get the latest feedback-based recommendation record for the user
+      final recommendationResult = await _connection!.query(
+        '''
+        SELECT id FROM real_estate_recommendedproperties 
+        WHERE user_id = @userId 
+        AND recommendation_type = 'feedback'
+        ORDER BY created_at DESC 
+        LIMIT 1
+        ''',
+        substitutionValues: {'userId': userId},
+      );
 
+      if (recommendationResult.isEmpty) {
+        debugPrint("No feedback-based recommendations found in database for user: $userId");
+        return [];
+      }
 
+      final recommendationId = recommendationResult.first[0];
 
+      // Get the property details with scores
+      final detailsResult = await _connection!.query(
+        '''
+        SELECT property_id, score 
+        FROM real_estate_recommendedpropertiesdetails 
+        WHERE recommendation_id = @recommendationId 
+        ORDER BY score DESC
+        ''',
+        substitutionValues: {'recommendationId': recommendationId},
+      );
 
-
-
-
-  
+      return detailsResult.map((row) => {
+        "id": row[0],
+        "similarity_score": row[1],
+      }).toList();
+    } catch (e) {
+      debugPrint("Error fetching feedback-based recommendations from database: $e");
+      return [];
+    }
+  }
 }

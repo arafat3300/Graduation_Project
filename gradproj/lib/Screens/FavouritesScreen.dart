@@ -28,7 +28,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   final _propertyController = PropertyController(Supabase.instance.client);
 
   int _currentIndex = 1;
-  List<Property> recommendations = [];
+  List<Property> contentBasedRecommendations = [];
+  List<Property> feedbackBasedRecommendations = [];
+  bool _isLoadingContentBasedRecommendations = false;
+  bool _isLoadingFeedbackBasedRecommendations = false;
 
   @override
   void initState() {
@@ -37,75 +40,66 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
     final userId = singletonSession().userId;
     if (userId != null) {
-      fetchRecommendationsAndSetState(userId);
+      fetchContentBasedRecommendationsAndSetState(userId);
+      fetchFeedbackBasedRecommendationsAndSetState(userId);
     } else {
       debugPrint("User ID is NULL! Recommendations not fetched.");
     }
   }
 
-  Future<void> fetchRecommendationsAndSetState(int userId) async {
-    final rawRecommendations = await _userController.fetchRecommendationsRaw(userId);
-    if (rawRecommendations.isEmpty) {
-      debugPrint("No raw recommendations received.");
-      return;
-    }
-
-    final fetchedProperties =
-        await _propertyController.fetchPropertiesFromIdsWithScores(rawRecommendations);
-
+  Future<void> fetchContentBasedRecommendationsAndSetState(int userId) async {
     setState(() {
-      recommendations = fetchedProperties;
+      _isLoadingContentBasedRecommendations = true;
     });
+
+    try {
+      final rawRecommendations = await _userController.fetchRecommendationsRaw(userId);
+      if (rawRecommendations.isEmpty) {
+        debugPrint("No content-based recommendations received.");
+        return;
+      }
+
+      final fetchedProperties =
+          await _propertyController.fetchPropertiesFromIdsWithScores(rawRecommendations);
+
+      setState(() {
+        contentBasedRecommendations = fetchedProperties;
+      });
+    } catch (e) {
+      debugPrint("Error fetching content-based recommendations: $e");
+    } finally {
+      setState(() {
+        _isLoadingContentBasedRecommendations = false;
+      });
+    }
   }
 
-  // Future<void> loadFeedbackRecommendations() async {
-  //   try {
-  //     debugPrint("🔄 Starting to load feedback recommendations...");
-      
-  //     // First try to get cached recommendations
-  //     final recs = await _userController.fetchCachedAIRecommendations();
-  //     debugPrint("💾 Cached feedback-based properties: ${recs.length}");
+  Future<void> fetchFeedbackBasedRecommendationsAndSetState(int userId) async {
+    setState(() {
+      _isLoadingFeedbackBasedRecommendations = true;
+    });
 
-  //     if (recs.isNotEmpty) {
-  //       debugPrint("✅ Using cached recommendations");
-  //       setState(() {
-  //         feedbackRecommendations = recs;
-  //       });
-  //       return;
-  //     }
+    try {
+      final rawRecommendations = await _userController.fetchFeedbackBasedRecommendationsFromDB(userId);
+      if (rawRecommendations.isEmpty) {
+        debugPrint("No feedback-based recommendations received.");
+        return;
+      }
 
-  //     // If no cached recommendations, try to get raw data
-  //     debugPrint("🔍 No cached recommendations, trying raw data...");
-  //     final rawData = await _userController.fetchCachedAIRecommendationsRaw();
-      
-  //     if (rawData != null && rawData.isNotEmpty) {
-  //       debugPrint("📊 Raw feedback data found: ${rawData.length} items");
-  //       debugPrint("📊 Raw feedback data: $rawData");
-        
-  //       // Use the safe method to fetch properties
-  //       debugPrint("🔄 Fetching properties from raw data...");
-  //       final properties = await _propertyController.fetchFeedbackBasedRecommendationsSafe(rawData);
-  //       debugPrint("✅ Fetched ${properties.length} properties from raw data");
-        
-  //       if (properties.isNotEmpty) {
-  //         setState(() {
-  //           feedbackRecommendations = properties;
-  //         });
-  //         return;
-  //       } else {
-  //         debugPrint("⚠️ No properties found from raw data");
-  //       }
-  //     } else {
-  //       debugPrint("⚠️ No raw feedback data available");
-  //     }
-      
-  //     // If we get here, we couldn't find any recommendations
-  //     debugPrint("ℹ️ No feedback-based recommendations available");
-  //   } catch (e, stackTrace) {
-  //     debugPrint("❌ Error loading feedback recommendations: $e");
-  //     debugPrint("❌ Stack trace: $stackTrace");
-  //   }
-  // }
+      final fetchedProperties =
+          await _propertyController.fetchPropertiesFromIdsWithScores(rawRecommendations);
+
+      setState(() {
+        feedbackBasedRecommendations = fetchedProperties;
+      });
+    } catch (e) {
+      debugPrint("Error fetching feedback-based recommendations: $e");
+    } finally {
+      setState(() {
+        _isLoadingFeedbackBasedRecommendations = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -228,22 +222,81 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       },
                     ),
               const SizedBox(height: 20),
-              if (recommendations.isNotEmpty) ...[
+              if (_isLoadingContentBasedRecommendations)
+                Center(
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 10),
+                      Text(
+                        'Loading content-based recommendations...',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                )
+              else if (contentBasedRecommendations.isNotEmpty) ...[
                 Divider(thickness: 2),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Text(
-                    'Recommendations Based on Your Likes',
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Recommendations based on your favorites',
+                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ),
                 ListView.separated(
                   shrinkWrap: true,
                   physics: NeverScrollableScrollPhysics(),
-                  itemCount: recommendations.length,
+                  itemCount: contentBasedRecommendations.length,
                   separatorBuilder: (context, index) => SizedBox(height: 10),
                   itemBuilder: (context, index) {
-                    final Property recommendation = recommendations[index];
+                    final Property recommendation = contentBasedRecommendations[index];
+                    return RecommendationCard(
+                      property: recommendation,
+                    );
+                  },
+                ),
+              ],
+              if (_isLoadingFeedbackBasedRecommendations)
+                Center(
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 10),
+                      Text(
+                        'Loading feedback-based recommendations...',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                )
+              else if (feedbackBasedRecommendations.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Divider(thickness: 2),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Recommendations based on your feedback',
+                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: feedbackBasedRecommendations.length,
+                  separatorBuilder: (context, index) => SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final Property recommendation = feedbackBasedRecommendations[index];
                     return RecommendationCard(
                       property: recommendation,
                     );

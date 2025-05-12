@@ -5,9 +5,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import './ChatsScreen.dart';
 import '../Screens/PropertyDetails.dart';
 import '../Models/propertyClass.dart';
+import 'package:gradproj/Screens/CustomBottomNavBar.dart';
+import 'package:gradproj/Screens/PropertyListings.dart';
+import 'package:gradproj/Screens/FavouritesScreen.dart';
 
 class ViewProfilePage extends StatefulWidget {
-  const ViewProfilePage({super.key});
+  final VoidCallback? toggleTheme;
+  
+  const ViewProfilePage({super.key, this.toggleTheme});
 
   @override
   _ViewProfilePageState createState() => _ViewProfilePageState();
@@ -17,7 +22,9 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
   final UserController _userController = UserController();
   List<Property> userProperties = [];
   bool _isLoading = true;
-final int userId = singletonSession().userId !=null ? singletonSession().userId! : 0;
+  bool _isExpanded = false;
+  int _currentIndex = 2;
+  final int userId = singletonSession().userId !=null ? singletonSession().userId! : 0;
 
   @override
   void initState() {
@@ -106,6 +113,11 @@ final int userId = singletonSession().userId !=null ? singletonSession().userId!
         backgroundColor: Colors.teal,
         elevation: 0,
         actions: [
+          if (widget.toggleTheme != null)
+            IconButton(
+              icon: Icon(Icons.dark_mode, color: Colors.white),
+              onPressed: widget.toggleTheme,
+            ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -200,58 +212,196 @@ final int userId = singletonSession().userId !=null ? singletonSession().userId!
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Active Listings',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.teal.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _isExpanded = !_isExpanded;
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.list_alt,
+                                              color: Colors.teal,
+                                              size: 28,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            const Text(
+                                              'Active Listings',
+                                              style: TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.teal,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.teal.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(
+                                            _isExpanded ? Icons.expand_less : Icons.expand_more,
+                                            color: Colors.teal,
+                                            size: 24,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 10),
-                              if (userProperties.isEmpty)
-                                const Center(
-                                  child: Text('No active listings found.'),
-                                )
-                              else
-                                ListView.builder(
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  shrinkWrap: true,
-                                  itemCount: userProperties.length,
-                                  itemBuilder: (context, index) {
-                                    final property = userProperties[index];
-                                    return Card(
-                                      margin: const EdgeInsets.all(10),
-                                      elevation: 4,
-                                      child: ListTile(
-                                        title: Text(
-                                          property.type,
-                                          style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                        trailing: ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    PropertyDetails(
-                                                        property: property),
-                                              ),
-                                            );
-                                          },
-                                          child: const Text("View Details"),
+                              const SizedBox(height: 16),
+                              if (_isExpanded)
+                                if (userProperties.isEmpty)
+                                  Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Center(
+                                      child: Text(
+                                        'No active listings found.',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey,
                                         ),
                                       ),
-                                    );
-                                  },
-                                ),
+                                    ),
+                                  )
+                                else
+                                  ListView.builder(
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    shrinkWrap: true,
+                                    itemCount: userProperties.length,
+                                    itemBuilder: (context, index) {
+                                      final property = userProperties[index];
+                                      return Card(
+                                        margin: const EdgeInsets.only(bottom: 12),
+                                        elevation: 4,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12.0),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      property.type,
+                                                      style: const TextStyle(
+                                                        fontSize: 18,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  ElevatedButton(
+                                                    onPressed: () {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              PropertyDetails(
+                                                                  property: property),
+                                                        ),
+                                                      );
+                                                    },
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: Colors.teal,
+                                                      foregroundColor: Colors.white,
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius: BorderRadius.circular(8),
+                                                      ),
+                                                    ),
+                                                    child: const Text("View Details"),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 8),
+                                              if (property.city.isNotEmpty)
+                                                Padding(
+                                                  padding: const EdgeInsets.only(bottom: 4),
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(Icons.location_on,
+                                                          size: 16,
+                                                          color: Colors.grey[600]),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        property.city,
+                                                        style: TextStyle(
+                                                          color: Colors.grey[600],
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              if (property.price > 0)
+                                                Padding(
+                                                  padding: const EdgeInsets.only(top: 4),
+                                                  child: Text(
+                                                    '\$${property.price.toStringAsFixed(2)}',
+                                                    style: const TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.teal,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
                             ],
                           ),
                         ),
                       ],
                     ),
                   );
+          }
+        },
+      ),
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+          if (_currentIndex == 0) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PropertyListScreen(toggleTheme: widget.toggleTheme ?? () {}),
+              ),
+            );
+          } else if (_currentIndex == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => FavoritesScreen(toggleTheme: widget.toggleTheme ?? () {}),
+              ),
+            );
           }
         },
       ),
