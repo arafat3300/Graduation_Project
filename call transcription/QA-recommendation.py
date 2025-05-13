@@ -84,7 +84,6 @@ class OllamaClient:
 ollama = OllamaClient()
 
 # === Pinecone Setup ===
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY", "pcsk_jYZNX_CBuDa8RW6TNRDvVHCDfsqJKgMAKwiViNJG3Dt61yH8BfNof8V8DXcW84jRYEHcj")
 INDEX_NAME = os.getenv("PINECONE_INDEX", "recommendationn-index")
 
 pc = Pinecone(api_key=PINECONE_API_KEY)
