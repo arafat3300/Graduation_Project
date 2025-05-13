@@ -9,6 +9,7 @@ import logging
 from dotenv import load_dotenv
 import os
 import json
+import google.generativeai as genai
 
 # Load environment variables
 load_dotenv()
@@ -20,11 +21,18 @@ ch = logging.StreamHandler()
 ch.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
 logger.addHandler(ch)
 
+# Configure Google Generative AI
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY","AIzaSyDXLCM-4lzUKUGBEVtbFPQbCGa6uXXI8lU")
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+else:
+    logger.warning("GOOGLE_API_KEY not found in environment variables")
+
 # PostgreSQL configuration from environment variables
 DB_USERNAME = os.getenv("DB_USERNAME", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "user_segmentation_test")
+DB_NAME = os.getenv("DB_NAME", "odoo18v3")
 
 app = FastAPI()
 
@@ -729,6 +737,146 @@ async def get_property_recommendations(request: PropertyRecommendationRequest):
         
     except Exception as e:
         logger.error(f"Error in property recommendations: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+def get_cluster_description(cluster_data: Dict) -> Dict[str, str]:
+    """Get cluster description from Gemini"""
+    try:
+        logger.info("Generating cluster description using Gemini")
+        model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
+        
+        prompt = f"""
+        As a real estate market expert, analyze this property cluster data and provide a creative, 
+        meaningful name and detailed description for this segment of properties. Consider all aspects 
+        of their characteristics:
+
+        Cluster Statistics:
+        {json.dumps(cluster_data, indent=2)}
+        
+        Based on these statistics, create a unique, insightful segment name and description that 
+        captures the essence of this property group. Consider their:
+        - Property characteristics (type, size, location)
+        - Price ranges and value propositions
+        - Target market segments
+        - Unique selling points
+        - Overall market positioning
+
+        Please provide the response in the following format:
+        Name: [A unique formal 1-3 word segment name but yet simple english]
+        Description: [2-3 detailed sentences describing what makes this segment unique, their key 
+        characteristics, and their market positioning]
+        """
+        
+        response = model.generate_content(prompt)
+        text = response.text
+        
+        # Split the response into name and description
+        name_part = text.split("Name:")[1].split("Description:")[0].strip()
+        desc_part = text.split("Description:")[1].strip()
+        
+        # Clean up special characters and formatting from name
+        name = name_part.replace("\n", "").replace("**", "").replace("_", "").replace("-", " ").replace(":", "").replace(";", "").replace(",", "").replace(".", "").replace("!", "").replace("?", "").replace("'", "").replace('"', "").strip()
+        
+        # Clean up special characters from description
+        description = desc_part.replace("\n", " ").replace("**", "").strip()
+        
+        logger.info(f"Generated cluster name: {name}")
+        return {
+            "name": name,
+            "description": description
+        }
+    except Exception as e:
+        logger.error(f"Error getting cluster description: {e}")
+        return {
+            "name": "Unnamed Cluster",
+            "description": "Cluster Description Unavailable"
+        }
+
+def get_cluster_message(cluster_data: Dict) -> str:
+    """Get personalized message for cluster members using Gemini"""
+    try:
+        logger.info("Generating personalized message using Gemini")
+        model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
+        
+        prompt = f"""
+        As a real estate marketing expert, create a personalized, engaging message for users interested in this property segment.
+        The message should highlight the unique features of these properties and why they might be perfect for the user.
+
+        Cluster Statistics:
+        {json.dumps(cluster_data, indent=2)}
+
+        Create a friendly, personalized message that:
+        1. Highlights the key features of these properties (type, location, price range)
+        2. Emphasizes the unique value proposition of this segment
+        3. Encourages users to explore these properties
+        4. Maintains a professional yet warm tone
+        5. Is concise (2-3 sentences maximum)
+
+        The message should be direct and engaging, as if speaking to them personally.
+        """
+        
+        response = model.generate_content(prompt)
+        message = response.text.strip()
+        
+        # Clean up the message
+        message = message.replace("\n", " ").replace("**", "").strip()
+        
+        logger.info(f"Generated personalized message for cluster")
+        return message
+    except Exception as e:
+        logger.error(f"Error getting cluster message: {e}")
+        return "Welcome to our property platform! We have curated properties that match your preferences."
+
+async def save_cluster_insights(conn, cluster_insights: List[Dict]):
+    """Save cluster insights to the database"""
+    try:
+        logger.info("Saving cluster insights to database")
+        
+        # First, delete all existing records
+        await conn.execute("DELETE FROM real_estate_property_clusters")
+        logger.info("Deleted existing cluster records")
+        
+        # Prepare the insert query
+        insert_query = """
+        INSERT INTO real_estate_property_clusters (
+            cluster_id, size, avg_price, avg_area, avg_bedrooms,
+            common_type, common_city, common_sale_rent, common_finishing,
+            common_payment_option, common_furnished, avg_installment_years,
+            avg_delivery_time, name, description, message
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        """
+        
+        # Insert each cluster insight
+        for insight in cluster_insights:
+            # Generate personalized message for the cluster
+            message = get_cluster_message(insight)
+            insight['message'] = message
+            
+            # Round numeric values to 2 decimal places
+            await conn.execute(
+                insert_query,
+                insight['cluster_id'],  # Integer, no rounding needed
+                insight['size'],  # Integer, no rounding needed
+                round(float(insight['avg_price']), 2),
+                round(float(insight['avg_area']), 2),
+                round(float(insight['avg_bedrooms']), 2),
+                insight['common_type'],  # Text, no rounding needed
+                insight['common_city'],  # Text, no rounding needed
+                insight['common_sale_rent'],  # Text, no rounding needed
+                insight['common_finishing'],  # Text, no rounding needed
+                insight['common_payment_option'],  # Text, no rounding needed
+                insight['common_furnished'],  # Text, no rounding needed
+                round(float(insight['avg_installment_years']), 2),
+                round(float(insight['avg_delivery_time']), 2),
+                insight['name'],  # Text, no rounding needed
+                insight['description'],  # Text, no rounding needed
+                insight['message']  # Text, no rounding needed
+            )
+        
+        logger.info(f"Successfully saved {len(cluster_insights)} cluster insights to database")
+        
+    except Exception as e:
+        logger.error(f"Error saving cluster insights to database: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

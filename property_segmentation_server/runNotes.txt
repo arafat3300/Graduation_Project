@@ -9,9 +9,9 @@ http://192.168.1.12:8082//property-segmentation/
 
 {
 "user_id": 35 , 
-  "host": "192.168.1.12",
-"limit" : 10 , 
-"find_optimal_clusters": true
+  "host": the DB.host,
+"limit" : 10 
+"find_optimal_clusters": false
 }
 
 
@@ -39,7 +39,13 @@ FOREIGN KEY (cluster_id)
 REFERENCES real_estate_clusters(cluster_id)
 ON DELETE SET NULL;
 
+--3.
+ALTER TABLE real_estate_property
+ADD COLUMN cluster_score FLOAT;
 
+--4.
+ALTER TABLE real_estate_clusters
+ADD COLUMN message TEXT;
 
 
 python -m venv venv
