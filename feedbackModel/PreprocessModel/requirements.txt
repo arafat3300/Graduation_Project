@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+nltk
+requests
+httpx
+psycopg2-binary==2.9.9
+langdetect

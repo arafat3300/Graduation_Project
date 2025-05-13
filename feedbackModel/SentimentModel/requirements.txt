@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+transformers
+torch
+pinecone-client
+pydantic
+httpx

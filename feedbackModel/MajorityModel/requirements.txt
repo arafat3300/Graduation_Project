@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pydantic
+transformers
+torch
+pinecone
+httpx
+transformers
+psycopg2-binary==2.9.9

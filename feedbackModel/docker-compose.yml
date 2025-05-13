@@ -1,0 +1,89 @@
+version: '3'
+
+services:
+  preprocessor:
+    build:
+      context: ./PreprocessModel
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+
+  feature-extractor:
+    build:
+      context: ./FeatureExtraction
+    ports:
+      - "8001:8000"
+    networks:
+      - app-network
+
+  sentiment-analyzer:
+    build:
+      context: ./SentimentModel
+    ports:
+      - "8002:8000"
+    networks:
+      - app-network
+
+  majority-model:
+    build:
+      context: ./MajorityModel
+    ports:
+      - "8003:8000"
+    networks:
+      - app-network
+
+  recommendation-model:
+    build:
+      context: ./RecommendationModel
+    ports:
+      - "8004:8000"
+    environment:
+      - PINECONE_API_KEY=pcsk_jYZNX_CBuDa8RW6TNRDvVHCDfsqJKgMAKwiViNJG3Dt61yH8BfNof8V8DXcW84jRYEHcj
+      - DB_HOST=LOCALHOST
+      - DB_PORT=5432
+      - DB_NAME=ODOO-GRAD
+      - DB_USER=wagih
+      - DB_PASSWORD=Iwagih
+    networks:
+      - app-network
+
+  test2-service:
+    build:
+      context: ./test2
+    volumes:
+      - ./matched_reviews.csv:/app/matched_reviews.csv
+      - ./standardized_property_listings_corrected.csv:/app/standardized_property_listings_corrected.csv
+      - ./matched_reviews_with_recommendations.xlsx:/app/matched_reviews_with_recommendations.xlsx
+      - ./:/app/results
+    environment:
+      - REVIEWS_CSV=/app/matched_reviews.csv
+      - PROPERTIES_CSV=/app/standardized_property_listings_corrected.csv
+      - EXPECTED_CSV=/app/matched_reviews_with_recommendations.xlsx
+    networks:
+      - app-network
+
+  test-recommendation-service:
+    build:
+      context: ./testRecommendation
+    volumes:
+      - ./matched_reviews.csv:/app/matched_reviews.csv
+      - ./standardized_property_listings_corrected.csv:/app/standardized_property_listings_corrected.csv
+      - ./matched_reviews_with_recommendations.xlsx:/app/matched_reviews_with_recommendations.xlsx
+      - ./:/app/results
+    environment:
+      - PINECONE_API_KEY=pcsk_jYZNX_CBuDa8RW6TNRDvVHCDfsqJKgMAKwiViNJG3Dt61yH8BfNof8V8DXcW84jRYEHcj
+      - DB_HOST=LOCALHOST
+      - DB_PORT=5432
+      - DB_NAME=ODOO-GRAD
+      - DB_USER=wagih
+      - DB_PASSWORD=Iwagih
+      - REVIEWS_CSV=/app/matched_reviews.csv
+      - PROPERTIES_CSV=/app/standardized_property_listings_corrected.csv
+      - EXPECTED_CSV=/app/matched_reviews_with_recommendations.xlsx
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

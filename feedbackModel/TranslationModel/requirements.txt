@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+nltk
+requests
+openai==0.28.0
