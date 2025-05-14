@@ -98,7 +98,7 @@ class _ClusterRecommendationsState extends State<ClusterRecommendations> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Your Property Profile',
+                            'Your Smart-Match Profile',
                             style: theme.textTheme.titleLarge?.copyWith(
                               color: Colors.teal,
                               fontWeight: FontWeight.bold,

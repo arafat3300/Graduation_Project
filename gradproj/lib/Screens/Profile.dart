@@ -333,7 +333,7 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Your Property Profile',
+                                            'Your Smart-Match Profile',
                                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                               color: Colors.teal,
                                               fontWeight: FontWeight.bold,
