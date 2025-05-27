@@ -253,7 +253,7 @@ class _SignUpScreenState extends State<SignUpScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Enhanced gradient background with diagonal direction and stops
+          // Enhanced white background with subtle gradient and pattern
           Container(
             width: double.infinity,
             height: double.infinity,
@@ -262,22 +262,21 @@ class _SignUpScreenState extends State<SignUpScreen>
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF7AD0CB), // light teal
-                  const Color(0xFF1B4F72), // blue
-                  const Color(0xFF6AD1C9), // teal
-                  const Color(0xFFFF6F1A).withOpacity(0.55), // less prominent orange
+                  Colors.white,
+                  Color.fromARGB(255, 245, 247, 250),
+                  Color.fromARGB(255, 240, 242, 245),
                 ],
-                stops: const [0.0, 0.35, 0.75, 1.0],
+                stops: const [0.0, 0.5, 1.0],
               ),
             ),
             child: Stack(
               children: [
-                // Subtle white dot pattern overlay
+                // Subtle dot pattern overlay
                 CustomPaint(
                   size: Size.infinite,
                   painter: _DotPatternPainter(),
                 ),
-                // Soft radial white highlight/spotlight
+                // Soft radial highlight
                 Positioned.fill(
                   child: IgnorePointer(
                     child: Container(
@@ -286,7 +285,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                           center: Alignment(0, -0.2),
                           radius: 0.7,
                           colors: [
-                            Color.fromARGB(60, 255, 255, 255),
+                            Color.fromARGB(30, 8, 145, 236),
                             Colors.transparent,
                           ],
                           stops: [0.0, 1.0],
@@ -314,8 +313,8 @@ class _SignUpScreenState extends State<SignUpScreen>
                         shaderCallback: (Rect bounds) {
                           return LinearGradient(
                             colors: [
-                              Color(0xFF7AD0CB), // light teal
-                              Color(0xFFFF6F1A), // orange
+                            Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79), 
                             ],
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
@@ -426,8 +425,8 @@ class _SignUpScreenState extends State<SignUpScreen>
                             borderRadius: BorderRadius.circular(30),
                             gradient: const LinearGradient(
                               colors: [
-                                Color(0xFF7AD0CB), // light teal
-                                Color(0xFFFF6F1A), // orange
+                               Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79),  // orange
                               ],
                               begin: Alignment.centerLeft,
                               end: Alignment.centerRight,
@@ -457,15 +456,15 @@ class _SignUpScreenState extends State<SignUpScreen>
                       ],
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 30),
                   // Already have an account section as a large button with gradient background
                   Container(
-                    width: double.infinity,
+                    width: 370,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [
-                          Color(0xFF7AD0CB), // light teal
-                          Color(0xFFFF6F1A), // orange
+                        Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79),  
                         ],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
@@ -490,7 +489,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                         'Already have an Account? Sign In',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 20,
+                          fontSize: 16,
                           fontFamily: 'Montserrat',
                           letterSpacing: 1.1,
                         ),
@@ -511,7 +510,7 @@ class _DotPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color.fromARGB(18, 255, 255, 255)
+      ..color = const Color.fromARGB(8, 8, 145, 236)
       ..style = PaintingStyle.fill;
     const double spacing = 32;
     const double radius = 2.2;

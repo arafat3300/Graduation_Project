@@ -141,23 +141,43 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
     debugPrint('Building profile with cluster info: $_clusterInfo');
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
-        backgroundColor: Colors.teal,
-        elevation: 0,
+        title: ShaderMask(
+          shaderCallback: (Rect bounds) {
+            return LinearGradient(
+              colors: [
+                 Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79), 
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ).createShader(bounds);
+          },
+          child: const Text(
+            'Profile',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 2,
         actions: [
           if (widget.toggleTheme != null)
             IconButton(
-              icon: Icon(Icons.dark_mode, color: Colors.white),
+              icon: const Icon(Icons.dark_mode, color: Colors.black),
               onPressed: widget.toggleTheme,
             ),
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Colors.black),
             onPressed: () async {
               await _logout(context);
             },
           ),
           IconButton(
-            icon: const Icon(Icons.chat, color: Colors.white),
+            icon: const Icon(Icons.chat, color: Colors.black),
             onPressed: () {
               Navigator.push(
                 context,
@@ -190,15 +210,25 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                     child: Column(
                       children: [
                         Container(
-                          color: Colors.teal,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                 Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79), 
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 30.0),
                             child: Column(
                               children: [
                                 const CircleAvatar(
                                   radius: 60,
+                                  backgroundColor: Colors.white,
                                   backgroundImage:
-                                      AssetImage('assets/profile_picture.jpg'),
+                                      AssetImage('images/avatar.png'),
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
@@ -217,7 +247,11 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                                     const SizedBox(width: 5),
                                     Text(
                                       email,
-                                      style: const TextStyle(color: Colors.white70),
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -229,7 +263,11 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                                     const SizedBox(width: 5),
                                     Text(
                                       phone,
-                                      style: const TextStyle(color: Colors.white70),
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -246,20 +284,20 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(15),
                               ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(20),
+                              child: const Padding(
+                                padding: EdgeInsets.all(20),
                                 child: Column(
                                   children: [
-                                    const Text(
+                                    Text(
                                       'Analyzing your Smart-Match Profile',
                                       style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.teal,
+                                        color:  Color.fromARGB(255, 8, 145, 236),
                                       ),
                                     ),
-                                    const SizedBox(height: 20),
-                                    const CircularProgressIndicator(
+                                    SizedBox(height: 20),
+                                    CircularProgressIndicator(
                                       valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
                                     ),
                                   ],
@@ -286,37 +324,52 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                                         Text(
                                           'Property Preferences',
                                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                            color: Colors.teal,
+                                            color: Color.fromARGB(255, 8, 145, 236),
                                             fontWeight: FontWeight.bold,
                                             fontSize: 24,
                                           ),
                                         ),
-                                        ElevatedButton.icon(
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) => ClusterRecommendations(
-                                                  clusterId: _clusterInfo!['cluster_id'],
-                                                  clusterMessage: _clusterInfo!['message'],
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.teal,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(10),
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                               
+                                                Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79), 
+                                              ],
+                                              begin: Alignment.centerLeft,
+                                              end: Alignment.centerRight,
                                             ),
+                                            borderRadius: BorderRadius.circular(10),
                                           ),
-                                          icon: const Icon(Icons.recommend),
-                                          label: const Text(
-                                            'View Recommendations',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
+                                          child: ElevatedButton.icon(
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => ClusterRecommendations(
+                                                    clusterId: _clusterInfo!['cluster_id'],
+                                                    clusterMessage: _clusterInfo!['message'],
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.transparent,
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              elevation: 0,
+                                            ),
+                                            icon: const Icon(Icons.recommend , color: Colors.white, size: 30),
+                                            label: const Text(
+                                              'View Recommendations',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -326,7 +379,7 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                                     Container(
                                       padding: const EdgeInsets.all(15),
                                       decoration: BoxDecoration(
-                                        color: Colors.teal.withOpacity(0.1),
+                                        color: Color.fromARGB(255, 8, 145, 236).withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Column(
@@ -335,7 +388,7 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                                           Text(
                                             'Your Smart-Match Profile',
                                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                              color: Colors.teal,
+                                              color: Color.fromARGB(255, 8, 145, 236),
                                               fontWeight: FontWeight.bold,
                                               fontSize: 18,
                                             ),
@@ -346,6 +399,7 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                               fontSize: 16,
                                               height: 1.5,
+                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                         ],
@@ -363,7 +417,7 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                             children: [
                               Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.teal.withOpacity(0.1),
+                                  color: Color.fromARGB(255, 8, 145, 236).withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: InkWell(
@@ -382,16 +436,16 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                                           children: [
                                             Icon(
                                               Icons.list_alt,
-                                              color: Colors.teal,
+                                              color: Color.fromARGB(255, 8, 145, 236),
                                               size: 28,
                                             ),
                                             const SizedBox(width: 12),
-                                            const Text(
+                                            Text(
                                               'Active Listings',
                                               style: TextStyle(
                                                 fontSize: 20,
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.teal,
+                                                color: Color.fromARGB(255, 8, 145, 236),
                                               ),
                                             ),
                                           ],
@@ -399,12 +453,12 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: Colors.teal.withOpacity(0.2),
+                                            color: Color.fromARGB(255, 8, 145, 236).withOpacity(0.2),
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Icon(
                                             _isExpanded ? Icons.expand_less : Icons.expand_more,
-                                            color: Colors.teal,
+                                            color: Color.fromARGB(255, 8, 145, 236),
                                             size: 24,
                                           ),
                                         ),
@@ -428,6 +482,7 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                                         style: TextStyle(
                                           fontSize: 16,
                                           color: Colors.grey,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
@@ -462,25 +517,44 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                                                       ),
                                                     ),
                                                   ),
-                                                  ElevatedButton(
-                                                    onPressed: () {
-                                                      Navigator.push(
-                                                        context,
-                                                        MaterialPageRoute(
-                                                          builder: (context) =>
-                                                              PropertyDetails(
-                                                                  property: property),
+                                                  Container(
+                                                    decoration: BoxDecoration(
+                                                      gradient: LinearGradient(
+                                                        colors: [
+                                                           Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79), 
+                                                        ],
+                                                        begin: Alignment.centerLeft,
+                                                        end: Alignment.centerRight,
+                                                      ),
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: ElevatedButton(
+                                                      onPressed: () {
+                                                        Navigator.push(
+                                                          context,
+                                                          MaterialPageRoute(
+                                                            builder: (context) =>
+                                                                PropertyDetails(
+                                                                    property: property),
+                                                          ),
+                                                        );
+                                                      },
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor: Colors.transparent,
+                                                        foregroundColor: Colors.white,
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(8),
                                                         ),
-                                                      );
-                                                    },
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Colors.teal,
-                                                      foregroundColor: Colors.white,
-                                                      shape: RoundedRectangleBorder(
-                                                        borderRadius: BorderRadius.circular(8),
+                                                        elevation: 0,
+                                                      ),
+                                                      child: const Text(
+                                                        "View Details",
+                                                        style: TextStyle(
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
                                                       ),
                                                     ),
-                                                    child: const Text("View Details"),
                                                   ),
                                                 ],
                                               ),
@@ -499,6 +573,7 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                                                         style: TextStyle(
                                                           color: Colors.grey[600],
                                                           fontSize: 14,
+                                                          fontWeight: FontWeight.bold,
                                                         ),
                                                       ),
                                                     ],
@@ -509,10 +584,10 @@ class _ViewProfilePageState extends State<ViewProfilePage> {
                                                   padding: const EdgeInsets.only(top: 4),
                                                   child: Text(
                                                     '\$${property.price.toStringAsFixed(2)}',
-                                                    style: const TextStyle(
+                                                    style: TextStyle(
                                                       fontSize: 16,
                                                       fontWeight: FontWeight.bold,
-                                                      color: Colors.teal,
+                                                      color: Color.fromARGB(255, 8, 145, 236),
                                                     ),
                                                   ),
                                                 ),

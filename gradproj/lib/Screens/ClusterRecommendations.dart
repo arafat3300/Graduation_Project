@@ -55,9 +55,29 @@ class _ClusterRecommendationsState extends State<ClusterRecommendations> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Recommended Properties'),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
+        title: ShaderMask(
+          shaderCallback: (Rect bounds) {
+            return LinearGradient(
+              colors: [
+                Color.fromARGB(255, 8, 145, 236),
+                Color.fromARGB(255, 2, 48, 79),
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ).createShader(bounds);
+          },
+          child: const Text(
+            'Recommended Properties',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 2,
       ),
       body: _isLoading
           ? Center(
@@ -92,24 +112,65 @@ class _ClusterRecommendationsState extends State<ClusterRecommendations> {
               : Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(16),
-                      color: Colors.teal.withOpacity(0.1),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Color.fromARGB(255, 8, 145, 236),
+                            Color.fromARGB(255, 2, 48, 79),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(30),
+                          bottomRight: Radius.circular(30),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: Offset(0, 5),
+                          ),
+                        ],
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Your Smart-Match Profile',
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              color: Colors.teal,
-                              fontWeight: FontWeight.bold,
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Text(
+                              'Your Smart-Match Profile',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 24,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            widget.clusterMessage,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              fontSize: 16,
-                              height: 1.5,
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              widget.clusterMessage,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                fontSize: 16,
+                                height: 1.5,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ],
@@ -188,13 +249,14 @@ class _ClusterRecommendationsState extends State<ClusterRecommendations> {
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.teal.withOpacity(0.1),
+                                                  color:  Color.fromARGB(255, 8, 145, 236),
+                                                
                                                   borderRadius: BorderRadius.circular(12),
                                                 ),
                                                 child: Text(
                                                   'Score: ${(property.similarityScore! * 100).toStringAsFixed(1)}%',
                                                   style: theme.textTheme.bodySmall?.copyWith(
-                                                    color: Colors.teal,
+                                                    color: const Color.fromARGB(255, 255, 255, 255),
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),

@@ -16,6 +16,26 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../Models/propertyClass.dart';
 import '../widgets/PropertyCard.dart';
 
+// Add DotPatternPainter class
+class _DotPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color.fromARGB(18, 255, 255, 255)
+      ..style = PaintingStyle.fill;
+    const double spacing = 32;
+    const double radius = 2.2;
+    for (double y = 0; y < size.height; y += spacing) {
+      for (double x = 0; x < size.width; x += spacing) {
+        canvas.drawCircle(Offset(x, y), radius, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class PropertyListScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
   const PropertyListScreen({super.key, required this.toggleTheme});
@@ -142,294 +162,387 @@ Future<void> fetchProperties() async {
     final secondaryColor = Theme.of(context).colorScheme.secondary;
 
     return Scaffold(
-      body: SafeArea(
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        title: ShaderMask(
+          shaderCallback: (Rect bounds) {
+            return LinearGradient(
               colors: [
-                primaryColor.withOpacity(0.9),
-                secondaryColor.withOpacity(0.9),
+             Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79), 
               ],
-              stops: const [0.0, 1.0],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ).createShader(bounds);
+          },
+          child: const Text(
+            "Property Listings",
+            style: TextStyle(
+              color: Colors.white, // masked by gradient
+              fontFamily: 'OpenSans',
+              fontWeight: FontWeight.bold,
+              fontSize: 22.0,
             ),
           ),
-          child: Column(
-            children: [
-              // AppBar
-              AppBar(
-                backgroundColor: primaryColor,
-                title: const Text(
-                  "Property Listings",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontFamily: 'OpenSans',
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22.0,
-                  ),
-                ),
-                centerTitle: true,
-                elevation: 1.0,
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.dark_mode, color: Colors.black),
-                    onPressed: widget.toggleTheme,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.filter_list, color: Colors.black),
-                    onPressed: () {
-                      setState(() {
-                        _showFilters = !_showFilters;
-                      });
-                    },
-                  ),
- ElevatedButton(
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const LeadListScreen(),
+        ),
+        centerTitle: true,
+        elevation: 1.0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.dark_mode, color: Colors.black),
+            onPressed: widget.toggleTheme,
+          ),
+        ],
       ),
-    );
-  },
-  child: Text('View Messages'),
-),
-                  IconButton(
-                    icon: const Icon(Icons.add_home_work_outlined,
-                        color: Colors.black),
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/addProperty');
-                    },
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                   Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79), 
+                  ],
+                ),
+              ),
+              child: const Text(
+                'Menu',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.message),
+              title: const Text('View Messages'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const LeadListScreen(),
                   ),
-                  IconButton(
-                    icon:
-                        const Icon(Icons.mobile_friendly, color: Colors.black),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              MyListings(userId: singletonSession().userId!),
-                        ),
-                      );
-                    },
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_home_work_outlined),
+              title: const Text('Add Property'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/addProperty');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.mobile_friendly),
+              title: const Text('My Listings'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        MyListings(userId: singletonSession().userId!),
                   ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      body: Stack(
+        children: [
+          // Gradient background with dot pattern and highlight
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79), 
                 ],
               ),
-
-              // Search Bar
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search properties by type, city, etc...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(25.0),
-                      borderSide: BorderSide.none,
+            ),
+            child: Stack(
+              children: [
+                // Subtle white dot pattern overlay
+                CustomPaint(
+                  size: Size.infinite,
+                  painter: _DotPatternPainter(),
+                ),
+                // Soft radial white highlight/spotlight
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: RadialGradient(
+                          center: Alignment(0, -0.2),
+                          radius: 0.7,
+                          colors: [
+                            Color.fromARGB(60, 255, 255, 255),
+                            Colors.transparent,
+                          ],
+                          stops: [0.0, 1.0],
+                        ),
+                      ),
                     ),
-                    filled: true,
-                    fillColor: Colors.white,
                   ),
                 ),
-              ),
-
-              // Filters
-              if (_showFilters)
+              ],
+            ),
+          ),
+          // Content over background
+          const SizedBox(height:70),
+          SafeArea(
+            child: Column(
+              
+              children: [
+                const SizedBox(height:18),
+                // Search Bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10.0, vertical: 5.0),
-                  child: Column(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 5.0),
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              decoration: InputDecoration(
-                                labelText: 'Payment Option',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25.0),
-                                ),
-                                filled: true,
-                                fillColor: Colors.white,
-                              ),
-                              value: _selectedPaymentOption,
-                              items: const [
-                                DropdownMenuItem(
-                                    value: null, child: Text('All')),
-                                DropdownMenuItem(
-                                    value: 'Cash', child: Text('Cash')),
-                                DropdownMenuItem(
-                                    value: 'Installments',
-                                    child: Text('Installments')),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedPaymentOption = value;
-                                });
-                                _onSearchChanged();
-                              },
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search properties by type, city, etc...',
+                            prefixIcon: const Icon(Icons.search),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25.0),
+                              borderSide: BorderSide.none,
                             ),
+                            filled: true,
+                            fillColor: Colors.white,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              decoration: InputDecoration(
-                                labelText: 'Bedrooms',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25.0),
-                                ),
-                                filled: true,
-                                fillColor: Colors.white,
-                              ),
-                              value: _selectedBedrooms,
-                              items: const [
-                                DropdownMenuItem(
-                                    value: null, child: Text('All')),
-                                DropdownMenuItem(value: 1, child: Text('1')),
-                                DropdownMenuItem(value: 2, child: Text('2')),
-                                DropdownMenuItem(value: 3, child: Text('3')),
-                                DropdownMenuItem(value: 4, child: Text('4')),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedBedrooms = value;
-                                });
-                                _onSearchChanged();
-                              },
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              decoration: InputDecoration(
-                                labelText: 'Bathrooms',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25.0),
-                                ),
-                                filled: true,
-                                fillColor: Colors.white,
-                              ),
-                              value: _selectedBathrooms,
-                              items: const [
-                                DropdownMenuItem(
-                                    value: null, child: Text('All')),
-                                DropdownMenuItem(value: 1, child: Text('1')),
-                                DropdownMenuItem(value: 2, child: Text('2')),
-                                DropdownMenuItem(value: 3, child: Text('3')),
-                                DropdownMenuItem(value: 4, child: Text('4')),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedBathrooms = value;
-                                });
-                                _onSearchChanged();
-                              },
-                            ),
+                      const SizedBox(width: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(25.0),
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.filter_list,
+                            color: _showFilters ? Theme.of(context).primaryColor : Colors.black,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              decoration: InputDecoration(
-                                labelText: 'Sort By',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25.0),
-                                ),
-                                filled: true,
-                                fillColor: Colors.white,
-                              ),
-                              value: _selectedSortOption,
-                              items: const [
-                                DropdownMenuItem(
-                                    value: null, child: Text('No Sorting')),
-                                DropdownMenuItem(
-                                    value: 'PriceLowHigh',
-                                    child: Text('Price: Low to High')),
-                                DropdownMenuItem(
-                                    value: 'PriceHighLow',
-                                    child: Text('Price: High to Low')),
-                                DropdownMenuItem(
-                                    value: 'BestSellers',
-                                    child: Text('Best Sellers')),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedSortOption = value;
-                                });
-                                _onSearchChanged();
-                              },
-                            ),
-                          ),
-                        ],
+                          onPressed: () {
+                            setState(() {
+                              _showFilters = !_showFilters;
+                            });
+                          },
+                        ),
                       ),
                     ],
                   ),
                 ),
 
-              // Property Listings
-              Expanded(
-                child: _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(),
-                      )
-                    : filteredProperties.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No properties found.',
-                              style: TextStyle(
-                                fontSize: 18.0,
-                                color: Colors.white,
+                // Filters
+                if (_showFilters)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10.0, vertical: 5.0),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                decoration: InputDecoration(
+                                  labelText: 'Payment Option',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25.0),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                ),
+                                value: _selectedPaymentOption,
+                                items: const [
+                                  DropdownMenuItem(
+                                      value: null, child: Text('All')),
+                                  DropdownMenuItem(
+                                      value: 'Cash', child: Text('Cash')),
+                                  DropdownMenuItem(
+                                      value: 'Installments',
+                                      child: Text('Installments')),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedPaymentOption = value;
+                                  });
+                                  _onSearchChanged();
+                                },
                               ),
                             ),
-                          )
-                        : OrientationBuilder(
-                            builder: (context, orientation) {
-                              return GridView.builder(
-                                controller: _scrollController,
-                                padding: const EdgeInsets.all(10.0),
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount:
-                                      orientation == Orientation.portrait
-                                          ? 1
-                                          : 4,
-                                  mainAxisSpacing: 10.0,
-                                  crossAxisSpacing: 10.0,
-                                  childAspectRatio:
-                                      orientation == Orientation.portrait
-                                          ? 0.75
-                                          : 0.8,
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: DropdownButtonFormField<int>(
+                                decoration: InputDecoration(
+                                  labelText: 'Bedrooms',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25.0),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white,
                                 ),
-                                itemCount: filteredProperties.length,
-                                itemBuilder: (context, index) {
-                                  final property = filteredProperties[index];
-                                  return GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => PropertyDetails(
-                                              property: property),
-                                        ),
-                                      );
-                                    },
-                                    child: PropertyCard(property: property),
-                                  );
+                                value: _selectedBedrooms,
+                                items: const [
+                                  DropdownMenuItem(
+                                      value: null, child: Text('All')),
+                                  DropdownMenuItem(value: 1, child: Text('1')),
+                                  DropdownMenuItem(value: 2, child: Text('2')),
+                                  DropdownMenuItem(value: 3, child: Text('3')),
+                                  DropdownMenuItem(value: 4, child: Text('4')),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedBedrooms = value;
+                                  });
+                                  _onSearchChanged();
                                 },
-                              );
-                            },
-                          ),
-              ),
-            ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButtonFormField<int>(
+                                decoration: InputDecoration(
+                                  labelText: 'Bathrooms',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25.0),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                ),
+                                value: _selectedBathrooms,
+                                items: const [
+                                  DropdownMenuItem(
+                                      value: null, child: Text('All')),
+                                  DropdownMenuItem(value: 1, child: Text('1')),
+                                  DropdownMenuItem(value: 2, child: Text('2')),
+                                  DropdownMenuItem(value: 3, child: Text('3')),
+                                  DropdownMenuItem(value: 4, child: Text('4')),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedBathrooms = value;
+                                  });
+                                  _onSearchChanged();
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                decoration: InputDecoration(
+                                  labelText: 'Sort By',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25.0),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                ),
+                                value: _selectedSortOption,
+                                items: const [
+                                  DropdownMenuItem(
+                                      value: null, child: Text('No Sorting')),
+                                  DropdownMenuItem(
+                                      value: 'PriceLowHigh',
+                                      child: Text('Price: Low to High')),
+                                  DropdownMenuItem(
+                                      value: 'PriceHighLow',
+                                      child: Text('Price: High to Low')),
+                                  DropdownMenuItem(
+                                      value: 'BestSellers',
+                                      child: Text('Best Sellers')),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedSortOption = value;
+                                  });
+                                  _onSearchChanged();
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Property Listings
+                Expanded(
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(),
+                        )
+                      : filteredProperties.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No properties found.',
+                                style: TextStyle(
+                                  fontSize: 18.0,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            )
+                          : OrientationBuilder(
+                              builder: (context, orientation) {
+                                return GridView.builder(
+                                  controller: _scrollController,
+                                  padding: const EdgeInsets.all(10.0),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount:
+                                        orientation == Orientation.portrait
+                                            ? 1
+                                            : 4,
+                                    mainAxisSpacing: 10.0,
+                                    crossAxisSpacing: 10.0,
+                                    childAspectRatio:
+                                        orientation == Orientation.portrait
+                                            ? 0.75
+                                            : 0.8,
+                                  ),
+                                  itemCount: filteredProperties.length,
+                                  itemBuilder: (context, index) {
+                                    final property = filteredProperties[index];
+                                    return GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => PropertyDetails(
+                                                property: property),
+                                          ),
+                                        );
+                                      },
+                                      child: PropertyCard(property: property),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentIndex,

@@ -115,11 +115,13 @@ class _LoginScreenState extends State<LoginScreen>
           break;
         default:
           targetScreen = PropertyListScreen(toggleTheme: widget.toggleTheme);
-          _showErrorDialog("Undefined user role. Redirecting to default screen.");
+          _showErrorDialog(
+              "Undefined user role. Redirecting to default screen.");
       }
 
       Navigator.of(context).pop();
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => targetScreen));
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (context) => targetScreen));
     });
   }
 
@@ -166,7 +168,8 @@ class _LoginScreenState extends State<LoginScreen>
           hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
@@ -179,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _handleGoogleSignIn() async {
     final GoogleController _googleController = GoogleController();
     final result = await _googleController.signInWithGoogle();
-    
+
     if (result.success) {
       showDialog(
         context: context,
@@ -207,7 +210,7 @@ class _LoginScreenState extends State<LoginScreen>
 
       Future.delayed(const Duration(seconds: 2), () {
         Navigator.of(context).pop();
-        
+
         Widget targetScreen;
         switch (result.role) {
           case 1:
@@ -220,7 +223,8 @@ class _LoginScreenState extends State<LoginScreen>
             targetScreen = PropertyListScreen(toggleTheme: widget.toggleTheme);
         }
 
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => targetScreen));
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => targetScreen));
       });
     } else {
       showDialog(
@@ -252,7 +256,7 @@ class _LoginScreenState extends State<LoginScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Enhanced gradient background with diagonal direction and stops
+          // Enhanced white background with subtle gradient and pattern
           Container(
             width: double.infinity,
             height: double.infinity,
@@ -261,22 +265,21 @@ class _LoginScreenState extends State<LoginScreen>
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF7AD0CB), // light teal
-                  const Color(0xFF1B4F72), // blue
-                  const Color(0xFF6AD1C9), // teal
-                  const Color(0xFFFF6F1A).withOpacity(0.55), // less prominent orange
+                  Colors.white,
+                  Color.fromARGB(255, 245, 247, 250),
+                  Color.fromARGB(255, 240, 242, 245),
                 ],
-                stops: const [0.0, 0.35, 0.75, 1.0],
+                stops: const [0.0, 0.5, 1.0],
               ),
             ),
             child: Stack(
               children: [
-                // Subtle white dot pattern overlay
+                // Subtle dot pattern overlay
                 CustomPaint(
                   size: Size.infinite,
                   painter: _DotPatternPainter(),
                 ),
-                // Soft radial white highlight/spotlight
+                // Soft radial highlight
                 Positioned.fill(
                   child: IgnorePointer(
                     child: Container(
@@ -285,7 +288,7 @@ class _LoginScreenState extends State<LoginScreen>
                           center: Alignment(0, -0.2),
                           radius: 0.7,
                           colors: [
-                            Color.fromARGB(60, 255, 255, 255),
+                            Color.fromARGB(30, 8, 145, 236),
                             Colors.transparent,
                           ],
                           stops: [0.0, 1.0],
@@ -308,8 +311,8 @@ class _LoginScreenState extends State<LoginScreen>
                     shaderCallback: (Rect bounds) {
                       return const LinearGradient(
                         colors: [
-                          Color(0xFF7AD0CB), // light teal
-                          Color(0xFFFF6F1A), // orange
+                          Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79), // orange
                         ],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
@@ -320,7 +323,8 @@ class _LoginScreenState extends State<LoginScreen>
                       style: TextStyle(
                         fontSize: 38,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white, // This will be masked by the gradient
+                        color:
+                            Colors.white, // This will be masked by the gradient
                       ),
                     ),
                   ),
@@ -362,8 +366,8 @@ class _LoginScreenState extends State<LoginScreen>
                             borderRadius: BorderRadius.circular(30),
                             gradient: const LinearGradient(
                               colors: [
-                                Color(0xFF7AD0CB), // light teal
-                                Color(0xFFFF6F1A), // orange
+                               Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79),  // orange
                               ],
                               begin: Alignment.centerLeft,
                               end: Alignment.centerRight,
@@ -411,14 +415,14 @@ class _LoginScreenState extends State<LoginScreen>
                       Expanded(child: Divider(color: Colors.white70)),
                     ],
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 44),
                   // Google Sign In button
                   ElevatedButton.icon(
                     onPressed: _handleGoogleSignIn,
                     icon: Image.asset(
                       'images/google-logo.png',
-                      height: 24,
-                      width: 24,
+                      height: 36,
+                      width: 44,
                     ),
                     label: const Text(
                       'Sign in with Google',
@@ -431,7 +435,7 @@ class _LoginScreenState extends State<LoginScreen>
                       backgroundColor: Colors.white,
                       foregroundColor: Color(0xFF1B4F72),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
+                        horizontal: 38,
                         vertical: 12,
                       ),
                       shape: RoundedRectangleBorder(
@@ -443,12 +447,12 @@ class _LoginScreenState extends State<LoginScreen>
                   const SizedBox(height: 18),
                   // Create account section as a large button with gradient background
                   Container(
-                    width: double.infinity,
+                    width: 270,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [
-                          Color(0xFF7AD0CB), // light teal
-                          Color(0xFFFF6F1A), // orange
+                       Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79),  // orange
                         ],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
@@ -473,7 +477,7 @@ class _LoginScreenState extends State<LoginScreen>
                         'Create an Account? Sign Up',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 20,
+                          fontSize: 16,
                           fontFamily: 'Montserrat',
                           letterSpacing: 1.1,
                         ),
@@ -494,7 +498,7 @@ class _DotPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color.fromARGB(18, 255, 255, 255)
+      ..color = const Color.fromARGB(8, 8, 145, 236)
       ..style = PaintingStyle.fill;
     const double spacing = 32;
     const double radius = 2.2;

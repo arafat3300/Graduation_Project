@@ -14,6 +14,26 @@ import '../Models/singletonSession.dart';
 import '../widgets/RecommendationCard.dart';
 import 'package:http/http.dart' as http;
 
+// Add DotPatternPainter class
+class _DotPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color.fromARGB(18, 255, 255, 255)
+      ..style = PaintingStyle.fill;
+    const double spacing = 32;
+    const double radius = 2.2;
+    for (double y = 0; y < size.height; y += spacing) {
+      for (double x = 0; x < size.width; x += spacing) {
+        canvas.drawCircle(Offset(x, y), radius, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class FavoritesScreen extends ConsumerStatefulWidget {
   final VoidCallback toggleTheme;
 
@@ -108,8 +128,30 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Favorites'),
+        title: ShaderMask(
+          shaderCallback: (Rect bounds) {
+            return LinearGradient(
+              colors: [
+                Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79), 
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ).createShader(bounds);
+          },
+          child: const Text(
+            'Favorites',
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Colors.white, // masked by gradient
+              letterSpacing: 1.1,
+            ),
+          ),
+        ),
         centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0.5,
         actions: [
           IconButton(
             icon: Icon(Icons.dark_mode, color: theme.iconTheme.color),
@@ -117,195 +159,243 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Your Favorites',
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+      body: Stack(
+        children: [
+          // Gradient background with dot pattern and highlight
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                
+                    Colors.white,
+                     Colors.white,
+                   
+                                                                           
+                ],
+                // Removed stops as default is fine for 2 colors
               ),
-              const SizedBox(height: 10),
-              favourites.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No favorite properties yet!',
-                        style: theme.textTheme.bodyLarge,
+            ),
+            child: Stack(
+              children: [
+                // Subtle white dot pattern overlay
+                CustomPaint(
+                  size: Size.infinite,
+                  painter: _DotPatternPainter(),
+                ),
+                // Soft radial white highlight/spotlight
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: RadialGradient(
+                          center: Alignment(0, -0.2),
+                          radius: 0.7,
+                          colors: [
+                            Color.fromARGB(60, 255, 255, 255),
+                            Colors.transparent,
+                          ],
+                          stops: [0.0, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content over background
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 'Your Favorites' as bold orange text
+                  Text(
+                    'Your Favorites',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Color.fromARGB(255, 0, 0, 0), 
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  favourites.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No favorite properties yet!',
+                            style: theme.textTheme.bodyLarge,
+                          ),
+                        )
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          itemCount: favourites.length,
+                          separatorBuilder: (context, index) => SizedBox(height: 10),
+                          itemBuilder: (context, index) {
+                            final property = favourites[index];
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              color: Colors.white,
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: ListTile(
+                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    property.imgUrl?.isNotEmpty == true
+                                        ? property.imgUrl!.first
+                                        : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
+                                    width: 70,
+                                    height: 70,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        Icon(Icons.broken_image, size: 70, color: theme.colorScheme.error),
+                                  ),
+                                ),
+                                title: Text(
+                                  '${property.type}',
+                                  style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      property.city,
+                                      style: theme.textTheme.bodyMedium,
+                                    ),
+                                    Text(
+                                      'id : ${property.id.toString()}',
+                                      style: theme.textTheme.bodyMedium,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '\$${property.price.toStringAsFixed(2)}',
+                                      style: theme.textTheme.bodyLarge?.copyWith(
+                                        color:  Color.fromARGB(255, 8, 145, 236,),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                trailing: IconButton(
+                                  icon: Icon(Icons.delete, color: theme.colorScheme.error),
+                                  onPressed: () {
+                                    final favouritesNotifier = ref.read(favouritesProvider.notifier);
+                                    favouritesNotifier.removeProperty(property);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text("${property.type} removed from favorites"),
+                                        duration: const Duration(seconds: 3),
+                                        action: SnackBarAction(
+                                          label: "Undo",
+                                          onPressed: () {
+                                            favouritesNotifier.addProperty(property);
+                                          },
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => PropertyDetails(property: property),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                  const SizedBox(height: 20),
+                  if (_isLoadingContentBasedRecommendations)
+                    Center(
+                      child: Column(
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 10),
+                          Text(
+                            'Loading content-based recommendations...',
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ],
                       ),
                     )
-                  : ListView.separated(
+                  else if (contentBasedRecommendations.isNotEmpty) ...[
+                    Divider(thickness: 2),
+                    // 'Recommendations based on your favorites' as bold orange text
+                    Text(
+                      'Recommendations based on your favorites',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 0, 0, 0), // Bold orange
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    ListView.separated(
                       shrinkWrap: true,
                       physics: NeverScrollableScrollPhysics(),
-                      itemCount: favourites.length,
+                      itemCount: contentBasedRecommendations.length,
                       separatorBuilder: (context, index) => SizedBox(height: 10),
                       itemBuilder: (context, index) {
-                        final property = favourites[index];
-
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          color: theme.cardColor,
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: ListTile(
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                property.imgUrl?.isNotEmpty == true
-                                    ? property.imgUrl!.first
-                                    : 'https://agentrealestateschools.com/wp-content/uploads/2021/11/real-estate-property.jpg',
-                                width: 70,
-                                height: 70,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Icon(Icons.broken_image, size: 70, color: theme.colorScheme.error),
-                              ),
-                            ),
-                            title: Text(
-                              '${property.type}',
-                              style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  property.city,
-                                  style: theme.textTheme.bodyMedium,
-                                ),
-                                 Text(
-                                  'id : ${property.id.toString()}',
-                                  style: theme.textTheme.bodyMedium,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '\$${property.price.toStringAsFixed(2)}',
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: theme.colorScheme.primary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            trailing: IconButton(
-                              icon: Icon(Icons.delete, color: theme.colorScheme.error),
-                              onPressed: () {
-                                final favouritesNotifier = ref.read(favouritesProvider.notifier);
-                                favouritesNotifier.removeProperty(property);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("${property.type} removed from favorites"),
-                                    duration: const Duration(seconds: 3),
-                                    action: SnackBarAction(
-                                      label: "Undo",
-                                      onPressed: () {
-                                        favouritesNotifier.addProperty(property);
-                                      },
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PropertyDetails(property: property),
-                                ),
-                              );
-                            },
-                          ),
+                        final Property recommendation = contentBasedRecommendations[index];
+                        return RecommendationCard(
+                          property: recommendation,
                         );
                       },
                     ),
-              const SizedBox(height: 20),
-              if (_isLoadingContentBasedRecommendations)
-                Center(
-                  child: Column(
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 10),
-                      Text(
-                        'Loading content-based recommendations...',
-                        style: theme.textTheme.bodyMedium,
+                  ],
+                  if (_isLoadingFeedbackBasedRecommendations)
+                    Center(
+                      child: Column(
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 10),
+                          Text(
+                            'Loading feedback-based recommendations...',
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                )
-              else if (contentBasedRecommendations.isNotEmpty) ...[
-                Divider(thickness: 2),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Recommendations based on your favorites',
-                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    )
+                  else if (feedbackBasedRecommendations.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Divider(thickness: 2),
+                    // 'Recommendations based on your feedback' as bold orange text
+                    Text(
+                      'Recommendations based on your feedback',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color:Color.fromARGB(255, 20, 20, 20), // Bold orange
+                        letterSpacing: 1.1,
                       ),
-                    ],
-                  ),
-                ),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: contentBasedRecommendations.length,
-                  separatorBuilder: (context, index) => SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final Property recommendation = contentBasedRecommendations[index];
-                    return RecommendationCard(
-                      property: recommendation,
-                    );
-                  },
-                ),
-              ],
-              if (_isLoadingFeedbackBasedRecommendations)
-                Center(
-                  child: Column(
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 10),
-                      Text(
-                        'Loading feedback-based recommendations...',
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                )
-              else if (feedbackBasedRecommendations.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                Divider(thickness: 2),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Recommendations based on your feedback',
-                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: feedbackBasedRecommendations.length,
-                  separatorBuilder: (context, index) => SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final Property recommendation = feedbackBasedRecommendations[index];
-                    return RecommendationCard(
-                      property: recommendation,
-                    );
-                  },
-                ),
-              ],
-            ],
+                    ),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
+                      itemCount: feedbackBasedRecommendations.length,
+                      separatorBuilder: (context, index) => SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final Property recommendation = feedbackBasedRecommendations[index];
+                        return RecommendationCard(
+                          property: recommendation,
+                        );
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentIndex,

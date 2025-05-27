@@ -390,8 +390,29 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Property Details"),
-        backgroundColor: theme.colorScheme.primary,
+        title: ShaderMask(
+          shaderCallback: (Rect bounds) {
+            return LinearGradient(
+              colors: [
+                Color(0xFF7AD0CB), // teal
+                Color(0xFFFF6F1A), // orange
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ).createShader(bounds);
+          },
+          child: const Text(
+            "Property Details",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 2,
       ),
       body: Container(
         color: Colors.blueGrey[50], // Darker background for consistency
@@ -470,8 +491,8 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
           Text(
             "Price: \$${property.price}",
             style: theme.textTheme.headlineSmall?.copyWith(
-              color: Colors.blue[700],
-              fontWeight: FontWeight.w600,
+              color: Color.fromARGB(255, 8, 145, 236),
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -645,58 +666,92 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          ElevatedButton.icon(
-            onPressed: () async {
-              if (isFavorite) {
-                await favouritesNotifier.removeProperty(property);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("${property.type} removed from favorites"),
-                    action: SnackBarAction(
-                      label: 'Manage Favorites',
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/favourites');
-                      },
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF7AD0CB), // teal
+                  Color(0xFFFF6F1A), // orange
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                if (isFavorite) {
+                  await favouritesNotifier.removeProperty(property);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("${property.type} removed from favorites"),
+                      action: SnackBarAction(
+                        label: 'Manage Favorites',
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/favourites');
+                        },
+                      ),
                     ),
-                  ),
-                );
-              } else {
-                await favouritesNotifier.addProperty(property);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("${property.type} added to favorites"),
-                    action: SnackBarAction(
-                      label: 'Manage Favorites',
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/favourites');
-                      },
+                  );
+                } else {
+                  await favouritesNotifier.addProperty(property);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("${property.type} added to favorites"),
+                      action: SnackBarAction(
+                        label: 'Manage Favorites',
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/favourites');
+                        },
+                      ),
                     ),
-                  ),
-                );
-              }
-            },
-            icon: Icon(
-                isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: Colors.white),
-            label: Text(
-                isFavorite ? "Remove from Favorites" : "Add to Favorites"),
-            style: ElevatedButton.styleFrom(
-              foregroundColor: Colors.white,
-              backgroundColor: Colors.blueAccent,
-              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  );
+                }
+              },
+              icon: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: Colors.white),
+              label: Text(
+                  isFavorite ? "Remove from Favorites" : "Add to Favorites"),
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+              ),
             ),
           ),
           const SizedBox(width: 8),
-          ElevatedButton.icon(
-            onPressed: () {
-              _createLead();
-            },
-            icon: const Icon(Icons.phone, color: Colors.white),
-            label: const Text("Contact Seller"),
-            style: ElevatedButton.styleFrom(
-              foregroundColor: Colors.white,
-              backgroundColor: Colors.blueAccent,
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF7AD0CB), // teal
+                  Color(0xFFFF6F1A), // orange
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                _createLead();
+              },
+              icon: const Icon(Icons.phone, color: Colors.white),
+              label: const Text("Contact Seller"),
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+              ),
             ),
           ),
         ],
@@ -708,44 +763,96 @@ Padding(
   padding: const EdgeInsets.all(16.0),
   child: Form(
     key: _formKey,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Add Feedback",
-          style: theme.textTheme.titleLarge,
+    child: Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF7AD0CB).withOpacity(0.1), // teal with opacity
+            Color(0xFFFF6F1A).withOpacity(0.1), // orange with opacity
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _feedbackController,
-          decoration: InputDecoration(
-            hintText: "Enter your feedback",
-            border: OutlineInputBorder(
-              borderSide: BorderSide(color: theme.colorScheme.primary),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Add Feedback",
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
             ),
-            alignLabelWithHint: true,
           ),
-          maxLines: 3,
-          keyboardType: TextInputType.text,
-          textDirection: TextDirection.ltr,
-          textAlign: TextAlign.start,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter your feedback';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 8),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _submitFeedback,
-          child: Text(_isLoading ? "Submitting..." : "Submit Feedback"),
-          style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
-            backgroundColor: theme.colorScheme.primary,
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _feedbackController,
+            decoration: InputDecoration(
+              hintText: "Enter your feedback",
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(25),
+                borderSide: BorderSide(
+                  width: 2,
+                  color: Color(0xFF7AD0CB),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(25),
+                borderSide: BorderSide(
+                  width: 2,
+                  color: Color(0xFF7AD0CB),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(25),
+                borderSide: BorderSide(
+                  width: 2,
+                  color: Color(0xFFFF6F1A),
+                ),
+              ),
+              alignLabelWithHint: true,
+            ),
+            maxLines: 3,
+            keyboardType: TextInputType.text,
+            textDirection: TextDirection.ltr,
+            textAlign: TextAlign.start,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your feedback';
+              }
+              return null;
+            },
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF7AD0CB), // teal
+                  Color(0xFFFF6F1A), // orange
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _submitFeedback,
+              child: Text(_isLoading ? "Submitting..." : "Submit Feedback", style: TextStyle(fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
     ),
   ),
 ),
@@ -782,87 +889,123 @@ Padding(
               else
                 Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Text("No feedback available for this property."),
+                  child: Text("No feedback available for this property.", style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Chat:',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0xFF7AD0CB).withOpacity(0.1), // teal with opacity
+                        Color(0xFFFF6F1A).withOpacity(0.1), // orange with opacity
+                      ],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
                     ),
-                    const SizedBox(height: 8),
-                    if (_messages.isNotEmpty)
-                      Container(
-                        height: 300,
-                        child: ListView.builder(
-                          reverse: true,
-                          itemCount: _messages.length,
-                          itemBuilder: (context, index) {
-                            final message = _messages[index];
-                            final isMe =
-                                message.senderId == singletonSession().userId;
-                            debugPrint(
-                                "Message senderId: ${message.senderId}, Current userId: ${singletonSession().userId}");
-
-                            return Align(
-                              alignment: isMe
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(
-                                    vertical: 5, horizontal: 10),
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: isMe
-                                      ? theme.colorScheme.primary
-                                      : Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Chat:',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (_messages.isNotEmpty)
+                        Container(
+                          height: 300,
+                          child: ListView.builder(
+                            reverse: true,
+                            itemCount: _messages.length,
+                            itemBuilder: (context, index) {
+                              final message = _messages[index];
+                              final isMe = message.senderId == singletonSession().userId;
+                              return Align(
+                                alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: isMe ? theme.colorScheme.primary : Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    message.content,
+                                    style: TextStyle(
+                                      color: isMe ? Colors.white : Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                                child: Text(
-                                  message.content,
-                                  style: TextStyle(
-                                      color:
-                                          isMe ? Colors.white : Colors.black),
+                              );
+                            },
+                          ),
+                        )
+                      else
+                        const Center(child: Text('No messages yet. Start a conversation!', style: TextStyle(fontWeight: FontWeight.bold))),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _messageController,
+                              decoration: InputDecoration(
+                                hintText: 'Type your message...',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(25),
+                                  borderSide: BorderSide(
+                                    width: 2,
+                                    color: Color(0xFF7AD0CB),
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(25),
+                                  borderSide: BorderSide(
+                                    width: 2,
+                                    color: Color(0xFF7AD0CB),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(25),
+                                  borderSide: BorderSide(
+                                    width: 2,
+                                    color: Color(0xFFFF6F1A),
+                                  ),
                                 ),
                               ),
-                            );
-                          },
-                        ),
-                      )
-                    else
-                      const Center(
-                          child:
-                              Text('No messages yet. Start a conversation!')),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _messageController,
-                            decoration: const InputDecoration(
-                              hintText: 'Type your message...',
-                              border: OutlineInputBorder(),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        _isSending
-                            ? const CircularProgressIndicator()
-                            : IconButton(
-                                icon:
-                                    const Icon(Icons.send, color: Colors.blue),
-                                onPressed: _sendMessage,
-                              ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 8),
+                          _isSending
+                              ? const CircularProgressIndicator()
+                              : Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Color(0xFF7AD0CB), // teal
+                                        Color(0xFFFF6F1A), // orange
+                                      ],
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.send, color: Colors.white),
+                                    onPressed: _sendMessage,
+                                  ),
+                                ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
