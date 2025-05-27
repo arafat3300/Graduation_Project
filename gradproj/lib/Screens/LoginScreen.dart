@@ -152,6 +152,7 @@ class _LoginScreenState extends State<LoginScreen>
     required String hintText,
     bool obscureText = false,
     TextInputType keyboardType = TextInputType.text,
+    double fontSize = 16,
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10),
@@ -159,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen>
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
-        style: const TextStyle(color: Colors.black, fontSize: 16),
+        style: TextStyle(color: Colors.black, fontSize: fontSize),
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
@@ -251,69 +252,129 @@ class _LoginScreenState extends State<LoginScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Blurred background
+          // Enhanced gradient background with diagonal direction and stops
           Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('images/keyimage.jpg'),
-                fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF7AD0CB), // light teal
+                  const Color(0xFF1B4F72), // blue
+                  const Color(0xFF6AD1C9), // teal
+                  const Color(0xFFFF6F1A).withOpacity(0.55), // less prominent orange
+                ],
+                stops: const [0.0, 0.35, 0.75, 1.0],
               ),
             ),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-              child: Container(
-                color: Colors.black.withOpacity(0.5),
-              ),
-            ),
-          ),
-
-          // Animated login content
-          SlideTransition(
-            position: _offsetAnimation,
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Login',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+            child: Stack(
+              children: [
+                // Subtle white dot pattern overlay
+                CustomPaint(
+                  size: Size.infinite,
+                  painter: _DotPatternPainter(),
+                ),
+                // Soft radial white highlight/spotlight
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: RadialGradient(
+                          center: Alignment(0, -0.2),
+                          radius: 0.7,
+                          colors: [
+                            Color.fromARGB(60, 255, 255, 255),
+                            Colors.transparent,
+                          ],
+                          stops: [0.0, 1.0],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 30),
-                    // Login form container
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 30),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Gradient 'Login' title
+                  ShaderMask(
+                    shaderCallback: (Rect bounds) {
+                      return const LinearGradient(
+                        colors: [
+                          Color(0xFF7AD0CB), // light teal
+                          Color(0xFFFF6F1A), // orange
+                        ],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ).createShader(bounds);
+                    },
+                    child: const Text(
+                      'Login',
+                      style: TextStyle(
+                        fontSize: 38,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white, // This will be masked by the gradient
                       ),
-                      child: Column(
-                        children: [
-                          _buildInputField(
-                            controller: _emailController,
-                            hintText: 'Email',
-                            keyboardType: TextInputType.emailAddress,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  // Login form container
+                  Container(
+                    padding: const EdgeInsets.all(36),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        _buildInputField(
+                          controller: _emailController,
+                          hintText: 'Email',
+                          keyboardType: TextInputType.emailAddress,
+                          fontSize: 20,
+                        ),
+                        _buildInputField(
+                          controller: _passwordController,
+                          hintText: 'Password',
+                          obscureText: true,
+                          fontSize: 20,
+                        ),
+                        const SizedBox(height: 28),
+                        // Login button with gradient
+                        Container(
+                          width: double.infinity,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF7AD0CB), // light teal
+                                Color(0xFFFF6F1A), // orange
+                              ],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
                           ),
-                          _buildInputField(
-                            controller: _passwordController,
-                            hintText: 'Password',
-                            obscureText: true,
-                          ),
-                          const SizedBox(height: 25),
-                          // Login button
-                          ElevatedButton(
+                          child: ElevatedButton(
                             onPressed: _handleLogin,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue[700],
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 50,
-                                vertical: 15,
-                              ),
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              padding: EdgeInsets.zero,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
                               ),
@@ -322,84 +383,104 @@ class _LoginScreenState extends State<LoginScreen>
                               'LOGIN',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 16,
+                                fontSize: 22,
                                 fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                    // Or divider with text
-                    const Row(
-                      children: [
-                        Expanded(child: Divider(color: Colors.grey)),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Text(
-                            'OR',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
                         ),
-                        Expanded(child: Divider(color: Colors.grey)),
                       ],
                     ),
-                    const SizedBox(height: 15),
-                    // Google Sign In button
-                    ElevatedButton.icon(
-                      onPressed: _handleGoogleSignIn,
-                      icon: Image.asset(
-                        'images/google-logo.png',
-                        height: 24,
-                        width: 24,
-                      ),
-                      label: const Text(
-                        'Sign in with Google',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                  ),
+                  const SizedBox(height: 18),
+                  // Or divider with text
+                  const Row(
+                    children: [
+                      Expanded(child: Divider(color: Colors.white70)),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Text(
+                          'OR',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
+                      Expanded(child: Divider(color: Colors.white70)),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  // Google Sign In button
+                  ElevatedButton.icon(
+                    onPressed: _handleGoogleSignIn,
+                    icon: Image.asset(
+                      'images/google-logo.png',
+                      height: 24,
+                      width: 24,
+                    ),
+                    label: const Text(
+                      'Sign in with Google',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Color(0xFF1B4F72),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  // Create account section as a large button with gradient background
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF7AD0CB), // light teal
+                          Color(0xFFFF6F1A), // orange
+                        ],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/signup');
+                      },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black87,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 18),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        elevation: 0,
+                        foregroundColor: Colors.white,
                       ),
-                    ),
-                    const SizedBox(height: 15),
-                    // Create account section
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pushNamed(context, '/signup');
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10.0),
-                        child: RichText(
-                          text: const TextSpan(
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.blue,
-                            ),
-                            children: <TextSpan>[
-                              TextSpan(text: 'Create an Account? Sign Up'),
-                            ],
-                          ),
+                      child: const Text(
+                        'Create an Account? Sign Up',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                          fontFamily: 'Montserrat',
+                          letterSpacing: 1.1,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -407,4 +488,23 @@ class _LoginScreenState extends State<LoginScreen>
       ),
     );
   }
+}
+
+class _DotPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color.fromARGB(18, 255, 255, 255)
+      ..style = PaintingStyle.fill;
+    const double spacing = 32;
+    const double radius = 2.2;
+    for (double y = 0; y < size.height; y += spacing) {
+      for (double x = 0; x < size.width; x += spacing) {
+        canvas.drawCircle(Offset(x, y), radius, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

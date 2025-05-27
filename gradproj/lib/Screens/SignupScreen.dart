@@ -253,168 +253,251 @@ class _SignUpScreenState extends State<SignUpScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Blurred background image
+          // Enhanced gradient background with diagonal direction and stops
           Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('images/keyimage.jpg'),
-                fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF7AD0CB), // light teal
+                  const Color(0xFF1B4F72), // blue
+                  const Color(0xFF6AD1C9), // teal
+                  const Color(0xFFFF6F1A).withOpacity(0.55), // less prominent orange
+                ],
+                stops: const [0.0, 0.35, 0.75, 1.0],
               ),
             ),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-              child: Container(
-                color: Colors.black.withOpacity(0.5),
-              ),
+            child: Stack(
+              children: [
+                // Subtle white dot pattern overlay
+                CustomPaint(
+                  size: Size.infinite,
+                  painter: _DotPatternPainter(),
+                ),
+                // Soft radial white highlight/spotlight
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: RadialGradient(
+                          center: Alignment(0, -0.2),
+                          radius: 0.7,
+                          colors: [
+                            Color.fromARGB(60, 255, 255, 255),
+                            Colors.transparent,
+                          ],
+                          stops: [0.0, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          SlideTransition(
-            position: _offsetAnimation,
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.vpn_key, color: Colors.white, size: 20),
-                        SizedBox(width: 8),
-                        Text(
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 30),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.vpn_key, color: Colors.black87, size: 24),
+                      const SizedBox(width: 8),
+                      // Gradient 'Sign Up' title
+                      ShaderMask(
+                        shaderCallback: (Rect bounds) {
+                          return LinearGradient(
+                            colors: [
+                              Color(0xFF7AD0CB), // light teal
+                              Color(0xFFFF6F1A), // orange
+                            ],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ).createShader(bounds);
+                        },
+                        child: const Text(
                           'Sign Up',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 32,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Colors.white, // This will be masked by the gradient
                           ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildInputField(
-                                  controller: _firstNameController,
-                                  hintText: 'First Name',
-                                ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildInputField(
+                                controller: _firstNameController,
+                                hintText: 'First Name',
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _buildInputField(
-                                  controller: _lastNameController,
-                                  hintText: 'Last Name',
-                                ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _buildInputField(
+                                controller: _lastNameController,
+                                hintText: 'Last Name',
                               ),
-                            ],
-                          ),
-                          _buildInputField(
-                            controller: _dobController,
-                            hintText: 'Date of Birth',
-                            readOnly: true,
-                            onTap: _selectDate,
-                          ),
-                          _buildInputField(
-                            controller: _phoneController,
-                            hintText: 'Phone Number',
-                            keyboardType: TextInputType.phone,
-                          ),
-                          _buildDropdown<String>(
-                            hint: 'Select Country',
-                            items: _countries,
-                            value: _selectedCountry,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedCountry = value;
-                              });
-                            },
-                          ),
-                          _buildDropdown<String>(
-                            hint: 'Select Job',
-                            items: _jobs,
-                            value: _selectedJob,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedJob = value;
-                              });
-                            },
-                          ),
-                          if (_selectedJob == 'Other') ...[
-                            _buildInputField(
-                              controller: _otherJobController,
-                              hintText: 'Specify Your Job',
                             ),
                           ],
+                        ),
+                        _buildInputField(
+                          controller: _dobController,
+                          hintText: 'Date of Birth',
+                          readOnly: true,
+                          onTap: _selectDate,
+                        ),
+                        _buildInputField(
+                          controller: _phoneController,
+                          hintText: 'Phone Number',
+                          keyboardType: TextInputType.phone,
+                        ),
+                        _buildDropdown<String>(
+                          hint: 'Select Country',
+                          items: _countries,
+                          value: _selectedCountry,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedCountry = value;
+                            });
+                          },
+                        ),
+                        _buildDropdown<String>(
+                          hint: 'Select Job',
+                          items: _jobs,
+                          value: _selectedJob,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedJob = value;
+                            });
+                          },
+                        ),
+                        if (_selectedJob == 'Other') ...[
                           _buildInputField(
-                            controller: _emailController,
-                            hintText: 'Email',
-                            keyboardType: TextInputType.emailAddress,
+                            controller: _otherJobController,
+                            hintText: 'Specify Your Job',
                           ),
-                          _buildInputField(
-                            controller: _passwordController,
-                            hintText: 'Password',
-                            obscureText: true,
+                        ],
+                        _buildInputField(
+                          controller: _emailController,
+                          hintText: 'Email',
+                          keyboardType: TextInputType.emailAddress,
+                        ),
+                        _buildInputField(
+                          controller: _passwordController,
+                          hintText: 'Password',
+                          obscureText: true,
+                        ),
+                        _buildInputField(
+                          controller: _confirmPasswordController,
+                          hintText: 'Confirm Password',
+                          obscureText: true,
+                        ),
+                        const SizedBox(height: 20),
+                        // Gradient sign up button
+                        Container(
+                          width: double.infinity,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF7AD0CB), // light teal
+                                Color(0xFFFF6F1A), // orange
+                              ],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
                           ),
-                          _buildInputField(
-                            controller: _confirmPasswordController,
-                            hintText: 'Confirm Password',
-                            obscureText: true,
-                          ),
-                          const SizedBox(height: 20),
-                          ElevatedButton(
+                          child: ElevatedButton(
                             onPressed: _handleSignUp,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue[700],
-                              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              padding: EdgeInsets.zero,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(30),
                               ),
                             ),
                             child: const Text(
                               'SIGN UP',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 16,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 18),
-                    GestureDetector(
-                      onTap: () {
+                  ),
+                  const SizedBox(height: 18),
+                  // Already have an account section as a large button with gradient background
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF7AD0CB), // light teal
+                          Color(0xFFFF6F1A), // orange
+                        ],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () {
                         Navigator.pushNamed(context, '/login');
                       },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10.0),
-                        child: RichText(
-                          text: const TextSpan(
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.blue,
-                              fontFamily: 'Arial', // Change to your desired font
-                            ),
-                            children: <TextSpan>[
-                              TextSpan(text: 'Already have an Account? Sign In'),
-                            ],
-                          ),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        elevation: 0,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text(
+                        'Already have an Account? Sign In',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                          fontFamily: 'Montserrat',
+                          letterSpacing: 1.1,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -422,4 +505,23 @@ class _SignUpScreenState extends State<SignUpScreen>
       ),
     );
   }
+}
+
+class _DotPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color.fromARGB(18, 255, 255, 255)
+      ..style = PaintingStyle.fill;
+    const double spacing = 32;
+    const double radius = 2.2;
+    for (double y = 0; y < size.height; y += spacing) {
+      for (double x = 0; x < size.width; x += spacing) {
+        canvas.drawCircle(Offset(x, y), radius, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
