@@ -78,6 +78,123 @@ class PropertyCard extends StatelessWidget {
               ],
             ),
           ),
+          // Amenities Section
+          if (property.amenities != null && property.amenities!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Amenities",
+                    style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 12.0,
+                    runSpacing: 8.0,
+                    children: property.amenities!.map((amenity) {
+                      IconData iconData = Icons.category; // Default icon
+                      switch (amenity.toLowerCase()) {
+                        case 'clubhouse':
+                          iconData = Icons.golf_course;
+                          break;
+                        case 'schools':
+                          iconData = Icons.school;
+                          break;
+                        case 'business hub':
+                          iconData = Icons.business_center;
+                          break;
+                        case 'sports clubs':
+                          iconData = Icons.sports_baseball;
+                          break;
+                        case 'mosque':
+                          iconData = Icons.mosque;
+                          break;
+                        case 'disability support':
+                          iconData = Icons.accessible;
+                          break;
+                         case 'bicycles lanes':
+                          iconData = Icons.directions_bike;
+                          break;
+                         case 'pool':
+                          iconData = Icons.pool;
+                          break;
+                        case 'gym':
+                          iconData = Icons.fitness_center;
+                          break;
+                        case 'parking':
+                          iconData = Icons.local_parking;
+                          break;
+                        case 'balcony':
+                          iconData = Icons.balcony;
+                          break;
+                        case 'garden':
+                          iconData = Icons.local_florist;
+                          break;
+                        case 'fireplace':
+                          iconData = Icons.fireplace;
+                          break;
+                        case 'elevator':
+                          iconData = Icons.elevator;
+                          break;
+                        case 'storage':
+                          iconData = Icons.storage;
+                          break;
+                        case 'dishwasher':
+                          iconData = Icons.kitchen;
+                          break;
+                        case 'hardwood':
+                          iconData = Icons.texture;
+                          break;
+                        case 'security':
+                          iconData = Icons.security;
+                          break;
+                        case 'concierge':
+                          iconData = Icons.room_service;
+                          break;
+                        case 'doorman':
+                          iconData = Icons.vpn_key;
+                          break;
+                        case 'sauna':
+                          iconData = Icons.hot_tub;
+                          break;
+                        case 'spa':
+                          iconData = Icons.spa;
+                          break;
+                        case 'playground':
+                          iconData = Icons.child_friendly;
+                          break;
+                        case 'rooftop':
+                          iconData = Icons.roofing;
+                          break;
+                        case 'garage':
+                          iconData = Icons.garage;
+                          break;
+                        case 'wifi':
+                          iconData = Icons.wifi;
+                          break;
+                        case 'laundry':
+                          iconData = Icons.local_laundry_service;
+                          break;
+                        // Add more cases for other amenities
+                      }
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(iconData, size: 20, color: theme.colorScheme.primary),
+                          const SizedBox(width: 4),
+                          Text(
+                            amenity,
+                            style: textTheme.bodyMedium,
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );

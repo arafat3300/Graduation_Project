@@ -331,7 +331,7 @@ class PropertyController {
 
       final results = await _connection!.query('''
                 SELECT * FROM real_estate_property
-                WHERE status = 'approved'
+                WHERE status = 'rr'
                 ''');
 
       return results

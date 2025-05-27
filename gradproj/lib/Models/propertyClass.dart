@@ -19,6 +19,7 @@ late double ?downPayment;
 late int ?installmentYears;
 late int ?deliveryIn;
 late String ?finishing;
+late List<String>? amenities;
 
   Property({
    required this.id,
@@ -40,7 +41,8 @@ late String ?finishing;
      this.downPayment,
      this.installmentYears,
      this.deliveryIn,
-     this.finishing
+     this.finishing,
+     this.amenities,
   });
 
 factory Property.fromJson(Map<String, dynamic> json) {
@@ -79,6 +81,7 @@ factory Property.fromJson(Map<String, dynamic> json) {
             : int.tryParse(json['delivery_in'].toString()))
         : null,
     finishing: json['finishing'] != null ? json['finishing'] as String : "unknown",
+    amenities: json['amenities'] != null ? List<String>.from(json['amenities']) : null,
   );
 }
 
@@ -99,7 +102,8 @@ Map<String, dynamic> toJson() {
     'img_url': imgUrl,
     'user_id':userId,
     'id':id,
-    'sale_rent' :sale_rent
+    'sale_rent' :sale_rent,
+    'amenities': amenities,
   };
 }
 String test = 't';

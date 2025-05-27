@@ -29,7 +29,7 @@ class CustomProfanityFilter extends ProfanityFilter {
     'شراميط', 'شراميط', 'قحاب', 'عاهرات', 'زناة',
     'كلاب', 'كلبات', 'شراميط', 'شراميط', 'قحاب',
     'وسخ', 'زبالة', 'وساخ', 'زبال', 'وسخة', 'زبالة',
-    
+
     // Variations with different spellings
     'عاهره', 'عاهرات', 'عاهره', 'عاهرات', 'عاهره', 'عاهرات',
     'كلبه', 'كلبات', 'كلبه', 'كلبات', 'كلبه', 'كلبات',
@@ -37,7 +37,7 @@ class CustomProfanityFilter extends ProfanityFilter {
     'شرموطه', 'شراميط', 'شرموطه', 'شراميط', 'شرموطه', 'شراميط',
     'قحبه', 'قحاب', 'قحبه', 'قحاب', 'قحبه', 'قحاب',
     'وسخه', 'زباله', 'وساخه', 'زباله', 'وسخة', 'زبالة',
-    
+
     // Common variations
     'عاهرين', 'عاهرات', 'عاهرين', 'عاهرات', 'عاهرين', 'عاهرات',
     'كلابين', 'كلبات', 'كلابين', 'كلبات', 'كلابين', 'كلبات',
@@ -45,7 +45,7 @@ class CustomProfanityFilter extends ProfanityFilter {
     'شراميطين', 'شراميط', 'شراميطين', 'شراميط', 'شراميطين', 'شراميط',
     'قحابين', 'قحاب', 'قحابين', 'قحاب', 'قحابين', 'قحاب',
     'وساخين', 'زبالين', 'وساخين', 'زبالين', 'وساخين', 'زبالين',
-    
+
     // Additional forms
     'عاهرون', 'عاهرات', 'عاهرون', 'عاهرات', 'عاهرون', 'عاهرات',
     'كلابون', 'كلبات', 'كلابون', 'كلبات', 'كلابون', 'كلبات',
@@ -53,13 +53,13 @@ class CustomProfanityFilter extends ProfanityFilter {
     'شراميطون', 'شراميط', 'شراميطون', 'شراميط', 'شراميطون', 'شراميط',
     'قحابون', 'قحاب', 'قحابون', 'قحاب', 'قحابون', 'قحاب',
     'وساخون', 'زبالون', 'وساخون', 'زبالون', 'وساخون', 'زبالون',
-    
+
     // Common combinations
     'ابن العاهرة', 'بنت العاهرة', 'ابن الكلب', 'بنت الكلب',
     'ابن الزاني', 'بنت الزانية', 'ابن الشرموط', 'بنت الشرموطة',
     'ابن القحبة', 'بنت القحبة', 'ابن العاهر', 'بنت العاهرة',
     'ابن الوسخ', 'بنت الوسخ', 'ابن الزبالة', 'بنت الزبالة',
-    
+
     // Additional variations
     'عاهرين', 'عاهرات', 'عاهرين', 'عاهرات', 'عاهرين', 'عاهرات',
     'كلابين', 'كلبات', 'كلابين', 'كلبات', 'كلابين', 'كلبات',
@@ -73,11 +73,9 @@ class CustomProfanityFilter extends ProfanityFilter {
   bool hasProfanity(String text) {
     // Check both English and Arabic profanity
     final hasEnglishProfanity = super.hasProfanity(text);
-    final hasArabicProfanity = arabicProfanityWords.any((word) => 
-      text.toLowerCase().contains(word.toLowerCase()) ||
-      text.contains(word)
-    );
-    
+    final hasArabicProfanity = arabicProfanityWords.any((word) =>
+        text.toLowerCase().contains(word.toLowerCase()) || text.contains(word));
+
     return hasEnglishProfanity || hasArabicProfanity;
   }
 
@@ -87,10 +85,8 @@ class CustomProfanityFilter extends ProfanityFilter {
     // Censor Arabic profanity
     for (var word in arabicProfanityWords) {
       final pattern = RegExp(word, caseSensitive: false);
-      censoredText = censoredText.replaceAll(
-        pattern,
-        (replaceWith ?? '*') * word.length
-      );
+      censoredText =
+          censoredText.replaceAll(pattern, (replaceWith ?? '*') * word.length);
     }
     return censoredText;
   }
@@ -214,7 +210,7 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
     if (!_formKey.currentState!.validate()) return;
 
     final feedbackText = _feedbackController.text.trim();
-    
+
     // Check for profanity
     if (_profanityFilter.hasProfanity(feedbackText)) {
       // Show warning dialog
@@ -224,7 +220,8 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text('Inappropriate Language Detected'),
-              content: const Text('Your feedback contains inappropriate language. Would you like to:\n\n1. Edit your feedback\n2. Cancel submission'),
+              content: const Text(
+                  'Your feedback contains inappropriate language. Would you like to:\n\n1. Edit your feedback\n2. Cancel submission'),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -388,14 +385,112 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
         ref.watch(favouritesProvider).any((p) => p.id == property.id);
     final theme = Theme.of(context);
 
+    // Helper for amenities icons (copied from RecommendationCard.dart)
+    IconData getAmenityIcon(String amenity) {
+      switch (amenity.toLowerCase()) {
+        case 'clubhouse':
+          return Icons.golf_course;
+        case 'schools':
+          return Icons.school;
+        case 'business hub':
+          return Icons.business_center;
+        case 'sports clubs':
+          return Icons.sports_baseball;
+        case 'mosque':
+          return Icons.mosque;
+        case 'disability support':
+          return Icons.accessible;
+        case 'bicycles lanes':
+          return Icons.directions_bike;
+        case 'pool':
+          return Icons.pool;
+        case 'gym':
+          return Icons.fitness_center;
+        case 'parking':
+          return Icons.local_parking;
+        case 'balcony':
+          return Icons.balcony;
+        case 'garden':
+          return Icons.local_florist;
+        case 'fireplace':
+          return Icons.fireplace;
+        case 'elevator':
+          return Icons.elevator;
+        case 'storage':
+          return Icons.storage;
+        case 'dishwasher':
+          return Icons.kitchen;
+        case 'hardwood':
+          return Icons.texture;
+        case 'security':
+          return Icons.security;
+        case 'concierge':
+          return Icons.room_service;
+        case 'doorman':
+          return Icons.vpn_key;
+        case 'sauna':
+          return Icons.hot_tub;
+        case 'spa':
+          return Icons.spa;
+        case 'playground':
+          return Icons.child_friendly;
+        case 'rooftop':
+          return Icons.roofing;
+        case 'garage':
+          return Icons.garage;
+        case 'wifi':
+          return Icons.wifi;
+        case 'laundry':
+          return Icons.local_laundry_service;
+        default:
+          return Icons.category;
+      }
+    }
+
+    Widget infoRow(String label, String value) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2.0),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 120,
+              child: Text(
+                label,
+                style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold,fontSize: 14),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                value,
+                style: theme.textTheme.bodyMedium?.copyWith(fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget sectionHeader(String title) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4.0, top: 12.0),
+        child: Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: ShaderMask(
           shaderCallback: (Rect bounds) {
             return LinearGradient(
               colors: [
-                Color(0xFF7AD0CB), // teal
-                Color(0xFFFF6F1A), // orange
+               Color.fromARGB(255, 8, 145, 236),
+                                                 Color.fromARGB(255, 2, 48, 79),  // orange with opacity
               ],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
@@ -465,398 +560,353 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
                     ),
                   ),
                 ),
-             Padding(
-  padding: const EdgeInsets.all(16.0),
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        children: [
-          Icon(Icons.category, color: Colors.black), // Icon for property type
-          const SizedBox(width: 8),
-          Text(
-            property.type,
-            style: theme.textTheme.headlineMedium?.copyWith(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 12),
-      Row(
-        children: [
-          Icon(Icons.attach_money, color: Colors.blue[700]), // Icon for price
-          const SizedBox(width: 8),
-          Text(
-            "Price: \$${property.price}",
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: Color.fromARGB(255, 8, 145, 236),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 12),
-      Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              spreadRadius: 2,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
+              // NEW LAYOUT STARTS HERE
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info, color: Colors.black), // Icon for ID
-                    const SizedBox(width: 8),
-                    Text("ID: ${property.id}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Icon(Icons.bed, color: Colors.black), // Icon for bedrooms
-                    const SizedBox(width: 8),
-                    Text("Bedrooms: ${property.bedrooms}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.bathtub, color: Colors.black), // Icon for bathrooms
-                    const SizedBox(width: 8),
-                    Text("Bathrooms: ${property.bathrooms}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Icon(Icons.square_foot, color: Colors.black), // Icon for area
-                    const SizedBox(width: 8),
-                    Text("Area: ${property.area} m²", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.home, color: Colors.black), // Icon for furnished
-                    const SizedBox(width: 8),
-                    Text("Furnished: ${property.furnished}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
-                  ],
-                ),
-                if (property.level != null) 
-                  Row(
-                    children: [
-                      Icon(Icons.arrow_upward, color: Colors.black), // Icon for level
-                      const SizedBox(width: 8),
-                      Text("Level: ${property.level}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
-                    ],
-                  ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.location_city, color: Colors.black), // Icon for city
-                    const SizedBox(width: 8),
-                    Text("City: ${property.city}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
-                  ],
-                ),
-                if (property.compound != null && property.compound!.isNotEmpty)
-                  Row(
-                    children: [
-                      Icon(Icons.apartment, color: Colors.black), // Icon for compound
-                      const SizedBox(width: 8),
-                      Text("Compound: ${property.compound}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
-                    ],
-                  ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.payment, color: Colors.black), // Icon for payment option
-                    const SizedBox(width: 8),
-                    Text("Payment Option: ${property.paymentOption}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Icon(Icons.sell, color: Colors.black), // Icon for sale/rent
-                    const SizedBox(width: 8),
-                    Text("For: ${property.sale_rent}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
-                  ],
-                ),
-              ],
-            ),
-            if (property.sale_rent == "sale") ...[
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.payments, color: Colors.black), // Icon for down payment
-                      const SizedBox(width: 8),
-                      Text("Down Payment: ${property.downPayment?.toStringAsFixed(1)}%", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_today, color: Colors.black), // Icon for installment years
-                      const SizedBox(width: 8),
-                      Text("Installment Years: ${property.installmentYears ?? 'N/A'}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.event, color: Colors.black), // Icon for delivery year
-                      const SizedBox(width: 8),
-                      Text("Delivery Year: ${property.deliveryIn ?? 'N/A'}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Icon(Icons.home_work, color: Colors.black), // Icon for finishing
-                      const SizedBox(width: 8),
-                      Text("Finishing: ${property.finishing ?? 'N/A'}", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.black)),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-      const SizedBox(height: 16),
-      const SizedBox(height: 12), // Moved outside the .map() operation
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF7AD0CB), // teal
-                  Color(0xFFFF6F1A), // orange
-                ],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-              borderRadius: BorderRadius.circular(25),
-            ),
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                if (isFavorite) {
-                  await favouritesNotifier.removeProperty(property);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("${property.type} removed from favorites"),
-                      action: SnackBarAction(
-                        label: 'Manage Favorites',
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/favourites');
-                        },
+                    // Property type and Add to Favorites button in a row
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            property.type,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 28,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Color.fromARGB(255, 8, 145, 236),
+                                Color.fromARGB(255, 2, 48, 79),
+                              ],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              if (isFavorite) {
+                                await favouritesNotifier.removeProperty(property);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("${property.type} removed from favorites"),
+                                    action: SnackBarAction(
+                                      label: 'Manage Favorites',
+                                      onPressed: () {
+                                        Navigator.pushNamed(context, '/favourites');
+                                      },
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                await favouritesNotifier.addProperty(property);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("${property.type} added to favorites"),
+                                    action: SnackBarAction(
+                                      label: 'Manage Favorites',
+                                      onPressed: () {
+                                        Navigator.pushNamed(context, '/favourites');
+                                      },
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            icon: Icon(
+                              isFavorite ? Icons.favorite : Icons.favorite_border,
+                              color: Colors.white,
+                            ),
+                            label: Text(isFavorite ? "Remove from Favorites" : "Add to Favorites"),
+                            style: ElevatedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                              backgroundColor: Colors.transparent,
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Row: Bedrooms, Bathrooms, Area with labels under icons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Column(
+                          children: [
+                            Icon(Icons.bed, color: Colors.blueGrey[700], size: 32),
+                            const SizedBox(height: 2),
+                            Text('${property.bedrooms}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                            Text('Bedrooms', style: TextStyle(fontSize: 14)),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            Icon(Icons.bathtub, color: Colors.blueGrey[700], size: 32),
+                            const SizedBox(height: 2),
+                            Text('${property.bathrooms}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                            Text('Bathrooms', style: TextStyle(fontSize: 14)),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            Icon(Icons.square_foot, color: Colors.blueGrey[700], size: 32),
+                            const SizedBox(height: 2),
+                            Text('${property.area} m²', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                            Text('Area', style: TextStyle(fontSize: 14)),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    // Main Info Section
+                    Card(
+                      color: Colors.white,
+                      elevation: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Main Info', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.blueGrey[900])),
+                            const SizedBox(height: 8),
+                            infoRow('ID', property.id.toString()),
+                            infoRow('Price', '${property.price} EGP'),
+                            infoRow('Type', property.type),
+                            infoRow('For', property.sale_rent),
+                          ],
+                        ),
                       ),
                     ),
-                  );
-                } else {
-                  await favouritesNotifier.addProperty(property);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("${property.type} added to favorites"),
-                      action: SnackBarAction(
-                        label: 'Manage Favorites',
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/favourites');
-                        },
+                    // Property Details Section
+                    Card(
+                      color: Color.fromARGB(255, 255, 255, 255),
+                      elevation: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Property Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.blueGrey[900])),
+                            const SizedBox(height: 8),
+                            infoRow('City', property.city),
+                            infoRow('Compound', property.compound ?? 'N/A'),
+                            infoRow('Finishing', property.finishing ?? 'N/A'),
+                            infoRow('Furnished', property.furnished),
+                          ],
+                        ),
                       ),
                     ),
-                  );
-                }
-              },
-              icon: Icon(
-                  isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: Colors.white),
-              label: Text(
-                  isFavorite ? "Remove from Favorites" : "Add to Favorites"),
-              style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF7AD0CB), // teal
-                  Color(0xFFFF6F1A), // orange
-                ],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-              borderRadius: BorderRadius.circular(25),
-            ),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                _createLead();
-              },
-              icon: const Icon(Icons.phone, color: Colors.white),
-              label: const Text("Contact Seller"),
-              style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ],
-  ),
-),
-Padding(
-  padding: const EdgeInsets.all(16.0),
-  child: Form(
-    key: _formKey,
-    child: Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFF7AD0CB).withOpacity(0.1), // teal with opacity
-            Color(0xFFFF6F1A).withOpacity(0.1), // orange with opacity
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      padding: EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Add Feedback",
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: _feedbackController,
-            decoration: InputDecoration(
-              hintText: "Enter your feedback",
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: BorderSide(
-                  width: 2,
-                  color: Color(0xFF7AD0CB),
+                    // Payment Plan Section (now same color as Main Info)
+                    Card(
+                      color: Colors.white,
+                      elevation: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Payment Plan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.black)),
+                            const SizedBox(height: 8),
+                            infoRow('Payment Option', property.paymentOption),
+                            infoRow('Down Payment', property.downPayment != null ? '${property.downPayment!.toStringAsFixed(1)}%' : 'N/A'),
+                            infoRow('Installment Years', property.installmentYears?.toString() ?? 'N/A'),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Amenities Section (now same color as Property Details)
+                    if (property.amenities != null && property.amenities!.isNotEmpty) ...[
+                      Card(
+                        color: Color.fromARGB(255, 255, 255, 255),
+                        elevation: 2,
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Amenities', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.blue)),
+                              const SizedBox(height: 6),
+                              GridView.count(
+                                crossAxisCount: 2,
+                                shrinkWrap: true,
+                                physics: NeverScrollableScrollPhysics(),
+                                childAspectRatio: 9.0, // Decreased vertical space by 40%
+                                mainAxisSpacing: 1,
+                                crossAxisSpacing: 8,
+                                children: property.amenities!.map((amenity) {
+                                  return Row(
+                                    children: [
+                                      Icon(getAmenityIcon(amenity), size: 24, color: Color.fromARGB(255, 8, 145, 236)),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          amenity,
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: BorderSide(
-                  width: 2,
-                  color: Color(0xFF7AD0CB),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: BorderSide(
-                  width: 2,
-                  color: Color(0xFFFF6F1A),
-                ),
-              ),
-              alignLabelWithHint: true,
-            ),
-            maxLines: 3,
-            keyboardType: TextInputType.text,
-            textDirection: TextDirection.ltr,
-            textAlign: TextAlign.start,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your feedback';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF7AD0CB), // teal
-                  Color(0xFFFF6F1A), // orange
-                ],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-              borderRadius: BorderRadius.circular(25),
-            ),
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _submitFeedback,
-              child: Text(_isLoading ? "Submitting..." : "Submit Feedback", style: TextStyle(fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  ),
-),
 
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  padding: EdgeInsets.all(16),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Add Feedback",
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _feedbackController,
+                          decoration: InputDecoration(
+                            hintText: "Enter your feedback",
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                              borderSide: BorderSide(
+                                width: 2,
+                                color: Color.fromARGB(255, 2, 48, 79),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                              borderSide: BorderSide(
+                                width: 2,
+                                color: Color.fromARGB(255, 2, 48, 79),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                              borderSide: BorderSide(
+                                width: 2,
+                                color: Color(0xFFFF6F1A),
+                              ),
+                            ),
+                            alignLabelWithHint: true,
+                          ),
+                          maxLines: 3,
+                          keyboardType: TextInputType.text,
+                          textDirection: TextDirection.ltr,
+                          textAlign: TextAlign.start,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your feedback';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Color.fromARGB(255, 8, 145, 236),
+                                Color.fromARGB(255, 2, 48, 79),
+                              ],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _submitFeedback,
+                              child: Text(
+                                  _isLoading ? "Submitting..." : "Submit Feedback",
+                                  style: TextStyle(fontWeight: FontWeight.bold)),
+                              style: ElevatedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                backgroundColor: Colors.transparent,
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.center,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Color.fromARGB(255, 8, 145, 236),
+                                  Color.fromARGB(255, 2, 48, 79),
+                                ],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            child: ElevatedButton.icon(
+                              onPressed: _createLead,
+                              icon: const Icon(Icons.phone, color: Colors.white),
+                              label: const Text("Contact Seller"),
+                              style: ElevatedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                backgroundColor: Colors.transparent,
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               if (_feedbacks.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -889,125 +939,9 @@ Padding(
               else
                 Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Text("No feedback available for this property.", style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text("No feedback available for this property.",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Color(0xFF7AD0CB).withOpacity(0.1), // teal with opacity
-                        Color(0xFFFF6F1A).withOpacity(0.1), // orange with opacity
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Chat:',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (_messages.isNotEmpty)
-                        Container(
-                          height: 300,
-                          child: ListView.builder(
-                            reverse: true,
-                            itemCount: _messages.length,
-                            itemBuilder: (context, index) {
-                              final message = _messages[index];
-                              final isMe = message.senderId == singletonSession().userId;
-                              return Align(
-                                alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: isMe ? theme.colorScheme.primary : Colors.grey[300],
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    message.content,
-                                    style: TextStyle(
-                                      color: isMe ? Colors.white : Colors.black,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        )
-                      else
-                        const Center(child: Text('No messages yet. Start a conversation!', style: TextStyle(fontWeight: FontWeight.bold))),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _messageController,
-                              decoration: InputDecoration(
-                                hintText: 'Type your message...',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                  borderSide: BorderSide(
-                                    width: 2,
-                                    color: Color(0xFF7AD0CB),
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                  borderSide: BorderSide(
-                                    width: 2,
-                                    color: Color(0xFF7AD0CB),
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                  borderSide: BorderSide(
-                                    width: 2,
-                                    color: Color(0xFFFF6F1A),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _isSending
-                              ? const CircularProgressIndicator()
-                              : Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Color(0xFF7AD0CB), // teal
-                                        Color(0xFFFF6F1A), // orange
-                                      ],
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(25),
-                                  ),
-                                  child: IconButton(
-                                    icon: const Icon(Icons.send, color: Colors.white),
-                                    onPressed: _sendMessage,
-                                  ),
-                                ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
         ),
