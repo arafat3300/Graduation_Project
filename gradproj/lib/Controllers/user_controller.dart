@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:async';  // Add this import for TimeoutException
+import 'dart:async'; // Add this import for TimeoutException
 
 import 'package:flutter/material.dart';
 import 'package:gradproj/Models/singletonSession.dart';
@@ -18,7 +18,7 @@ class UserController {
   final Uuid _uuid = const Uuid();
   PostgreSQLConnection? _connection;
   bool _isConnected = false;
-  
+
   static const String tokenKey = 'token';
   static const String _jwtSecret = 'samirencryption';
 
@@ -36,13 +36,11 @@ class UserController {
       debugPrint('Error connecting to PostgreSQL: $e');
     }
   }
-  
 
   bool _isUUID(String token) {
     final uuidPattern = RegExp(
-      r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-      caseSensitive: false
-    );
+        r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+        caseSensitive: false);
     return uuidPattern.hasMatch(token);
   }
 
@@ -72,10 +70,9 @@ class UserController {
   }
 
   Future<local.User?> getUserById(String userId) async {
-
     try {
       if (!_isConnected) await _initializeConnection();
-      
+
       final results = await _connection!.query(
         '''
         SELECT * FROM users_users 
@@ -91,21 +88,20 @@ class UserController {
 
       final userData = results.first.toColumnMap();
       return local.User(
-        idd: userData['idd']?.toString(),
-        firstName: userData['firstname'] ?? '',
-        lastName: userData['lastname'] ?? '',
-        dob: userData['dob'] ?? '',
-        phone: userData['phone'] ?? '',
-        country: userData['country'] ?? '',
-        job: userData['job'] ?? '',
-        email: userData['email'] ?? '',
-        password: '', // Never retrieve password
-        token: '', // No token needed for ID-based lookup
-        role: userData['role'] ?? '2',
-        createdAt: userData['created_at'] != null 
-            ? DateTime.parse(userData['created_at'].toString())
-            : DateTime.now()
-      );
+          idd: userData['idd']?.toString(),
+          firstName: userData['firstname'] ?? '',
+          lastName: userData['lastname'] ?? '',
+          dob: userData['dob'] ?? '',
+          phone: userData['phone'] ?? '',
+          country: userData['country'] ?? '',
+          job: userData['job'] ?? '',
+          email: userData['email'] ?? '',
+          password: '', // Never retrieve password
+          token: '', // No token needed for ID-based lookup
+          role: userData['role'] ?? '2',
+          createdAt: userData['created_at'] != null
+              ? DateTime.parse(userData['created_at'].toString())
+              : DateTime.now());
     } catch (e) {
       debugPrint("Error fetching user by ID: $e");
       return null;
@@ -115,7 +111,7 @@ class UserController {
   Future<local.User?> getUserByToken(String token) async {
     try {
       if (!_isConnected) await _initializeConnection();
-      
+
       final results = await _connection!.query(
         '''
         SELECT * FROM users_users 
@@ -133,22 +129,21 @@ class UserController {
 
       final userData = results.first.toColumnMap();
       return local.User(
-        idd: userData['idd']?.toString(),
-        id: userData['id'] as int,
-        firstName: userData['firstname'] ?? '',
-        lastName: userData['lastname'] ?? '',
-        dob: userData['dob'] ?? '',
-        phone: userData['phone'] ?? '',
-        country: userData['country'] ?? '',
-        job: userData['job'] ?? '',
-        email: userData['email'] ?? '',
-        password: '', // Never retrieve password
-        token: token,
-        role: userData['role'] ?? '2',
-        createdAt: userData['created_at'] != null 
-            ? DateTime.parse(userData['created_at'].toString())
-            : DateTime.now()
-      );
+          idd: userData['idd']?.toString(),
+          id: userData['id'] as int,
+          firstName: userData['firstname'] ?? '',
+          lastName: userData['lastname'] ?? '',
+          dob: userData['dob'] ?? '',
+          phone: userData['phone'] ?? '',
+          country: userData['country'] ?? '',
+          job: userData['job'] ?? '',
+          email: userData['email'] ?? '',
+          password: '', // Never retrieve password
+          token: token,
+          role: userData['role'] ?? '2',
+          createdAt: userData['created_at'] != null
+              ? DateTime.parse(userData['created_at'].toString())
+              : DateTime.now());
     } catch (e) {
       debugPrint("Error fetching user: $e");
       return null;
@@ -165,17 +160,17 @@ class UserController {
       return null;
     }
   }
-  
 
   bool isTokenValid(String token) {
     if (_isUUID(token)) {
-      return true; 
+      return true;
     }
-    
+
     try {
       final jwt = JWT.verify(token, SecretKey(_jwtSecret));
       if (jwt.payload.containsKey('exp')) {
-        final expiration = DateTime.fromMillisecondsSinceEpoch(jwt.payload['exp'] * 1000);
+        final expiration =
+            DateTime.fromMillisecondsSinceEpoch(jwt.payload['exp'] * 1000);
         return DateTime.now().isBefore(expiration);
       }
       return false;
@@ -246,7 +241,7 @@ class UserController {
     try {
       final token = await getSessionToken();
       if (token == null) return false;
-      
+
       if (!isTokenValid(token)) {
         await clearSessionToken();
         return false;
@@ -269,7 +264,7 @@ class UserController {
       }
 
       if (!_isConnected) await _initializeConnection();
-      
+
       final results = await _connection!.query(
         '''
         SELECT * FROM real_estate_property
@@ -278,7 +273,9 @@ class UserController {
         substitutionValues: {'userId': userId},
       );
 
-      return results.map((row) => Property.fromJson(row.toColumnMap())).toList();
+      return results
+          .map((row) => Property.fromJson(row.toColumnMap()))
+          .toList();
     } catch (e) {
       debugPrint("Exception fetching user listings: $e");
       return [];
@@ -296,14 +293,14 @@ class UserController {
   Future<List<Map<String, dynamic>>> fetchRecommendationsRaw(int userId) async {
     const String dbHost = DatabaseConfig.host;
     const String apiUrl = 'http://10.0.2.2:8010/recommendations/';
-        // const String apiUrl = 'http://$dbHost:8080/recommendations/';
+    // const String apiUrl = 'http://$dbHost:8080/recommendations/';
 
     final Uri url = Uri.parse(apiUrl);
 
     try {
       // First check if user has favorites
       if (!_isConnected) await _initializeConnection();
-      
+
       final favoritesResult = await _connection!.query(
         '''
         SELECT COUNT(*) as favorite_count 
@@ -317,21 +314,25 @@ class UserController {
       debugPrint("User $userId has $favoriteCount favorites");
 
       if (favoriteCount == 0) {
-        debugPrint("No favorites found for user $userId. Skipping content-based recommendations.");
+        debugPrint(
+            "No favorites found for user $userId. Skipping content-based recommendations.");
         return [];
       }
 
       String host = DatabaseConfig.host;
 
       // Add timeout to the HTTP request
-      final response = await http.post(
+      final response = await http
+          .post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'user_id': userId, 'host': host}),
-      ).timeout(
+      )
+          .timeout(
         const Duration(seconds: 8),
         onTimeout: () {
-          debugPrint("Content-based server request timed out. Falling back to database...");
+          debugPrint(
+              "Content-based server request timed out. Falling back to database...");
           throw TimeoutException('Request timed out');
         },
       );
@@ -340,23 +341,28 @@ class UserController {
         debugPrint("Successfully got response from content-based server");
         return await fetchContentBasedRecommendationsFromDB(userId);
       } else {
-        debugPrint("Content-based server returned status code: ${response.statusCode}. Falling back to database...");
+        debugPrint(
+            "Content-based server returned status code: ${response.statusCode}. Falling back to database...");
         return await fetchContentBasedRecommendationsFromDB(userId);
       }
     } on TimeoutException {
-      debugPrint("Content-based server is not responding. Falling back to database...");
+      debugPrint(
+          "Content-based server is not responding. Falling back to database...");
       return await fetchContentBasedRecommendationsFromDB(userId);
     } catch (e) {
-      debugPrint("Error in content-based server request: $e. Falling back to database...");
+      debugPrint(
+          "Error in content-based server request: $e. Falling back to database...");
       return await fetchContentBasedRecommendationsFromDB(userId);
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchContentBasedRecommendationsFromDB(int userId) async {
+  Future<List<Map<String, dynamic>>> fetchContentBasedRecommendationsFromDB(
+      int userId) async {
     try {
       if (!_isConnected) await _initializeConnection();
 
-      debugPrint("Fetching content-based recommendations from database for user: $userId");
+      debugPrint(
+          "Fetching content-based recommendations from database for user: $userId");
 
       // First get the latest content-based recommendation record for the user
       final recommendationResult = await _connection!.query(
@@ -371,7 +377,8 @@ class UserController {
       );
 
       if (recommendationResult.isEmpty) {
-        debugPrint("No content-based recommendations found in database for user: $userId");
+        debugPrint(
+            "No content-based recommendations found in database for user: $userId");
         return [];
       }
 
@@ -389,15 +396,19 @@ class UserController {
         substitutionValues: {'recommendationId': recommendationId},
       );
 
-      final recommendations = detailsResult.map((row) => {
-        "id": row[0],
-        "similarity_score": row[1],
-      }).toList();
+      final recommendations = detailsResult
+          .map((row) => {
+                "id": row[0],
+                "similarity_score": row[1],
+              })
+          .toList();
 
-      debugPrint("Retrieved ${recommendations.length} recommendations from database");
+      debugPrint(
+          "Retrieved ${recommendations.length} recommendations from database");
       return recommendations;
     } catch (e) {
-      debugPrint("Error fetching content-based recommendations from database: $e");
+      debugPrint(
+          "Error fetching content-based recommendations from database: $e");
       return [];
     }
   }
@@ -407,7 +418,8 @@ class UserController {
       debugPrint("[getUserBySessionId] Starting...");
 
       if (!_isConnected) {
-        debugPrint("[getUserBySessionId] Not connected. Initializing connection...");
+        debugPrint(
+            "[getUserBySessionId] Not connected. Initializing connection...");
         await _initializeConnection();
       }
 
@@ -423,7 +435,8 @@ class UserController {
         },
       );
 
-      debugPrint("[getUserBySessionId] Query executed. Rows returned: ${results.length}");
+      debugPrint(
+          "[getUserBySessionId] Query executed. Rows returned: ${results.length}");
 
       if (results.isEmpty) {
         debugPrint("[getUserBySessionId] No user found with id: $userId");
@@ -464,13 +477,14 @@ class UserController {
         password: '', // Never retrieve password
         token: '', // Not needed here
         role: userData['role'] is int
-      ? userData['role']
-      : int.tryParse(userData['role'].toString()) ?? 2,
+            ? userData['role']
+            : int.tryParse(userData['role'].toString()) ?? 2,
 
         createdAt: createdAt,
       );
 
-      debugPrint("[getUserBySessionId] User object created: ${user.firstName}, ${user.email}");
+      debugPrint(
+          "[getUserBySessionId] User object created: ${user.firstName}, ${user.email}");
       return user;
     } catch (e) {
       debugPrint("[getUserBySessionId] Error: $e");
@@ -497,9 +511,9 @@ class UserController {
 
       final dynamic decodedData = jsonDecode(rawData);
       debugPrint("🔍 Decoded raw data type: ${decodedData.runtimeType}");
-      
+
       List<Map<String, dynamic>> recommendations = [];
-      
+
       if (decodedData is List) {
         for (var item in decodedData) {
           if (item is Map<String, dynamic>) {
@@ -510,8 +524,9 @@ class UserController {
         // Handle case where it's a single recommendation
         recommendations.add(decodedData);
       }
-      
-      debugPrint("✅ Successfully parsed ${recommendations.length} raw recommendations");
+
+      debugPrint(
+          "✅ Successfully parsed ${recommendations.length} raw recommendations");
       return recommendations;
     } catch (e) {
       debugPrint("❌ Error fetching raw AI recommendations: $e");
@@ -519,11 +534,13 @@ class UserController {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchFeedbackBasedRecommendationsFromDB(int userId) async {
+  Future<List<Map<String, dynamic>>> fetchFeedbackBasedRecommendationsFromDB(
+      int userId) async {
     try {
       if (!_isConnected) await _initializeConnection();
 
-      debugPrint("🔍 Checking for feedback-based recommendations for user: $userId");
+      debugPrint(
+          "🔍 Checking for feedback-based recommendations for user: $userId");
 
       // First, let's check what recommendation types exist for this user
       final allRecommendationsResult = await _connection!.query(
@@ -554,7 +571,8 @@ class UserController {
       );
 
       if (recommendationResult.isEmpty) {
-        debugPrint("❌ No feedback-based recommendations found in database for user: $userId");
+        debugPrint(
+            "❌ No feedback-based recommendations found in database for user: $userId");
         debugPrint("💡 This could mean:");
         debugPrint("   1. User hasn't submitted any feedback yet");
         debugPrint("   2. Feedback service isn't saving recommendations");
@@ -576,15 +594,19 @@ class UserController {
         substitutionValues: {'recommendationId': recommendationId},
       );
 
-      final recommendations = detailsResult.map((row) => {
-        "id": row[0],
-        "similarity_score": row[1],
-      }).toList();
+      final recommendations = detailsResult
+          .map((row) => {
+                "id": row[0],
+                "similarity_score": row[1],
+              })
+          .toList();
 
-      debugPrint("✅ Retrieved ${recommendations.length} feedback-based recommendations");
+      debugPrint(
+          "✅ Retrieved ${recommendations.length} feedback-based recommendations");
       return recommendations;
     } catch (e) {
-      debugPrint("❌ Error fetching feedback-based recommendations from database: $e");
+      debugPrint(
+          "❌ Error fetching feedback-based recommendations from database: $e");
       return [];
     }
   }
@@ -619,29 +641,34 @@ class UserController {
       debugPrint("No cluster info found, triggering segmentation service");
       String dbHost = DatabaseConfig.host;
       try {
-        final response = await http.post(
-          Uri.parse('http://10.0.2.2:8012/property-segmentation/'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'user_id': userId,
-            'host': dbHost,
-            'limit': 10,
-            'find_optimal_clusters': false
-          }),
-        ).timeout(const Duration(seconds: 25));
+        final response = await http
+            .post(
+              Uri.parse('http://10.0.2.2:8012/property-segmentation/'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'user_id': userId,
+                'host': dbHost,
+                'limit': 10,
+                'find_optimal_clusters': false
+              }),
+            )
+            .timeout(const Duration(seconds: 25));
 
-        debugPrint("Segmentation service response status: ${response.statusCode}");
+        debugPrint(
+            "Segmentation service response status: ${response.statusCode}");
 
         if (response.statusCode == 200) {
           debugPrint('Successfully triggered segmentation service');
           // Return a status indicating the process is running
           return {
             'status': 'processing',
-            'message': 'User segmentation is being processed. Please check back later.',
+            'message':
+                'User segmentation is being processed. Please check back later.',
             'cluster_id': null,
           };
         } else {
-          debugPrint('Segmentation service returned error: ${response.statusCode}');
+          debugPrint(
+              'Segmentation service returned error: ${response.statusCode}');
           return {
             'status': 'error',
             'message': 'Failed to start user segmentation process.',
@@ -667,27 +694,29 @@ class UserController {
   }
 
   // Add a method to poll for cluster info updates
-  Future<Map<String, dynamic>?> pollForClusterInfo(int userId, {int maxAttempts = 5}) async {
+  Future<Map<String, dynamic>?> pollForClusterInfo(int userId,
+      {int maxAttempts = 5}) async {
     for (int attempt = 1; attempt <= maxAttempts; attempt++) {
       debugPrint("Polling attempt $attempt for user $userId");
-      
+
       final clusterInfo = await getUserClusterInfo(userId);
-      
+
       if (clusterInfo != null && clusterInfo['cluster_id'] != null) {
         debugPrint("Cluster info found on attempt $attempt");
         return clusterInfo;
       }
-      
+
       if (attempt < maxAttempts) {
         debugPrint("Waiting 10 seconds before next attempt...");
         await Future.delayed(const Duration(seconds: 10));
       }
     }
-    
+
     debugPrint("No cluster info found after $maxAttempts attempts");
     return {
       'status': 'timeout',
-      'message': 'User segmentation is still processing. Please try again later.',
+      'message':
+          'User segmentation is still processing. Please try again later.',
       'cluster_id': null,
     };
   }

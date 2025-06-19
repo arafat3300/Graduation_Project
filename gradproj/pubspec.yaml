@@ -28,7 +28,7 @@ dependencies:
   uuid: ^4.5.1
   file_picker: ^8.1.6
   permission_handler: ^11.1.0
-  multi_image_picker_plus: ^0.0.6
+  multi_image_picker_plus: ^0.0.7
   image_picker: ^0.8.7+4
   photo_manager: ^3.0.0
   carousel_slider: ^5.0.0

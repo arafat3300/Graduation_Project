@@ -79,20 +79,16 @@ class PropertyController {
     try {
       if (!_isConnected) await _initializeConnection();
 
-      final results = await _connection!.query(
-        'SELECT * FROM real_estate_property WHERE status = @status',
-        substitutionValues: {'status': 'approved'},
-      );
-
-      if (results.isEmpty) {
-        return [];
-      }
+      final results = await _connection!.query('''
+                SELECT * FROM real_estate_property
+                WHERE status = 'approved'
+                ''');
 
       return results
           .map((data) => Property.fromJson(data.toColumnMap()))
           .toList();
     } catch (e) {
-      debugPrint("Error fetching approved properties: $e");
+      debugPrint('Error fetching approved properties: $e');
       return [];
     }
   }
@@ -273,10 +269,9 @@ class PropertyController {
       List<Map<String, dynamic>> recommendedData) async {
     try {
       // Filter out recommendations with null IDs but allow null scores
-      final validRecommendations = recommendedData.where((e) => 
-        e['id'] != null
-      ).toList();
-      
+      final validRecommendations =
+          recommendedData.where((e) => e['id'] != null).toList();
+
       if (validRecommendations.isEmpty) {
         debugPrint("⚠️ No valid recommendations found");
         return [];
@@ -288,7 +283,8 @@ class PropertyController {
           e['id'] as int: (e['similarity_score'] as num?)?.toDouble() ?? 0.0
       };
 
-      debugPrint("✅ Processing ${validRecommendations.length} recommendations (including null scores)");
+      debugPrint(
+          "✅ Processing ${validRecommendations.length} recommendations (including null scores)");
 
       if (!_isConnected) await _initializeConnection();
 
@@ -303,7 +299,8 @@ class PropertyController {
         return property;
       }).toList();
 
-      result.sort((a, b) => (b.similarityScore ?? 0.0).compareTo(a.similarityScore ?? 0.0));
+      result.sort((a, b) =>
+          (b.similarityScore ?? 0.0).compareTo(a.similarityScore ?? 0.0));
       return result;
     } catch (e) {
       debugPrint("Error in fetchPropertiesFromIdsWithScores: $e");
@@ -343,7 +340,7 @@ class PropertyController {
 
       final results = await _connection!.query('''
                 SELECT * FROM real_estate_property
-                WHERE status = 'rr'
+                WHERE status = 'approved'
                 ''');
 
       return results
@@ -441,7 +438,8 @@ class PropertyController {
         return property;
       }).toList();
 
-      result.sort((a, b) => (b.similarityScore ?? 0.0).compareTo(a.similarityScore ?? 0.0));
+      result.sort((a, b) =>
+          (b.similarityScore ?? 0.0).compareTo(a.similarityScore ?? 0.0));
       return result;
     } catch (e) {
       debugPrint("❌ Error in fetchFeedbackBasedRecommendationsSafe: $e");
@@ -470,7 +468,8 @@ class PropertyController {
 
       return results.map((data) {
         final Map<String, dynamic> propertyData = data.toColumnMap();
-        propertyData['cluster_score'] = double.tryParse(propertyData['cluster_score'].toString()) ?? 0.0;
+        propertyData['cluster_score'] =
+            double.tryParse(propertyData['cluster_score'].toString()) ?? 0.0;
         final property = Property.fromJson(propertyData);
         property.similarityScore = propertyData['cluster_score'];
         return property;
