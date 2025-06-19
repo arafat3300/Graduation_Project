@@ -295,10 +295,32 @@ class UserController {
 
   Future<List<Map<String, dynamic>>> fetchRecommendationsRaw(int userId) async {
     const String dbHost = DatabaseConfig.host;
-    const String apiUrl = 'http://$dbHost:8080/recommendations/';
+    const String apiUrl = 'http://10.0.2.2:8010/recommendations/';
+        // const String apiUrl = 'http://$dbHost:8080/recommendations/';
+
     final Uri url = Uri.parse(apiUrl);
 
     try {
+      // First check if user has favorites
+      if (!_isConnected) await _initializeConnection();
+      
+      final favoritesResult = await _connection!.query(
+        '''
+        SELECT COUNT(*) as favorite_count 
+        FROM real_estate_user_favorites 
+        WHERE user_id = @userId
+        ''',
+        substitutionValues: {'userId': userId},
+      );
+
+      final favoriteCount = favoritesResult.first[0] as int;
+      debugPrint("User $userId has $favoriteCount favorites");
+
+      if (favoriteCount == 0) {
+        debugPrint("No favorites found for user $userId. Skipping content-based recommendations.");
+        return [];
+      }
+
       String host = DatabaseConfig.host;
 
       // Add timeout to the HTTP request
@@ -501,6 +523,24 @@ class UserController {
     try {
       if (!_isConnected) await _initializeConnection();
 
+      debugPrint("🔍 Checking for feedback-based recommendations for user: $userId");
+
+      // First, let's check what recommendation types exist for this user
+      final allRecommendationsResult = await _connection!.query(
+        '''
+        SELECT id, recommendation_type, created_at 
+        FROM real_estate_recommendedproperties 
+        WHERE user_id = @userId 
+        ORDER BY created_at DESC
+        ''',
+        substitutionValues: {'userId': userId},
+      );
+
+      debugPrint("📊 All recommendations for user $userId:");
+      for (var row in allRecommendationsResult) {
+        debugPrint("  - ID: ${row[0]}, Type: '${row[1]}', Created: ${row[2]}");
+      }
+
       // Get the latest feedback-based recommendation record for the user
       final recommendationResult = await _connection!.query(
         '''
@@ -514,11 +554,16 @@ class UserController {
       );
 
       if (recommendationResult.isEmpty) {
-        debugPrint("No feedback-based recommendations found in database for user: $userId");
+        debugPrint("❌ No feedback-based recommendations found in database for user: $userId");
+        debugPrint("💡 This could mean:");
+        debugPrint("   1. User hasn't submitted any feedback yet");
+        debugPrint("   2. Feedback service isn't saving recommendations");
+        debugPrint("   3. Recommendation_type is not 'feedback'");
         return [];
       }
 
       final recommendationId = recommendationResult.first[0];
+      debugPrint("✅ Found feedback recommendation ID: $recommendationId");
 
       // Get the property details with scores
       final detailsResult = await _connection!.query(
@@ -531,12 +576,15 @@ class UserController {
         substitutionValues: {'recommendationId': recommendationId},
       );
 
-      return detailsResult.map((row) => {
+      final recommendations = detailsResult.map((row) => {
         "id": row[0],
         "similarity_score": row[1],
       }).toList();
+
+      debugPrint("✅ Retrieved ${recommendations.length} feedback-based recommendations");
+      return recommendations;
     } catch (e) {
-      debugPrint("Error fetching feedback-based recommendations from database: $e");
+      debugPrint("❌ Error fetching feedback-based recommendations from database: $e");
       return [];
     }
   }
@@ -545,33 +593,7 @@ class UserController {
     try {
       if (!_isConnected) await _initializeConnection();
 
-      // Try HTTP request with timeout
-      String dbHost = DatabaseConfig.host;
-      try {
-        debugPrint("connecting to segmentation service");
-        final response = await http.post(
-          Uri.parse('http://$dbHost/property-segmentation/'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'user_id': userId,
-            'host': dbHost,
-            'limit': 10,
-            'find_optimal_clusters': false
-          }),
-        ).timeout(const Duration(seconds: 12));
-
-        debugPrint("Segmentation service response status: ${response.statusCode}");
-        
-
-        if (response.statusCode == 200) {
-          debugPrint('Successfully received cluster information from server');
-        }
-      } catch (e) {
-        debugPrint('HTTP request failed or timed out: $e');
-        // Continue to fetch from DB
-      }
-
-      // Fetch cluster info from database
+      // First, check if cluster info already exists in database
       debugPrint("Fetching cluster info from database for user: $userId");
       final results = await _connection!.query(
         '''
@@ -583,26 +605,90 @@ class UserController {
         substitutionValues: {'userId': userId},
       );
 
-    
       if (results.isNotEmpty) {
-       
+        final row = results.first;
+        final clusterInfo = {
+          'cluster_id': row[0],
+          'message': row[1],
+        };
+        debugPrint("Found existing cluster info: $clusterInfo");
+        return clusterInfo;
       }
 
-      if (results.isEmpty) {
-        debugPrint("No cluster info found in database");
-        return null;
-      }
+      // If no cluster info exists, trigger the segmentation service
+      debugPrint("No cluster info found, triggering segmentation service");
+      String dbHost = DatabaseConfig.host;
+      try {
+        final response = await http.post(
+          Uri.parse('http://10.0.2.2:8012/property-segmentation/'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'user_id': userId,
+            'host': dbHost,
+            'limit': 10,
+            'find_optimal_clusters': false
+          }),
+        ).timeout(const Duration(seconds: 25));
 
-      final row = results.first;
-      final clusterInfo = {
-        'cluster_id': row[0],
-        'message': row[1],
-      };
-      debugPrint("Returning cluster info: $clusterInfo");
-      return clusterInfo;
+        debugPrint("Segmentation service response status: ${response.statusCode}");
+
+        if (response.statusCode == 200) {
+          debugPrint('Successfully triggered segmentation service');
+          // Return a status indicating the process is running
+          return {
+            'status': 'processing',
+            'message': 'User segmentation is being processed. Please check back later.',
+            'cluster_id': null,
+          };
+        } else {
+          debugPrint('Segmentation service returned error: ${response.statusCode}');
+          return {
+            'status': 'error',
+            'message': 'Failed to start user segmentation process.',
+            'cluster_id': null,
+          };
+        }
+      } catch (e) {
+        debugPrint('HTTP request failed or timed out: $e');
+        return {
+          'status': 'error',
+          'message': 'Unable to connect to segmentation service.',
+          'cluster_id': null,
+        };
+      }
     } catch (e) {
-      debugPrint("Error fetching user cluster info: $e");
-      return null;
+      debugPrint("Error in getUserClusterInfo: $e");
+      return {
+        'status': 'error',
+        'message': 'An error occurred while fetching cluster information.',
+        'cluster_id': null,
+      };
     }
+  }
+
+  // Add a method to poll for cluster info updates
+  Future<Map<String, dynamic>?> pollForClusterInfo(int userId, {int maxAttempts = 5}) async {
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+      debugPrint("Polling attempt $attempt for user $userId");
+      
+      final clusterInfo = await getUserClusterInfo(userId);
+      
+      if (clusterInfo != null && clusterInfo['cluster_id'] != null) {
+        debugPrint("Cluster info found on attempt $attempt");
+        return clusterInfo;
+      }
+      
+      if (attempt < maxAttempts) {
+        debugPrint("Waiting 10 seconds before next attempt...");
+        await Future.delayed(const Duration(seconds: 10));
+      }
+    }
+    
+    debugPrint("No cluster info found after $maxAttempts attempts");
+    return {
+      'status': 'timeout',
+      'message': 'User segmentation is still processing. Please try again later.',
+      'cluster_id': null,
+    };
   }
 }

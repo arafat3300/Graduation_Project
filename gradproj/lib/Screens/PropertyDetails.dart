@@ -114,7 +114,8 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   final FeedbackController _feedbackService = FeedbackController();
   late ChatController _chatController;
 
-  final String fastApiUrl = 'http://192.168.1.36:8009/feedback';
+  // final String fastApiUrl = 'http://192.168.1.36:8000/feedback';
+  final String fastApiUrl = 'http://10.0.2.2:8000/predict';
   String test = 't';
 
   @override
@@ -178,33 +179,33 @@ class _PropertyDetailsState extends ConsumerState<PropertyDetails> {
   //   }
   // }
 
-  // Future<void> _sendFeedbackToFastAPI({
-  //   required String feedbackText,
-  //   required int propertyId,
-  //   required String? userId,
-  // }) async {
-  //   try {
-  //     final response = await http.post(
-  //       Uri.parse(fastApiUrl),
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: jsonEncode({
-  //         'feedback_text': feedbackText,
-  //         'property_id': propertyId,
-  //         'user_id': userId ?? 'anonymous',
-  //       }),
-  //     );
+  Future<void> _sendFeedbackToFastAPI({
+    required String feedbackText,
+    required int propertyId,
+    required String? userId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(fastApiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'feedback_text': feedbackText,
+          'property_id': propertyId,
+          'user_id': userId ?? 'anonymous',
+        }),
+      );
 
-  //     if (response.statusCode != 200) {
-  //       throw Exception(
-  //           'Failed to send feedback to AI pipeline: ${response.body}');
-  //     }
-  //   } catch (e) {
-  //     // throw Exception('Error sending feedback to AI pipeline: $e');
-  //     debugPrint('Error sending feedback to AI pipeline: $e');
-  //   }
-  // }
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Failed to send feedback to AI pipeline: ${response.body}');
+      }
+    } catch (e) {
+      // throw Exception('Error sending feedback to AI pipeline: $e');
+      debugPrint('Error sending feedback to AI pipeline: $e');
+    }
+  }
 
   Future<void> _submitFeedback() async {
     if (!_formKey.currentState!.validate()) return;

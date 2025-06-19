@@ -272,11 +272,23 @@ class PropertyController {
   Future<List<Property>> fetchPropertiesFromIdsWithScores(
       List<Map<String, dynamic>> recommendedData) async {
     try {
-      final ids = recommendedData.map<int>((e) => e['id'] as int).toList();
+      // Filter out recommendations with null IDs but allow null scores
+      final validRecommendations = recommendedData.where((e) => 
+        e['id'] != null
+      ).toList();
+      
+      if (validRecommendations.isEmpty) {
+        debugPrint("⚠️ No valid recommendations found");
+        return [];
+      }
+
+      final ids = validRecommendations.map<int>((e) => e['id'] as int).toList();
       Map<int, double> scoreMap = {
-        for (var e in recommendedData)
-          e['id'] as int: (e['similarity_score'] as num).toDouble()
+        for (var e in validRecommendations)
+          e['id'] as int: (e['similarity_score'] as num?)?.toDouble() ?? 0.0
       };
+
+      debugPrint("✅ Processing ${validRecommendations.length} recommendations (including null scores)");
 
       if (!_isConnected) await _initializeConnection();
 
@@ -291,7 +303,7 @@ class PropertyController {
         return property;
       }).toList();
 
-      result.sort((a, b) => b.similarityScore!.compareTo(a.similarityScore!));
+      result.sort((a, b) => (b.similarityScore ?? 0.0).compareTo(a.similarityScore ?? 0.0));
       return result;
     } catch (e) {
       debugPrint("Error in fetchPropertiesFromIdsWithScores: $e");

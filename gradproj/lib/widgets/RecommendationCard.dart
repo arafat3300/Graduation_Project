@@ -15,9 +15,10 @@ class RecommendationCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     double? similarityScore = property.similarityScore;
-    String similarityText = similarityScore != null && similarityScore > 0
+    bool hasValidScore = similarityScore != null && similarityScore > 0;
+    String similarityText = hasValidScore
         ? "${(similarityScore * 100).toStringAsFixed(1)}%"
-        : "N/A";
+        : "";
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -58,7 +59,7 @@ class RecommendationCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: hasValidScore ? MainAxisAlignment.spaceBetween : MainAxisAlignment.start,
               children: [
                 Text(
                   '\$${property.price.toStringAsFixed(2)}',
@@ -67,20 +68,22 @@ class RecommendationCard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Color.fromARGB(255, 8, 145, 236),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'Score: $similarityText',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: const Color.fromARGB(255, 255, 255, 255),
-                      fontWeight: FontWeight.bold,
+                if (hasValidScore) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Color.fromARGB(255, 8, 145, 236),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Score: $similarityText',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: const Color.fromARGB(255, 255, 255, 255),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ],

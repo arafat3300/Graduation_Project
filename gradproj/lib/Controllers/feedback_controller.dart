@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:postgres/postgres.dart';
+import 'package:http/http.dart' as http;
 import '../Models/Feedback.dart';
 import '../config/database_config.dart';
 
 class FeedbackController {
   PostgreSQLConnection? _connection;
   bool _isConnected = false;
+  static const String fastApiUrl = 'http://10.0.2.2:8000/predict';
 
   FeedbackController() {
     _initializeConnection();
@@ -57,6 +60,7 @@ class FeedbackController {
     try {
       if (!_isConnected) await _initializeConnection();
       
+      // First, add to database
       await _connection!.execute(
         '''
         INSERT INTO real_estate_feedback (property_id, user_id, feedback, created_at)
@@ -68,9 +72,29 @@ class FeedbackController {
           'feedbackText': feedbackText,
         },
       );
-      debugPrint("Feedback added: propertyId=$propertyId, userId=$userId, feedbackText=$feedbackText");
+      debugPrint("Feedback added to database: propertyId=$propertyId, userId=$userId, feedbackText=$feedbackText");
+
+      // Then, send to FastAPI
+      final response = await http.post(
+        Uri.parse(fastApiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'review': feedbackText,
+          'property_id': propertyId,
+          'user_id': userId?.toString() ?? 'anonymous',
+          'review_number': 1, // Default to 1 for new reviews
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        debugPrint("Warning: Failed to send feedback to AI pipeline: ${response.body}");
+      } else {
+        debugPrint("Feedback sent to AI pipeline successfully");
+      }
     } catch (e) {
-      debugPrint("Error adding feedback: $e");
+      debugPrint("Error in addFeedback: $e");
       rethrow;
     }
   }
